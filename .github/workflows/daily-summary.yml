@@ -2,7 +2,7 @@ name: daily-summary
 
 on:
   schedule:
-    # 06:00 UTC daily ≈ 10–11pm Pacific, end-of-day feel
+    # 06:00 UTC daily ≈ ~10–11pm Pacific (end-of-day vibe; DST handled)
     - cron: '0 6 * * *'
   workflow_dispatch:
 
@@ -15,7 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -44,22 +45,26 @@ jobs:
 
       - name: Read latest daily JSON
         id: pick
+        shell: bash
         run: |
+          set -euo pipefail
           LATEST_JSON=$(ls -1t reports/daily/daily-*.json | head -n1)
-          echo "LATEST_JSON=$LATEST_JSON" >> $GITHUB_ENV
-          echo "DATE=$(jq -r .date "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "PLANNED_TSS=$(jq -r .summary.planned_tss "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "ACTUAL_TSS=$(jq -r .summary.actual_tss "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "DELTA_TSS=$(jq -r .summary.delta_tss "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "PLANNED_TIME=$(jq -r .summary.planned_time_hms "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "ACTUAL_TIME=$(jq -r .summary.actual_time_hms "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "CTL=$(jq -r .advice.ctl "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "ATL=$(jq -r .advice.atl "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "TSB=$(jq -r .advice.tsb "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "RAMP=$(jq -r .advice.ramp "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "REC=$(jq -r .advice.recommendation "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "TOM_PLAN=$(jq -r .advice.tomorrow_planned_tss "$LATEST_JSON")" >> $GITHUB_ENV
-          echo "TOM_SUGG=$(jq -r .advice.tomorrow_suggested_tss "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "LATEST_JSON=$LATEST_JSON" >> "$GITHUB_ENV"
+          BASE="${LATEST_JSON%.json}"
+          echo "BASE=$BASE" >> "$GITHUB_ENV"
+          echo "DATE=$(jq -r .date "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "PLANNED_TSS=$(jq -r .summary.planned_tss "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "ACTUAL_TSS=$(jq -r .summary.actual_tss "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "DELTA_TSS=$(jq -r .summary.delta_tss "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "PLANNED_TIME=$(jq -r .summary.planned_time_hms "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "ACTUAL_TIME=$(jq -r .summary.actual_time_hms "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "CTL=$(jq -r .advice.ctl "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "ATL=$(jq -r .advice.atl "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "TSB=$(jq -r .advice.tsb "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "RAMP=$(jq -r .advice.ramp "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "REC=$(jq -r .advice.recommendation "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "TOM_PLAN=$(jq -r .advice.tomorrow_planned_tss "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "TOM_SUGG=$(jq -r .advice.tomorrow_suggested_tss "$LATEST_JSON")" >> "$GITHUB_ENV"
 
       - name: Email daily report
         uses: dawidd6/action-send-mail@v3
@@ -83,5 +88,5 @@ jobs:
 
             Tomorrow: planned ${{ env.TOM_PLAN }} → suggested ${{ env.TOM_SUGG }}
           attachments: |
-            ${{ env.LATEST_JSON%.json }}.md
-            ${{ env.LATEST_JSON%.json }}-summary.csv
+            ${{ env.BASE }}.md
+            ${{ env.BASE }}-summary.csv
