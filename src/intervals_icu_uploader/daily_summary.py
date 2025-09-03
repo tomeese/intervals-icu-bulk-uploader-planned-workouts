@@ -199,7 +199,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--for-date", help="YYYY-MM-DD; default today in tz")
     p.add_argument("--outdir", default="reports/daily")
     p.add_argument("--timeout", type=int, default=30)
-    p.add_argument("--types", default="Ride,Gravel Ride",help="Comma-separated activity types to include (default: Ride,Gravel Ride)")
+    p.add_argument("--types", default="Ride,Gravel Ride",help="Comma-separated activity types to include (default: Ride,Gravel Ride)",)
     args = p.parse_args(argv)
 
     api_key = args.api_key or os.environ.get("INTERVALS_API_KEY")
