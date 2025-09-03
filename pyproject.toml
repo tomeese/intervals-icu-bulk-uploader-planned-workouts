@@ -16,6 +16,7 @@ dependencies = [
 
 [project.scripts]
 icu-upload = "intervals_icu_uploader.cli:main"
+icu-weekly-summary = "intervals_icu_uploader.weekly_summary:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
