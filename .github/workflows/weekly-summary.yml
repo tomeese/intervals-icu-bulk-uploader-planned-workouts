@@ -22,6 +22,10 @@ jobs:
 
       - name: Install project
         run: pip install -e .
+        
+      - name: Verify package contents
+        run: |
+          python -c "import sys, pkgutil; import intervals_icu_uploader as p; import importlib; print('pkg:', p.__file__); importlib.import_module('intervals_icu_uploader.weekly_summary'); print('weekly_summary import OK')"
 
       - name: Generate weekly summary
         env:
