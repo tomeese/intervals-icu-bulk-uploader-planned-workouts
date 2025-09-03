@@ -77,6 +77,27 @@ python -m compileall src
 # run from source without install
 python -m intervals_icu_uploader.cli examples/payload.json --dry-run --verbose
 ```
+---
+
+## Weekly Summary (auto-run, planned vs actual)
+
+Every Sunday night (Pacific), a workflow pulls **Mon→Sun** data from Intervals.icu and writes:
+
+- `reports/weekly/weekly-YYYY-MM-DD.md` — human summary
+- `reports/weekly/weekly-YYYY-MM-DD.json` — raw totals & breakdowns
+- `reports/weekly/weekly-YYYY-MM-DD-summary.csv` — one-row totals (actual vs planned)
+- `reports/weekly/weekly-YYYY-MM-DD-bytype.csv` — per-activity-type (actual vs planned)
+
+**Metrics**
+- **Actual vs Planned**: Time, TSS (Load), and deltas (Actual − Planned)
+- Fitness: **CTL**, **ATL**, **Form (TSB = CTL − ATL)**, **Ramp Rate**
+- Breakdowns by activity type (Ride/Run/Swim/Workout/etc.)
+
+**Run locally**
+```bash
+export INTERVALS_API_KEY="YOUR_KEY"
+icu-weekly-summary --athlete-id 0 --tz America/Los_Angeles --outdir reports/weekly
+
 
 ## License
 MIT
