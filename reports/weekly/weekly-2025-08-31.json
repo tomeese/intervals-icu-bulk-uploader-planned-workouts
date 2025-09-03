@@ -1,0 +1,36 @@
+{
+  "week_start": "2025-08-25",
+  "week_end": "2025-08-31",
+  "summary": {
+    "tss": 362.0,
+    "total_time_sec": 50027,
+    "total_time_hms": "13h 53m 47s",
+    "load": 362.0,
+    "fatigue_atl": 73.8,
+    "fitness_ctl": 81.2,
+    "form_tsb": 7.4,
+    "ramp_rate": -5.4,
+    "by_type": {
+      "Walk": {
+        "time_sec": 21904,
+        "time_hms": "6h 05m 04s",
+        "load": 41.0
+      },
+      "Ride": {
+        "time_sec": 12808,
+        "time_hms": "3h 33m 28s",
+        "load": 155.0
+      },
+      "VirtualRide": {
+        "time_sec": 11366,
+        "time_hms": "3h 09m 26s",
+        "load": 149.0
+      },
+      "WeightTraining": {
+        "time_sec": 3949,
+        "time_hms": "1h 05m 49s",
+        "load": 17.0
+      }
+    }
+  }
+}
