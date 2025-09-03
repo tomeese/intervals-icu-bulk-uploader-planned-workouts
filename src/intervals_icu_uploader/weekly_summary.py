@@ -35,6 +35,13 @@ def _week_range_ending_sunday(today: dt.date) -> tuple[dt.date, dt.date]:
     monday = sunday - dt.timedelta(days=6)
     return monday, sunday
 
+def canonical_type(v: str | None) -> str:
+    s = str(v or "").strip().lower()
+    if "gravel" in s:
+        return "gravel ride"
+    if s == "ride":
+        return "ride"
+    return s  # everything else stays as-is
 
 def _get_seconds(obj: Dict[str, Any]) -> int:
     for k in ("moving_time", "elapsed_time", "duration"):
@@ -341,6 +348,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--outdir", default="reports/weekly", help="Directory for outputs")
     parser.add_argument("--filename", default="", help="Optional fixed filename for the markdown")
     parser.add_argument("--timeout", type=int, default=30)
+    parser.add_argument("--types", default="Ride,Gravel Ride", help="Comma-separated activity types to include (default: Ride,Gravel Ride)",
+)
+
     args = parser.parse_args(argv)
 
     api_key = args.api_key or os.environ.get("INTERVALS_API_KEY")
@@ -358,6 +368,14 @@ def main(argv: list[str] | None = None) -> int:
 
     activities = fetch_activities(api_key, args.athlete_id, args.base_url, week_start, week_end, args.timeout)
     events = fetch_events(api_key, args.athlete_id, args.base_url, week_start, week_end, args.timeout)
+    allowed = {t.strip().lower() for t in (args.types or "").split(",") if t.strip()}
+
+    def _allowed(obj) -> bool:
+        return canonical_type(_get_type(obj)) in allowed
+    
+    activities = [a for a in activities if _allowed(a)]
+    events     = [e for e in events     if _allowed(e)]
+    
     wellness = fetch_wellness(api_key, args.athlete_id, args.base_url, week_end, args.timeout)
 
     summary = build_summary(
