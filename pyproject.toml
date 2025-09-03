@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "intervals-icu-bulk-uploader"
+version = "0.1.0"
+description = "CLI for uploading planned workouts to Intervals.icu via the REST API"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{name="Tom", email="you@example.com"}]
+license = {text = "MIT"}
+dependencies = [
+  "requests>=2.31.0",
+]
+
+[project.scripts]
+icu-upload = "intervals_icu_uploader.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

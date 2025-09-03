@@ -1,0 +1,24 @@
+{
+  "events": [
+    {
+      "name": "Long Enduance Ride",
+      "category": "WORKOUT",
+      "start_date_local": "2025-09-08T06:30:00",
+      "type": "Ride",
+      "moving_time": 5400,
+      "icu_training_load": 85,
+      "external_id": "plan-2025-09-08-ride-1",
+      "description": "Endurance 90. TSS 85"
+    },
+    {
+      "name": "Strength Maintenance",
+      "category": "WORKOUT",
+      "start_date_local": "2025-09-09T07:00:00",
+      "type": "Workout",
+      "moving_time": "1:00:00",
+      "icu_training_load": "60",
+      "external_id": "plan-2025-09-09-strength-1",
+      "description": "Strength maintenance. TSS 60"
+    }
+  ]
+}
