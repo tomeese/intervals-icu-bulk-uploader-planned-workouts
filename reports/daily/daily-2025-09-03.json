@@ -1,25 +1,20 @@
 {
   "date": "2025-09-03",
   "summary": {
-    "actual_time_sec": 7813,
-    "actual_time_hms": "2h 10m",
-    "actual_tss": 49.0,
+    "actual_time_sec": 5369,
+    "actual_time_hms": "1h 29m",
+    "actual_tss": 45.0,
     "planned_time_sec": 0,
     "planned_time_hms": "0h 00m",
     "planned_tss": 0,
-    "delta_time_sec": 7813,
-    "delta_time_hms": "2h 10m",
-    "delta_tss": 49.0,
+    "delta_time_sec": 5369,
+    "delta_time_hms": "1h 29m",
+    "delta_tss": 45.0,
     "by_type_actual": {
       "GravelRide": {
         "time_sec": 5369,
         "time_hms": "1h 29m",
         "tss": 45.0
-      },
-      "Walk": {
-        "time_sec": 2444,
-        "time_hms": "0h 40m",
-        "tss": 4.0
       }
     },
     "by_type_planned": {}
