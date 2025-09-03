@@ -16,6 +16,13 @@ except Exception:
 
 INTERVALS_DEFAULT_BASE = "https://intervals.icu"
 
+def canonical_type(v: str | None) -> str:
+    s = str(v or "").strip().lower()
+    if "gravel" in s:
+        return "gravel ride"
+    if s == "ride":
+        return "ride"
+    return s
 
 def _date_str(d: dt.date) -> str:
     return d.strftime("%Y-%m-%d")
@@ -29,7 +36,6 @@ def _get_seconds(obj: Dict[str, Any]) -> int:
         if isinstance(v, str) and v.isdigit():
             return int(v)
     return 0
-
 
 def _get_load(obj: Dict[str, Any]) -> float:
     for k in ("load", "icu_training_load", "training_load", "tss"):
@@ -193,6 +199,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--for-date", help="YYYY-MM-DD; default today in tz")
     p.add_argument("--outdir", default="reports/daily")
     p.add_argument("--timeout", type=int, default=30)
+    p.add_argument("--types", default="Ride,Gravel Ride",help="Comma-separated activity types to include (default: Ride,Gravel Ride)")
     args = p.parse_args(argv)
 
     api_key = args.api_key or os.environ.get("INTERVALS_API_KEY")
@@ -206,8 +213,19 @@ def main(argv: list[str] | None = None) -> int:
     acts = fetch_activities(api_key, args.athlete_id, args.base_url, day, args.timeout)
     evts_today = fetch_events(api_key, args.athlete_id, args.base_url, day, args.timeout)
     evts_tom = fetch_events(api_key, args.athlete_id, args.base_url, tomorrow, args.timeout)
+    allowed = {t.strip().lower() for t in (args.types or "").split(",") if t.strip()}
+
+    def _allowed(obj) -> bool:
+        t = str(obj.get("type") or "")
+        return canonical_type(t) in allowed
+
+    acts       = [a for a in acts       if _allowed(a)]
+    evts_today = [e for e in evts_today if _allowed(e)]
+    evts_tom   = [e for e in evts_tom   if _allowed(e)]
+    
     wellness = fetch_wellness(api_key, args.athlete_id, args.base_url, day, args.timeout)
 
+    
     summary = summarize_day(acts, evts_today)
     tomorrow_planned_tss = sum(_get_load(e) for e in evts_tom if str(e.get("category") or "").upper() == "WORKOUT")
     advice = coach_advice(summary, wellness, tomorrow_planned_tss)
