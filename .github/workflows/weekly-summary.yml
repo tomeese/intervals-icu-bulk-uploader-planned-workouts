@@ -1,0 +1,83 @@
+name: weekly-summary
+
+on:
+  schedule:
+    # 05:00 UTC each Monday ≈ Sunday night in Pacific (handles DST)
+    - cron: '0 5 * * MON'
+  workflow_dispatch:
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install -e .
+
+      - name: Generate weekly summary
+        env:
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+        run: |
+          icu-weekly-summary --athlete-id 0 --tz America/Los_Angeles --outdir reports/weekly
+
+      - name: Commit report (if changed)
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add reports/weekly
+            git commit -m "chore: add weekly summary [skip ci]"
+            git push
+          else
+            echo "No changes to commit."
+          fi
+
+      - name: Ensure jq is available
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Locate latest report & export fields
+        id: pick
+        run: |
+          LATEST_JSON=$(ls -1t reports/weekly/weekly-*.json | head -n1)
+          echo "LATEST_JSON=$LATEST_JSON" >> $GITHUB_ENV
+          BASE="${LATEST_JSON%.json}"
+          echo "BASE=$BASE" >> $GITHUB_ENV
+          echo "WEEK_START=$(jq -r .week_start "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "WEEK_END=$(jq -r .week_end "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "TSS=$(jq -r .summary.tss "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "TIME=$(jq -r .summary.total_time_hms "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "CTL=$(jq -r .summary.fitness_ctl "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "ATL=$(jq -r .summary.fatigue_atl "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "FORM=$(jq -r .summary.form_tsb "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "RAMP=$(jq -r .summary.ramp_rate "$LATEST_JSON")" >> $GITHUB_ENV
+
+      - name: Email weekly report
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: Weekly Intervals Report: ${{ env.WEEK_START }} → ${{ env.WEEK_END }} (TSS ${{ env.TSS }}, CTL ${{ env.CTL }}, ATL ${{ env.ATL }}, TSB ${{ env.FORM }})
+          to: ${{ secrets.REPORT_TO }}
+          from: "Intervals Bot <${{ secrets.GMAIL_USER }}>"
+          body: |
+            Week: ${{ env.WEEK_START }} → ${{ env.WEEK_END }}
+            Total Time: ${{ env.TIME }}
+            TSS/Load: ${{ env.TSS }}
+            Fitness (CTL): ${{ env.CTL }}
+            Fatigue (ATL): ${{ env.ATL }}
+            Form (TSB): ${{ env.FORM }}
+            Ramp Rate: ${{ env.RAMP }}
+          attachments: |
+            ${{ env.BASE }}.md
+            ${{ env.BASE }}-summary.csv
+            ${{ env.BASE }}-bytype.csv
