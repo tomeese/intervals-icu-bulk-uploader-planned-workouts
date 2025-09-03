@@ -1,0 +1,87 @@
+name: daily-summary
+
+on:
+  schedule:
+    # 06:00 UTC daily ≈ 10–11pm Pacific, end-of-day feel
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install project
+        run: pip install -e .
+
+      - name: Generate daily summary
+        env:
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+        run: icu-daily-summary --athlete-id 0 --tz America/Los_Angeles --outdir reports/daily
+
+      - name: Commit report if changed
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add reports/daily
+            git commit -m "chore: add daily summary [skip ci]"
+            git push
+          else
+            echo "No changes to commit."
+          fi
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Read latest daily JSON
+        id: pick
+        run: |
+          LATEST_JSON=$(ls -1t reports/daily/daily-*.json | head -n1)
+          echo "LATEST_JSON=$LATEST_JSON" >> $GITHUB_ENV
+          echo "DATE=$(jq -r .date "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "PLANNED_TSS=$(jq -r .summary.planned_tss "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "ACTUAL_TSS=$(jq -r .summary.actual_tss "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "DELTA_TSS=$(jq -r .summary.delta_tss "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "PLANNED_TIME=$(jq -r .summary.planned_time_hms "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "ACTUAL_TIME=$(jq -r .summary.actual_time_hms "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "CTL=$(jq -r .advice.ctl "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "ATL=$(jq -r .advice.atl "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "TSB=$(jq -r .advice.tsb "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "RAMP=$(jq -r .advice.ramp "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "REC=$(jq -r .advice.recommendation "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "TOM_PLAN=$(jq -r .advice.tomorrow_planned_tss "$LATEST_JSON")" >> $GITHUB_ENV
+          echo "TOM_SUGG=$(jq -r .advice.tomorrow_suggested_tss "$LATEST_JSON")" >> $GITHUB_ENV
+
+      - name: Email daily report
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "Daily Intervals: ${{ env.DATE }}  TSS ${{ env.ACTUAL_TSS }} (plan ${{ env.PLANNED_TSS }})  CTL ${{ env.CTL }} ATL ${{ env.ATL }} TSB ${{ env.TSB }}"
+          to: ${{ secrets.REPORT_TO }}
+          from: "Intervals Bot <${{ secrets.GMAIL_USER }}>"
+          body: |
+            Date:       ${{ env.DATE }}
+            TSS:        ${{ env.ACTUAL_TSS }}  (plan ${{ env.PLANNED_TSS }}, Δ ${{ env.DELTA_TSS }})
+            Time:       ${{ env.ACTUAL_TIME }} (plan ${{ env.PLANNED_TIME }})
+            Fitness:    CTL ${{ env.CTL }} | ATL ${{ env.ATL }} | TSB ${{ env.TSB }} | Ramp ${{ env.RAMP }}
+
+            Coach's note:
+            ${{ env.REC }}
+
+            Tomorrow: planned ${{ env.TOM_PLAN }} → suggested ${{ env.TOM_SUGG }}
+          attachments: |
+            ${{ env.LATEST_JSON%.json }}.md
+            ${{ env.LATEST_JSON%.json }}-summary.csv
