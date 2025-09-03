@@ -1,0 +1,37 @@
+{
+  "date": "2025-09-03",
+  "summary": {
+    "actual_time_sec": 7813,
+    "actual_time_hms": "2h 10m",
+    "actual_tss": 49.0,
+    "planned_time_sec": 0,
+    "planned_time_hms": "0h 00m",
+    "planned_tss": 0,
+    "delta_time_sec": 7813,
+    "delta_time_hms": "2h 10m",
+    "delta_tss": 49.0,
+    "by_type_actual": {
+      "GravelRide": {
+        "time_sec": 5369,
+        "time_hms": "1h 29m",
+        "tss": 45.0
+      },
+      "Walk": {
+        "time_sec": 2444,
+        "time_hms": "0h 40m",
+        "tss": 4.0
+      }
+    },
+    "by_type_planned": {}
+  },
+  "advice": {
+    "tsb": 5.0,
+    "ctl": 81.3,
+    "atl": 76.3,
+    "ramp": -4.2,
+    "recommendation": "Stick to plan.",
+    "tomorrow_planned_tss": 0,
+    "tomorrow_suggested_tss": 0.0,
+    "adjust_pct": 0.0
+  }
+}
