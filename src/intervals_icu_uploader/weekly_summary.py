@@ -5,7 +5,7 @@ import datetime as dt
 import json
 import os
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple, Optional
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -35,13 +35,6 @@ def _week_range_ending_sunday(today: dt.date) -> tuple[dt.date, dt.date]:
     monday = sunday - dt.timedelta(days=6)
     return monday, sunday
 
-def canonical_type(v: str | None) -> str:
-    s = str(v or "").strip().lower()
-    if "gravel" in s:
-        return "gravel ride"
-    if s == "ride":
-        return "ride"
-    return s  # everything else stays as-is
 
 def _get_seconds(obj: Dict[str, Any]) -> int:
     for k in ("moving_time", "elapsed_time", "duration"):
@@ -71,11 +64,46 @@ def _get_type(obj: Dict[str, Any]) -> str:
     return str(obj.get("type") or "Workout")
 
 
+def canonical_type(v: str | None) -> str:
+    s = str(v or "").strip().lower()
+    if "gravel" in s:
+        return "gravel ride"
+    if s == "ride":
+        return "ride"
+    return s  # leave others as-is
+
+
 def format_hms(seconds: int) -> str:
     h = seconds // 3600
     m = (seconds % 3600) // 60
     s = seconds % 60
     return f"{h:d}h {m:02d}m" if s == 0 else f"{h:d}h {m:02d}m {s:02d}s"
+
+
+def _local_start_iso(obj: Dict[str, Any]) -> Optional[str]:
+    for k in ("start_date_local", "start_date"):
+        v = obj.get(k)
+        if isinstance(v, str) and len(v) >= 16:
+            return v
+    return None
+
+
+def _parse_dt(s: Optional[str]) -> Optional[dt.datetime]:
+    if not s:
+        return None
+    s2 = s.replace("Z", "")
+    try:
+        return dt.datetime.fromisoformat(s2)
+    except Exception:
+        try:
+            return dt.datetime.strptime(s2[:16], "%Y-%m-%dT%H:%M")
+        except Exception:
+            return None
+
+
+def _local_date(obj: Dict[str, Any]) -> Optional[str]:
+    s = _local_start_iso(obj)
+    return s[:10] if s else None
 
 
 # ---------------------------
@@ -134,6 +162,132 @@ def fetch_wellness(
 
 
 # ---------------------------
+# Matching logic (per-workout)
+# ---------------------------
+
+def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Return (pairs, unmatched_planned, unmatched_actual).
+    A pair has keys: planned_*, actual_*, delta_* and match_method.
+    """
+    # Index activities
+    by_ext: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    by_date_type: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
+
+    def act_key(a: Dict[str, Any]) -> Tuple[Optional[dt.datetime], int]:
+        dt0 = _parse_dt(_local_start_iso(a))
+        return (dt0, _get_seconds(a))
+
+    for a in activities:
+        ext = str(a.get("external_id") or "")
+        if ext:
+            by_ext[ext].append(a)
+        d = _local_date(a) or ""
+        t = canonical_type(_get_type(a))
+        by_date_type[(d, t)].append(a)
+
+    # sort activity buckets by time
+    for k in by_ext:
+        by_ext[k].sort(key=act_key)
+    for k in by_date_type:
+        by_date_type[k].sort(key=act_key)
+
+    used_ids = set()  # to avoid double-matching
+    pairs: List[Dict[str, Any]] = []
+
+    planned_list = [e for e in events if str(e.get("category") or "").upper() == "WORKOUT"]
+
+    for e in planned_list:
+        p_ext = str(e.get("external_id") or "")
+        p_name = str(e.get("name") or "").strip() or "Planned"
+        p_type = canonical_type(_get_type(e))
+        p_secs = _get_seconds(e)
+        p_tss = _get_load(e)
+        p_start = _parse_dt(_local_start_iso(e))
+        p_date = _local_date(e) or ""
+
+        chosen = None
+        method = ""
+
+        # Strategy 1: external_id exact match
+        if p_ext and p_ext in by_ext:
+            for cand in by_ext[p_ext]:
+                aid = id(cand)
+                if aid in used_ids:
+                    continue
+                chosen = cand
+                method = "external_id"
+                break
+
+        # Strategy 2: same date and type, closest start time
+        if chosen is None:
+            cands = by_date_type.get((p_date, p_type), [])
+            best = None
+            best_dt = None
+            if p_start:
+                for cand in cands:
+                    aid = id(cand)
+                    if aid in used_ids:
+                        continue
+                    a_start = _parse_dt(_local_start_iso(cand))
+                    if a_start is None:
+                        continue
+                    diff = abs((a_start - p_start).total_seconds())
+                    if best is None or diff < best_dt:
+                        best = cand
+                        best_dt = diff
+                if best is not None:
+                    chosen = best
+                    method = "time"
+            else:
+                # no planned start time? just take first unused in bucket
+                for cand in cands:
+                    aid = id(cand)
+                    if aid in used_ids:
+                        continue
+                    chosen = cand
+                    method = "type"
+                    break
+
+        if chosen is not None:
+            used_ids.add(id(chosen))
+            a_name = str(chosen.get("name") or "").strip() or "Activity"
+            a_secs = _get_seconds(chosen)
+            a_tss = _get_load(chosen)
+            a_start = _parse_dt(_local_start_iso(chosen))
+            pair = {
+                "planned_name": p_name,
+                "planned_type": p_type,
+                "planned_time_sec": int(p_secs),
+                "planned_time_hms": format_hms(int(p_secs)),
+                "planned_tss": round(p_tss, 1),
+                "planned_start": p_start.isoformat() if p_start else "",
+                "actual_name": a_name,
+                "actual_type": canonical_type(_get_type(chosen)),
+                "actual_time_sec": int(a_secs),
+                "actual_time_hms": format_hms(int(a_secs)),
+                "actual_tss": round(a_tss, 1),
+                "actual_start": a_start.isoformat() if a_start else "",
+                "delta_time_sec": int(a_secs - p_secs),
+                "delta_tss": round(a_tss - p_tss, 1),
+                "match_method": method,
+            }
+            pairs.append(pair)
+
+    # Unmatched
+    matched_actuals = {id_entry for id_entry in used_ids}
+    unmatched_actual = [a for a in activities if id(a) not in matched_actuals]
+    matched_planned_names = {(p["planned_name"], p["planned_start"]) for p in pairs}
+    unmatched_planned = []
+    for e in planned_list:
+        key = (str(e.get("name") or "").strip() or "Planned", (_parse_dt(_local_start_iso(e)) or dt.datetime.min).isoformat())
+        if key not in matched_planned_names:
+            unmatched_planned.append(e)
+
+    return pairs, unmatched_planned, unmatched_actual
+
+
+# ---------------------------
 # Summary logic
 # ---------------------------
 
@@ -152,7 +306,7 @@ def build_summary(
     for a in activities:
         secs = _get_seconds(a)
         ld = _get_load(a)
-        t = _get_type(a)
+        t = canonical_type(_get_type(a))
         actual_seconds += secs
         actual_load += ld
         by_type_actual[t]["seconds"] += secs
@@ -167,7 +321,7 @@ def build_summary(
     for e in planned:
         secs = _get_seconds(e)
         ld = _get_load(e)
-        t = _get_type(e)
+        t = canonical_type(_get_type(e))
         planned_seconds += secs
         planned_load += ld
         by_type_planned[t]["seconds"] += secs
@@ -180,7 +334,7 @@ def build_summary(
     # Form (TSB) = CTL - ATL (for Sunday)
     form = ctl - atl
 
-    # Merge by-type for an optional delta view (not required to output)
+    # Deltas by type
     all_types = sorted(set(by_type_actual) | set(by_type_planned))
     by_type_delta: Dict[str, Dict[str, float]] = {}
     for t in all_types:
@@ -192,6 +346,9 @@ def build_summary(
             "seconds": int(a_sec - p_sec),
             "load": round(a_ld - p_ld, 1),
         }
+
+    # Per-workout pairs
+    pairs, unmatched_planned, unmatched_actual = match_sessions(activities, events)
 
     return {
         # Actuals
@@ -230,6 +387,10 @@ def build_summary(
             for k, v in sorted(by_type_planned.items(), key=lambda kv: -kv[1]["seconds"])
         },
         "by_type_delta": by_type_delta,
+        # Sessions
+        "sessions": pairs,
+        "unmatched_planned": unmatched_planned,
+        "unmatched_actual": unmatched_actual,
     }
 
 
@@ -267,6 +428,18 @@ def write_markdown(path: str, week_start: dt.date, week_end: dt.date, s: Dict[st
     for t, v in s["by_type_planned"].items():
         lines.append(f"| {t} | {v['time_hms']} | {v['load']} |")
 
+    # Sessions (limit to 20 in the email-friendly markdown)
+    lines.append("\n## Per-Workout Planned vs Actual (top 20)\n")
+    lines.append("| Planned | Type | Act | ΔTime | ΔTSS | Match |")
+    lines.append("|---|---|---|---:|---:|---|")
+    for row in s["sessions"][:20]:
+        lines.append(
+            f"| {row['planned_name']} | {row['planned_type']} | "
+            f"{row['actual_name']} | {row['delta_time_sec']}s | {row['delta_tss']} | {row['match_method']} |"
+        )
+    if len(s["sessions"]) > 20:
+        lines.append(f"\n… {len(s['sessions']) - 20} more; see sessions CSV.\n")
+
     # Optional: deltas by type (omit empty deltas)
     if any(abs(d["seconds"]) > 0 or abs(d["load"]) > 0.05 for d in s["by_type_delta"].values()):
         lines.append("\n## Δ by Type (Actual − Planned)\n")
@@ -280,15 +453,17 @@ def write_markdown(path: str, week_start: dt.date, week_end: dt.date, s: Dict[st
         f.write("\n".join(lines) + "\n")
 
 
-def write_csvs(base_path: str, week_start: dt.date, week_end: dt.date, s: Dict[str, Any]) -> tuple[str, str]:
+def write_csvs(base_path: str, week_start: dt.date, week_end: dt.date, s: Dict[str, Any]) -> tuple[str, str, str]:
     """
-    Writes two CSVs:
-      - {base}-summary.csv  (one row: actual + planned + deltas + CTL/ATL/TSB/Ramp)
-      - {base}-bytype.csv   (rows by type: actual, planned, deltas)
-    Returns the two paths.
+    Writes three CSVs:
+      - {base}-summary.csv    (one row: actual + planned + deltas + CTL/ATL/TSB/Ramp)
+      - {base}-bytype.csv     (rows by type: actual, planned, deltas)
+      - {base}-sessions.csv   (per-workout planned vs actual pairs)
+    Returns the three paths.
     """
     summary_csv = f"{base_path}-summary.csv"
     bytype_csv = f"{base_path}-bytype.csv"
+    sessions_csv = f"{base_path}-sessions.csv"
 
     # One-row summary
     with open(summary_csv, "w", newline="", encoding="utf-8") as f:
@@ -331,7 +506,22 @@ def write_csvs(base_path: str, week_start: dt.date, week_end: dt.date, s: Dict[s
                 d["seconds"], d["load"],
             ])
 
-    return summary_csv, bytype_csv
+    # Sessions pairs
+    with open(sessions_csv, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow([
+            "planned_name","planned_type","planned_start","planned_time_sec","planned_time_hms","planned_tss",
+            "actual_name","actual_type","actual_start","actual_time_sec","actual_time_hms","actual_tss",
+            "delta_time_sec","delta_tss","match_method"
+        ])
+        for row in s["sessions"]:
+            w.writerow([
+                row["planned_name"], row["planned_type"], row["planned_start"], row["planned_time_sec"], row["planned_time_hms"], row["planned_tss"],
+                row["actual_name"], row["actual_type"], row["actual_start"], row["actual_time_sec"], row["actual_time_hms"], row["actual_tss"],
+                row["delta_time_sec"], row["delta_tss"], row["match_method"]
+            ])
+
+    return summary_csv, bytype_csv, sessions_csv
 
 
 # ---------------------------
@@ -348,9 +538,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--outdir", default="reports/weekly", help="Directory for outputs")
     parser.add_argument("--filename", default="", help="Optional fixed filename for the markdown")
     parser.add_argument("--timeout", type=int, default=30)
-    parser.add_argument("--types", default="Ride,Gravel Ride", help="Comma-separated activity types to include (default: Ride,Gravel Ride)",
-)
-
+    parser.add_argument(
+        "--types",
+        default="Ride,Gravel Ride",
+        help="Comma-separated activity types to include (default: Ride,Gravel Ride)",
+    )
     args = parser.parse_args(argv)
 
     api_key = args.api_key or os.environ.get("INTERVALS_API_KEY")
@@ -368,15 +560,15 @@ def main(argv: list[str] | None = None) -> int:
 
     activities = fetch_activities(api_key, args.athlete_id, args.base_url, week_start, week_end, args.timeout)
     events = fetch_events(api_key, args.athlete_id, args.base_url, week_start, week_end, args.timeout)
-    allowed = {t.strip().lower() for t in (args.types or "").split(",") if t.strip()}
+    wellness = fetch_wellness(api_key, args.athlete_id, args.base_url, week_end, args.timeout)
 
+    # Filter types
+    allowed = {t.strip().lower() for t in (args.types or "").split(",") if t.strip()}
     def _allowed(obj) -> bool:
         return canonical_type(_get_type(obj)) in allowed
-    
+
     activities = [a for a in activities if _allowed(a)]
-    events     = [e for e in events     if _allowed(e)]
-    
-    wellness = fetch_wellness(api_key, args.athlete_id, args.base_url, week_end, args.timeout)
+    events = [e for e in events if _allowed(e)]
 
     summary = build_summary(
         activities=activities,
@@ -402,9 +594,9 @@ def main(argv: list[str] | None = None) -> int:
 
     # CSVs
     base = os.path.join(outdir, f"weekly-{week_end.isoformat()}")
-    summary_csv, bytype_csv = write_csvs(base, week_start, week_end, summary)
+    summary_csv, bytype_csv, sessions_csv = write_csvs(base, week_start, week_end, summary)
 
-    print(f"Wrote {md_path}, {json_path}, {summary_csv}, {bytype_csv}")
+    print(f"Wrote {md_path}, {json_path}, {summary_csv}, {bytype_csv}, {sessions_csv}")
     return 0
 
 
