@@ -25,7 +25,7 @@ on:
         description: 'Activity types (comma-separated)'
         required: false
         type: string
-        default: 'Ride,Gravel Ride'
+        default: 'Ride,Gravel Ride,Virtual Ride'
       dry_run:
         description: 'Do not commit/push changes'
         required: false
