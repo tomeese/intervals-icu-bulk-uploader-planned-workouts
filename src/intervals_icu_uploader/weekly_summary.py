@@ -7,7 +7,7 @@ import os
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Optional
 
-import requests
+import requests # type: ignore
 from requests.auth import HTTPBasicAuth
 try:
     from zoneinfo import ZoneInfo  # py>=3.9
