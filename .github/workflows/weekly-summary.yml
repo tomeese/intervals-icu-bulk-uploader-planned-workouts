@@ -88,3 +88,5 @@ jobs:
             ${{ env.BASE }}.md
             ${{ env.BASE }}-summary.csv
             ${{ env.BASE }}-bytype.csv
+            ${{ env.BASE }}-sessions.csv
+
