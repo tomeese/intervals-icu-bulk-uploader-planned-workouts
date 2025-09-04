@@ -30,7 +30,7 @@ jobs:
       - name: Generate weekly summary
         env:
           INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
-        run: icu-weekly-summary --athlete-id 0 --tz America/Los_Angeles --outdir reports/weekly
+        run: icu-weekly-summary --athlete-id 0 --tz America/Los_Angeles --outdir reports/weekly --types "Ride,Gravel Ride,Virtual Ride"
 
       - name: Commit report if changed
         run: |
