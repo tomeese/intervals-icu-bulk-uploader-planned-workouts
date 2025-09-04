@@ -14,12 +14,68 @@ try:
 except Exception:
     ZoneInfo = None  # type: ignore
 
+try:
+    import yaml  # add this
+except Exception:
+    yaml = None
+
 INTERVALS_DEFAULT_BASE = "https://intervals.icu"
 
 
 # ---------------------------
 # Helpers
 # ---------------------------
+def load_config(path: str = ".icu.yaml") -> dict:
+    if not os.path.exists(path) or yaml is None:
+        # defaults if no file or PyYAML missing
+        return {
+            "daily": {"min_tsb": -20, "warn_tsb": -10, "max_daily_ramp": 8.0, "max_delta_tss": 75},
+            "weekly": {"min_tsb": -20, "max_weekly_ramp": 8.0, "max_delta_tss": 150},
+        }
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    # fill defaults if keys missing
+    d = data.get("daily", {})
+    w = data.get("weekly", {})
+    return {
+        "daily": {
+            "min_tsb": float(d.get("min_tsb", -20)),
+            "warn_tsb": float(d.get("warn_tsb", -10)),
+            "max_daily_ramp": float(d.get("max_daily_ramp", 8.0)),
+            "max_delta_tss": float(d.get("max_delta_tss", 75)),
+        },
+        "weekly": {
+            "min_tsb": float(w.get("min_tsb", -20)),
+            "max_weekly_ramp": float(w.get("max_weekly_ramp", 8.0)),
+            "max_delta_tss": float(w.get("max_delta_tss", 150)),
+        },
+    }
+
+def build_daily_alerts(summary: dict, advice: dict, cfg: dict) -> dict:
+    flags = []
+    tsb = advice["tsb"]
+    ramp = advice["ramp"]
+    delta_tss = summary["delta_tss"]
+    min_tsb = cfg["daily"]["min_tsb"]
+    warn_tsb = cfg["daily"]["warn_tsb"]
+    max_ramp = cfg["daily"]["max_daily_ramp"]
+    max_delta = cfg["daily"]["max_delta_tss"]
+
+    if tsb <= min_tsb:
+        flags.append(f"TSB {tsb} (deep red)")
+    elif tsb <= warn_tsb:
+        flags.append(f"TSB {tsb} (red-ish)")
+
+    if abs(delta_tss) >= max_delta:
+        flags.append(f"ΔTSS {delta_tss:+}")
+
+    if ramp >= max_ramp:
+        flags.append(f"Ramp {ramp} CTL/wk high")
+
+    # subject tag = short, comma-separated
+    subject_tag = ", ".join(flags)
+    return {"flags": flags, "subject_tag": subject_tag}
+
 
 def _date_str(d: dt.date) -> str:
     return d.strftime("%Y-%m-%d")
@@ -324,13 +380,14 @@ def coach_advice(today: Dict[str, Any], wellness_today: Dict[str, float], tomorr
 # Outputs
 # ---------------------------
 
-def write_outputs(outdir: str, day: dt.date, summary: Dict[str, Any], advice: Dict[str, Any], sessions: List[Dict[str, Any]]) -> str:
+def write_outputs(outdir: str, day: dt.date, summary: Dict[str, Any], advice: Dict[str, Any], sessions: List[Dict[str, Any]], alerts: Dict[str, Any]) -> str:
+
     os.makedirs(outdir, exist_ok=True)
     base = os.path.join(outdir, f"daily-{day.isoformat()}")
 
     # JSON
     with open(base + ".json", "w", encoding="utf-8") as f:
-        json.dump({"date": day.isoformat(), "summary": summary, "advice": advice, "sessions": sessions}, f, indent=2)
+        json.dump({"date": day.isoformat(), "summary": summary, "advice": advice, "sessions": sessions, "alerts": alerts}, f, indent=2)
 
     # CSV (one row)
     with open(base + "-summary.csv", "w", newline="", encoding="utf-8") as f:
@@ -368,6 +425,10 @@ def write_outputs(outdir: str, day: dt.date, summary: Dict[str, Any], advice: Di
         md.append(f"| {row['planned_name']} | {row['planned_type']} | {row['actual_name']} | {row['delta_time_sec']}s | {row['delta_tss']} | {row['match_method']} |")
     if len(sessions) > 20:
         md.append(f"\n… {len(sessions) - 20} more; see sessions CSV.\n")
+    if alerts["flags"]:
+        md.append("\n## Red flags\n")
+        for fl in alerts["flags"]:
+            md.append(f"- ⚠️ {fl}")
     md.append("\n## Fitness\n")
     md.append("| CTL | ATL | TSB | Ramp |")
     md.append("|---:|---:|---:|---:|")
@@ -405,6 +466,8 @@ def main(argv: list[str] | None = None) -> int:
     if not api_key:
         raise SystemExit("ERROR: Provide --api-key or set INTERVALS_API_KEY")
 
+    cfg = load_config() 
+
     now = dt.datetime.now(ZoneInfo(args.tz)) if ZoneInfo else dt.datetime.now()
     day = dt.date.fromisoformat(args.for_date) if args.for_date else now.date()
     tomorrow = day + dt.timedelta(days=1)
@@ -430,8 +493,11 @@ def main(argv: list[str] | None = None) -> int:
     # Tomorrow planning & advice
     tomorrow_planned_tss = sum(_get_load(e) for e in evts_tom if str(e.get("category") or "").upper() == "WORKOUT")
     advice = coach_advice(summary, wellness, tomorrow_planned_tss)
+    
+    alerts = build_daily_alerts(summary, advice, cfg)
 
-    base = write_outputs(args.outdir, day, summary, advice, sessions)
+    base = write_outputs(args.outdir, day, summary, advice, sessions, alerts)
+
     print(f"Wrote {base}.md, {base}.json, {base}-summary.csv, {base}-sessions.csv")
     return 0
 

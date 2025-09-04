@@ -12,6 +12,7 @@ authors = [{name="Tom", email="you@example.com"}]
 license = {text = "MIT"}
 dependencies = [
   "requests>=2.31.0",
+   "PyYAML>=6.0",
 ]
 
 [project.scripts]
