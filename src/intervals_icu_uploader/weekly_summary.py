@@ -113,17 +113,14 @@ def _get_load(obj: Dict[str, Any]) -> float:
 def _get_type(obj: Dict[str, Any]) -> str:
     return str(obj.get("type") or "Workout")
 
-
 def canonical_type(v: str | None) -> str:
     s = str(v or "").strip().lower()
     # normalize common bike labels & synonyms
     if "gravel" in s:
         return "gravel ride"
-    if "virtual" in s:
-        return "virtual ride"
     if s in {"ride", "bike ride", "cycling", "bike"}:
         return "ride"
-    # Virtual ride synonyms & formats (Strava = "VirtualRide")
+    # Virtual ride synonyms & formats (e.g., Strava "VirtualRide")
     s_compact = s.replace(" ", "")
     if s_compact == "virtualride" or ("virtual" in s and "ride" in s):
         return "virtual ride"
@@ -132,11 +129,10 @@ def canonical_type(v: str | None) -> str:
     return s
 
 def canonicalize_obj_type(obj: dict) -> str:
-    """
+    '''
     Best-guess type using both fields and name.
-    Many Intervals events have type="" or "Workout"; rely on the name as fallback.
-    """
-    # try multiple common fields first
+    Intervals events often have type="" or "Workout"; infer from name.
+    '''
     raw = (
         obj.get("type")
         or obj.get("sport")
@@ -147,7 +143,7 @@ def canonicalize_obj_type(obj: dict) -> str:
     )
     ct = canonical_type(raw)
 
-    # if still generic/blank, infer from the name
+    # If generic/blank, infer from the name
     if ct in {"", "workout"}:
         name = str(obj.get("name") or "").strip().lower()
         if any(k in name for k in ["zwift", "trainer", "indoor", "virtual"]):
@@ -158,6 +154,7 @@ def canonicalize_obj_type(obj: dict) -> str:
             return "ride"
 
     return ct
+    
 
 def format_hms(seconds: int) -> str:
     h = seconds // 3600
@@ -269,7 +266,7 @@ def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]
         if ext:
             by_ext[ext].append(a)
         d = _local_date(a) or ""
-        t = canonical_type(_get_type(a))
+        t = canonicalize_obj_type(_get_type(a))
         by_date_type[(d, t)].append(a)
 
     # sort activity buckets by time
@@ -286,7 +283,7 @@ def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]
     for e in planned_list:
         p_ext = str(e.get("external_id") or "")
         p_name = str(e.get("name") or "").strip() or "Planned"
-        p_type = canonical_type(_get_type(e))
+        p_type = canonical_obj_type(_get_type(e))
         p_secs = _get_seconds(e)
         p_tss = _get_load(e)
         p_start = _parse_dt(_local_start_iso(e))
@@ -349,7 +346,7 @@ def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]
                 "planned_tss": round(p_tss, 1),
                 "planned_start": p_start.isoformat() if p_start else "",
                 "actual_name": a_name,
-                "actual_type": canonical_type(_get_type(chosen)),
+                "actual_type": canonicalize_obj_type(_get_type(chosen)),
                 "actual_time_sec": int(a_secs),
                 "actual_time_hms": format_hms(int(a_secs)),
                 "actual_tss": round(a_tss, 1),
@@ -645,7 +642,7 @@ def main(argv: list[str] | None = None) -> int:
     wellness = fetch_wellness(api_key, args.athlete_id, args.base_url, week_end, args.timeout)
 
     # Filter types
-    allowed = {canonical_type(t) for t in (args.types or "").split(",") if t.strip()}
+    allowed = {canonicalize_obj_type(t) for t in (args.types or "").split(",") if t.strip()}
 
     def _allowed(obj) -> bool:
         return canonicalize_obj_type(obj) in allowed
