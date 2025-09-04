@@ -112,39 +112,48 @@ def _get_load(obj: Dict[str, Any]) -> float:
 
 def _get_type(obj: Dict[str, Any]) -> str:
     return str(obj.get("type") or "Workout")
-
-
 def canonical_type(v: str | None) -> str:
     s = str(v or "").strip().lower()
-    # normalize common bike types / synonyms
+    # normalize common bike labels & synonyms
     if "gravel" in s:
         return "gravel ride"
     if s in {"ride", "bike ride", "cycling", "bike"}:
         return "ride"
-    if s.replace(" ", "") in {"virtualride"} or ("virtual" in s and "ride" in s):
+    # Virtual ride synonyms & formats (Strava = "VirtualRide")
+    s_compact = s.replace(" ", "")
+    if s_compact == "virtualride" or ("virtual" in s and "ride" in s):
         return "virtual ride"
-    if "zwift" in s or "trainer" in s or "indoor" in s:
+    if any(k in s for k in ["zwift", "trainer", "indoor", "smarttrainer"]):
         return "virtual ride"
     return s
 
 def canonicalize_obj_type(obj: dict) -> str:
-    """Return the best-guess canonical type using both 'type' and 'name'."""
-    t = str(obj.get("type") or "").strip()
-    name = str(obj.get("name") or "").strip()
-    ct = canonical_type(t)
-    if ct and ct not in {"workout", ""}:
-        return ct
-    # Fallback from name when type is missing/generic
-    n = name.lower()
-    if any(k in n for k in ["zwift", "trainer", "indoor", "virtual"]):
-        return "virtual ride"
-    if "gravel" in n:
-        return "gravel ride"
-    if any(k in n for k in ["ride", "bike", "cycling", "spin"]):
-        return "ride"
-    # default: leave as-is so it can be filtered out if not allowed
-    return ct or ""
+    """
+    Best-guess type using both fields and name.
+    Many Intervals events have type="" or "Workout"; rely on the name as fallback.
+    """
+    # try multiple common fields first
+    raw = (
+        obj.get("type")
+        or obj.get("sport")
+        or obj.get("activityType")
+        or obj.get("sub_type")
+        or obj.get("subType")
+        or ""
+    )
+    ct = canonical_type(raw)
 
+    # if still generic/blank, infer from the name
+    if ct in {"", "workout"}:
+        name = str(obj.get("name") or "").strip().lower()
+        if any(k in name for k in ["zwift", "trainer", "indoor", "virtual"]):
+            return "virtual ride"
+        if "gravel" in name:
+            return "gravel ride"
+        if any(k in name for k in ["ride", "bike", "cycling", "spin"]):
+            return "ride"
+
+    return ct
 
 def format_hms(seconds: int) -> str:
     h = seconds // 3600
