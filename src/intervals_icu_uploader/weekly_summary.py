@@ -112,11 +112,15 @@ def _get_load(obj: Dict[str, Any]) -> float:
 
 def _get_type(obj: Dict[str, Any]) -> str:
     return str(obj.get("type") or "Workout")
+
+
 def canonical_type(v: str | None) -> str:
     s = str(v or "").strip().lower()
     # normalize common bike labels & synonyms
     if "gravel" in s:
         return "gravel ride"
+    if "virtual" in s:
+        return "virtual ride"
     if s in {"ride", "bike ride", "cycling", "bike"}:
         return "ride"
     # Virtual ride synonyms & formats (Strava = "VirtualRide")
