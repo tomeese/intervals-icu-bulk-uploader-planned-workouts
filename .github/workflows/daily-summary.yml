@@ -73,7 +73,7 @@ jobs:
           else
             echo "ALERT_PREFIX=" >> "$GITHUB_ENV"
           fi
-          
+
       - name: Email daily report
         uses: dawidd6/action-send-mail@v3
         with:
@@ -85,7 +85,7 @@ jobs:
           subject: "${{ env.ALERT_PREFIX }}Daily Intervals: ${{ env.DATE }}  TSS ${{ env.ACTUAL_TSS }} (plan ${{ env.PLANNED_TSS }})  CTL ${{ env.CTL }} ATL ${{ env.ATL }} TSB ${{ env.TSB }}"
           to: ${{ secrets.REPORT_TO }}
           from: "Intervals Bot <${{ secrets.GMAIL_USER }}>"
-         body: |
+          body: |
             Date:       ${{ env.DATE }}
             TSS:        ${{ env.ACTUAL_TSS }}  (plan ${{ env.PLANNED_TSS }}, Δ ${{ env.DELTA_TSS }})
             Time:       ${{ env.ACTUAL_TIME }} (plan ${{ env.PLANNED_TIME }})
