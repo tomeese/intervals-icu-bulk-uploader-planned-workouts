@@ -90,6 +90,16 @@ jobs:
               echo "ALERT_PREFIX="
             fi
           } >> "$GITHUB_ENV"
+      - name: Generate Zwift workouts for tomorrow (indoors only)
+        shell: bash
+        env:
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+        run: |
+          set -euo pipefail
+          # LA time tomorrow (runner = UTC). We just use date arithmetic; Intervals uses local dates.
+          TOM=$(date -u -d "+1 day" +"%Y-%m-%d")
+          icu-make-zwo --athlete-id 0 --tz America/Los_Angeles --oldest "$TOM" --newest "$TOM" --outdir zwift
+          ls -1 zwift || true
 
       - name: Email daily report
         uses: dawidd6/action-send-mail@v3
@@ -119,3 +129,4 @@ jobs:
             ${{ env.BASE }}.md
             ${{ env.BASE }}-summary.csv
             ${{ env.BASE }}-sessions.csv
+            zwift/*.zwo

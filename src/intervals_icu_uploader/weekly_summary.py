@@ -8,7 +8,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Optional
 
 import requests # type: ignore
-from requests.auth import HTTPBasicAuth
+from requests.auth import HTTPBasicAuth #type: ignore
 try:
     from zoneinfo import ZoneInfo  # py>=3.9
 except Exception:
@@ -16,7 +16,7 @@ except Exception:
 
 # Optional: config for alert thresholds
 try:
-    import yaml  # PyYAML
+    import yaml  # type: ignore
 except Exception:
     yaml = None  # type: ignore
 
