@@ -104,6 +104,29 @@ jobs:
                   "reports/weekly/weekly-${SUN}-bytype.csv" \
                   "reports/weekly/weekly-${SUN}-sessions.csv"
           done < "$FILE"
+          
+      - name: Debug activity/event labels (last 3 days)
+        shell: bash
+        env:
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+        run: |
+          python - <<'PY'
+          import os, datetime as dt, requests, json
+          from requests.auth import HTTPBasicAuth
+          base="https://intervals.icu"; aid=0
+          today=dt.date.today(); oldest=(today-dt.timedelta(days=3)).isoformat()
+          newest=today.isoformat()
+          def grab(path, params):
+            r=requests.get(f"{base}{path}", params=params, auth=HTTPBasicAuth("API_KEY", os.environ["INTERVALS_API_KEY"]), timeout=30)
+            r.raise_for_status(); return r.json()
+          acts=grab(f"/api/v1/athlete/{aid}/activities", {"oldest": oldest, "newest": newest})
+          evts=grab(f"/api/v1/athlete/{aid}/events", {"oldest": oldest, "newest": newest})
+          def peek(items, label):
+            print(f"\n{label}:")
+            for it in items[:5]:
+              print({k: it.get(k) for k in ("type","sport","activityType","sub_type","name")})
+          peek(acts, "Activities"); peek(evts, "Events")
+          PY
 
       - name: Backfill weekly reports (weeks end on these Sundays)
         shell: bash
