@@ -7,17 +7,18 @@ import os
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Optional
 
-import requests # type: ignore 
-from requests.auth import HTTPBasicAuth # type: ignore 
+import requests
+from requests.auth import HTTPBasicAuth
 try:
     from zoneinfo import ZoneInfo  # py>=3.9
 except Exception:
     ZoneInfo = None  # type: ignore
 
+# Optional: config for alert thresholds
 try:
-    import yaml  # type: ignore 
+    import yaml  # PyYAML
 except Exception:
-    yaml = None
+    yaml = None  # type: ignore
 
 INTERVALS_DEFAULT_BASE = "https://intervals.icu"
 
@@ -25,57 +26,6 @@ INTERVALS_DEFAULT_BASE = "https://intervals.icu"
 # ---------------------------
 # Helpers
 # ---------------------------
-def load_config(path: str = ".icu.yaml") -> dict:
-    if not os.path.exists(path) or yaml is None:
-        # defaults if no file or PyYAML missing
-        return {
-            "daily": {"min_tsb": -20, "warn_tsb": -10, "max_daily_ramp": 8.0, "max_delta_tss": 75},
-            "weekly": {"min_tsb": -20, "max_weekly_ramp": 8.0, "max_delta_tss": 150},
-        }
-    with open(path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    # fill defaults if keys missing
-    d = data.get("daily", {})
-    w = data.get("weekly", {})
-    return {
-        "daily": {
-            "min_tsb": float(d.get("min_tsb", -20)),
-            "warn_tsb": float(d.get("warn_tsb", -10)),
-            "max_daily_ramp": float(d.get("max_daily_ramp", 8.0)),
-            "max_delta_tss": float(d.get("max_delta_tss", 75)),
-        },
-        "weekly": {
-            "min_tsb": float(w.get("min_tsb", -20)),
-            "max_weekly_ramp": float(w.get("max_weekly_ramp", 8.0)),
-            "max_delta_tss": float(w.get("max_delta_tss", 150)),
-        },
-    }
-
-def build_daily_alerts(summary: dict, advice: dict, cfg: dict) -> dict:
-    flags = []
-    tsb = advice["tsb"]
-    ramp = advice["ramp"]
-    delta_tss = summary["delta_tss"]
-    min_tsb = cfg["daily"]["min_tsb"]
-    warn_tsb = cfg["daily"]["warn_tsb"]
-    max_ramp = cfg["daily"]["max_daily_ramp"]
-    max_delta = cfg["daily"]["max_delta_tss"]
-
-    if tsb <= min_tsb:
-        flags.append(f"TSB {tsb} (deep red)")
-    elif tsb <= warn_tsb:
-        flags.append(f"TSB {tsb} (red-ish)")
-
-    if abs(delta_tss) >= max_delta:
-        flags.append(f"ΔTSS {delta_tss:+}")
-
-    if ramp >= max_ramp:
-        flags.append(f"Ramp {ramp} CTL/wk high")
-
-    # subject tag = short, comma-separated
-    subject_tag = ", ".join(flags)
-    return {"flags": flags, "subject_tag": subject_tag}
-
 
 def _date_str(d: dt.date) -> str:
     return d.strftime("%Y-%m-%d")
@@ -105,18 +55,51 @@ def _get_load(obj: Dict[str, Any]) -> float:
 
 
 def _get_type(obj: Dict[str, Any]) -> str:
-    return str(obj.get("type") or "Workout")
+    return str(obj.get("type") or "")
+
 
 def canonical_type(v: str | None) -> str:
     s = str(v or "").strip().lower()
-    # normalize common bike types
+    # normalize common bike labels & synonyms
     if "gravel" in s:
         return "gravel ride"
-    if s in {"ride", "bike ride"}:
+    if s in {"ride", "bike ride", "cycling", "bike"}:
         return "ride"
-    if "virtual" in s and "ride" in s or s == "virtualride":
+    # Virtual ride synonyms & formats (e.g., Strava "VirtualRide")
+    s_compact = s.replace(" ", "")
+    if s_compact == "virtualride" or ("virtual" in s and "ride" in s):
+        return "virtual ride"
+    if any(k in s for k in ["zwift", "trainer", "indoor", "smarttrainer"]):
         return "virtual ride"
     return s
+
+
+def canonicalize_obj_type(obj: dict) -> str:
+    '''
+    Best-guess type using both fields and name.
+    Intervals events often have type="" or "Workout"; infer from name.
+    '''
+    raw = (
+        obj.get("type")
+        or obj.get("sport")
+        or obj.get("activityType")
+        or obj.get("sub_type")
+        or obj.get("subType")
+        or ""
+    )
+    ct = canonical_type(raw)
+
+    # If generic/blank, infer from the name
+    if ct in {"", "workout"}:
+        name = str(obj.get("name") or "").strip().lower()
+        if any(k in name for k in ["zwift", "trainer", "indoor", "virtual"]):
+            return "virtual ride"
+        if "gravel" in name:
+            return "gravel ride"
+        if any(k in name for k in ["ride", "bike", "cycling", "spin"]):
+            return "ride"
+
+    return ct
 
 
 def format_hms(seconds: int) -> str:
@@ -191,29 +174,31 @@ def fetch_wellness(api_key: str, athlete_id: int, base_url: str, day: dt.date, t
 # ---------------------------
 
 def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """
+    '''
     Return (pairs, unmatched_planned, unmatched_actual).
     A pair has keys: planned_*, actual_*, delta_* and match_method.
-    """
-    # Index activities
+    '''
+    # Index activities by external_id and (date,type)
     by_ext: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-    by_type: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+    by_date_type: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
 
-    def act_key(a: Dict[str, Any]) -> tuple:
+    def act_key(a: Dict[str, Any]) -> Tuple[Optional[dt.datetime], int]:
         dt0 = _parse_dt(_local_start_iso(a))
-        return (dt0 or dt.datetime.min, _get_seconds(a))
+        return (dt0, _get_seconds(a))
 
     for a in activities:
         ext = str(a.get("external_id") or "")
         if ext:
             by_ext[ext].append(a)
-        t = canonical_type(_get_type(a))
-        by_type[t].append(a)
+        d = _local_date(a) or ""
+        t = canonicalize_obj_type(a)
+        by_date_type[(d, t)].append(a)
 
+    # Sort
     for k in by_ext:
         by_ext[k].sort(key=act_key)
-    for k in by_type:
-        by_type[k].sort(key=act_key)
+    for k in by_date_type:
+        by_date_type[k].sort(key=act_key)
 
     used_ids = set()
     pairs: List[Dict[str, Any]] = []
@@ -222,10 +207,11 @@ def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]
     for e in planned_list:
         p_ext = str(e.get("external_id") or "")
         p_name = str(e.get("name") or "").strip() or "Planned"
-        p_type = canonical_type(_get_type(e))
+        p_type = canonicalize_obj_type(e)
         p_secs = _get_seconds(e)
         p_tss = _get_load(e)
         p_start = _parse_dt(_local_start_iso(e))
+        p_date = _local_date(e) or ""
 
         chosen = None
         method = ""
@@ -239,9 +225,9 @@ def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]
                 method = "external_id"
                 break
 
-        # Strategy 2: same type, closest start time (same day by definition)
+        # Strategy 2: same date & type, closest start time
         if chosen is None:
-            cands = by_type.get(p_type, [])
+            cands = by_date_type.get((p_date, p_type), [])
             best = None
             best_dt = None
             if p_start:
@@ -280,7 +266,7 @@ def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]
                 "planned_time_hms": format_hms(int(p_secs)),
                 "planned_tss": round(p_tss, 1),
                 "actual_name": a_name,
-                "actual_type": canonical_type(_get_type(chosen)),
+                "actual_type": canonicalize_obj_type(chosen),
                 "actual_start": a_start.isoformat() if a_start else "",
                 "actual_time_sec": int(a_secs),
                 "actual_time_hms": format_hms(int(a_secs)),
@@ -318,12 +304,13 @@ def summarize_day(activities: List[Dict[str, Any]], events: List[Dict[str, Any]]
     # By-type (actual + planned)
     by_type_actual = defaultdict(lambda: {"sec": 0, "tss": 0.0})
     for a in activities:
-        t = canonical_type(_get_type(a))
+        t = canonicalize_obj_type(a)
         by_type_actual[t]["sec"] += _get_seconds(a)
         by_type_actual[t]["tss"] += _get_load(a)
+
     by_type_planned = defaultdict(lambda: {"sec": 0, "tss": 0.0})
     for e in planned:
-        t = canonical_type(_get_type(e))
+        t = canonicalize_obj_type(e)
         by_type_planned[t]["sec"] += _get_seconds(e)
         by_type_planned[t]["tss"] += _get_load(e)
 
@@ -343,6 +330,9 @@ def summarize_day(activities: List[Dict[str, Any]], events: List[Dict[str, Any]]
 
 
 def coach_advice(today: Dict[str, Any], wellness_today: Dict[str, float], tomorrow_planned_tss: float) -> Dict[str, Any]:
+    '''
+    Simple rule-based suggestion using CTL/ATL/TSB (form) and today's deltas.
+    '''
     ctl = wellness_today["ctl"]
     atl = wellness_today["atl"]
     tsb = ctl - atl
@@ -359,7 +349,7 @@ def coach_advice(today: Dict[str, Any], wellness_today: Dict[str, float], tomorr
         rec = "High fatigue. Reduce tomorrow's load ~30%."
         adjust_pct = -0.30
     elif tsb <= -5 and overshoot > 0.20:
-        rec = "Slightly deep in the red + overshot today. Reduce tomorrow ~15–20%."
+        rec = "Red-ish + overshot today. Reduce tomorrow ~15–20%."
         adjust_pct = -0.18
     elif tsb >= 10 and undershoot > 0.30:
         rec = "Fresh and undershot today. Optional +10–15% endurance time tomorrow."
@@ -379,11 +369,64 @@ def coach_advice(today: Dict[str, Any], wellness_today: Dict[str, float], tomorr
 
 
 # ---------------------------
+# Alerts (config)
+# ---------------------------
+
+def load_config(path: str = ".icu.yaml") -> dict:
+    if not os.path.exists(path) or yaml is None:
+        return {
+            "daily": {"min_tsb": -20, "warn_tsb": -10, "max_daily_ramp": 8.0, "max_delta_tss": 75},
+            "weekly": {"min_tsb": -20, "max_weekly_ramp": 8.0, "max_delta_tss": 150},
+        }
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    d = data.get("daily", {})
+    w = data.get("weekly", {})
+    return {
+        "daily": {
+            "min_tsb": float(d.get("min_tsb", -20)),
+            "warn_tsb": float(d.get("warn_tsb", -10)),
+            "max_daily_ramp": float(d.get("max_daily_ramp", 8.0)),
+            "max_delta_tss": float(d.get("max_delta_tss", 75)),
+        },
+        "weekly": {
+            "min_tsb": float(w.get("min_tsb", -20)),
+            "max_weekly_ramp": float(w.get("max_weekly_ramp", 8.0)),
+            "max_delta_tss": float(w.get("max_delta_tss", 150)),
+        },
+    }
+
+
+def build_daily_alerts(summary: dict, advice: dict, cfg: dict) -> dict:
+    flags = []
+    tsb = advice["tsb"]
+    ramp = advice["ramp"]
+    delta_tss = summary["delta_tss"]
+    min_tsb = cfg["daily"]["min_tsb"]
+    warn_tsb = cfg["daily"]["warn_tsb"]
+    max_ramp = cfg["daily"]["max_daily_ramp"]
+    max_delta = cfg["daily"]["max_delta_tss"]
+
+    if tsb <= min_tsb:
+        flags.append(f"TSB {tsb} (deep red)")
+    elif tsb <= warn_tsb:
+        flags.append(f"TSB {tsb} (red-ish)")
+
+    if abs(delta_tss) >= max_delta:
+        flags.append(f"ΔTSS {delta_tss:+}")
+
+    if ramp >= max_ramp:
+        flags.append(f"Ramp {ramp} CTL/wk high")
+
+    subject_tag = ", ".join(flags)
+    return {"flags": flags, "subject_tag": subject_tag}
+
+
+# ---------------------------
 # Outputs
 # ---------------------------
 
 def write_outputs(outdir: str, day: dt.date, summary: Dict[str, Any], advice: Dict[str, Any], sessions: List[Dict[str, Any]], alerts: Dict[str, Any]) -> str:
-
     os.makedirs(outdir, exist_ok=True)
     base = os.path.join(outdir, f"daily-{day.isoformat()}")
 
@@ -415,11 +458,19 @@ def write_outputs(outdir: str, day: dt.date, summary: Dict[str, Any], advice: Di
     # Markdown (email-friendly)
     md = []
     md.append(f"# Daily Summary ({day})\n")
+
+    if alerts.get("flags"):
+        md.append("## Red flags\n")
+        for fl in alerts["flags"]:
+            md.append(f"- ⚠️ {fl}")
+        md.append("")
+
     md.append("## Totals\n")
     md.append("| Metric | Planned | Actual | Δ |")
     md.append("|---|---:|---:|---:|")
     md.append(f"| TSS | {summary['planned_tss']} | {summary['actual_tss']} | {summary['delta_tss']} |")
     md.append(f"| Time | {summary['planned_time_hms']} | {summary['actual_time_hms']} | {summary['delta_time_hms']} |")
+
     md.append("\n## Per-Workout Planned vs Actual (top 20)\n")
     md.append("| Planned | Type | Actual | ΔTime | ΔTSS | Match |")
     md.append("|---|---|---|---:|---:|---|")
@@ -427,17 +478,16 @@ def write_outputs(outdir: str, day: dt.date, summary: Dict[str, Any], advice: Di
         md.append(f"| {row['planned_name']} | {row['planned_type']} | {row['actual_name']} | {row['delta_time_sec']}s | {row['delta_tss']} | {row['match_method']} |")
     if len(sessions) > 20:
         md.append(f"\n… {len(sessions) - 20} more; see sessions CSV.\n")
-    if alerts["flags"]:
-        md.append("\n## Red flags\n")
-        for fl in alerts["flags"]:
-            md.append(f"- ⚠️ {fl}")
+
     md.append("\n## Fitness\n")
     md.append("| CTL | ATL | TSB | Ramp |")
     md.append("|---:|---:|---:|---:|")
     md.append(f"| {advice['ctl']} | {advice['atl']} | {advice['tsb']} | {advice['ramp']} |")
+
     md.append("\n## Coach’s note\n")
     md.append(f"{advice['recommendation']}")
     md.append(f"\n\nTomorrow planned TSS: {advice['tomorrow_planned_tss']} → Suggested: {advice['tomorrow_suggested_tss']} ({advice['adjust_pct']}%)\n")
+
     with open(base + ".md", "w", encoding="utf-8") as f:
         f.write("\n".join(md) + "\n")
 
@@ -457,14 +507,16 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--for-date", help="YYYY-MM-DD; default today in tz")
     p.add_argument("--outdir", default="reports/daily")
     p.add_argument("--timeout", type=int, default=30)
-    p.add_argument("--types", default="Ride,Gravel Ride,Virtual Ride",help="Comma-separated activity types to include (default: Ride,Gravel Ride)",)
+    p.add_argument(
+        "--types",
+        default="Ride,Gravel Ride,Virtual Ride",
+        help="Comma-separated activity types to include (default: Ride,Gravel Ride,Virtual Ride)",
+    )
     args = p.parse_args(argv)
 
     api_key = args.api_key or os.environ.get("INTERVALS_API_KEY")
     if not api_key:
         raise SystemExit("ERROR: Provide --api-key or set INTERVALS_API_KEY")
-
-    cfg = load_config() 
 
     now = dt.datetime.now(ZoneInfo(args.tz)) if ZoneInfo else dt.datetime.now()
     day = dt.date.fromisoformat(args.for_date) if args.for_date else now.date()
@@ -476,11 +528,12 @@ def main(argv: list[str] | None = None) -> int:
     evts_tom = fetch_events(api_key, args.athlete_id, args.base_url, tomorrow, args.timeout)
     wellness = fetch_wellness(api_key, args.athlete_id, args.base_url, day, args.timeout)
 
-    # Filter types
+    # Filter types (canonical)
     allowed = {canonical_type(t) for t in (args.types or "").split(",") if t.strip()}
 
     def _allowed(obj) -> bool:
-        return canonical_type(_get_type(obj)) in allowed
+        return canonicalize_obj_type(obj) in allowed
+
     acts = [a for a in acts if _allowed(a)]
     evts_today = [e for e in evts_today if _allowed(e)]
     evts_tom = [e for e in evts_tom if _allowed(e)]
@@ -492,11 +545,12 @@ def main(argv: list[str] | None = None) -> int:
     # Tomorrow planning & advice
     tomorrow_planned_tss = sum(_get_load(e) for e in evts_tom if str(e.get("category") or "").upper() == "WORKOUT")
     advice = coach_advice(summary, wellness, tomorrow_planned_tss)
-    
+
+    # Alerts
+    cfg = load_config()
     alerts = build_daily_alerts(summary, advice, cfg)
 
     base = write_outputs(args.outdir, day, summary, advice, sessions, alerts)
-
     print(f"Wrote {base}.md, {base}.json, {base}-summary.csv, {base}-sessions.csv")
     return 0
 
