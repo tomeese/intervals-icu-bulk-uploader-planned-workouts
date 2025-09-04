@@ -84,7 +84,7 @@ jobs:
               fh.write(f"SUNFILE={sunfile}\n")
           print("Sundays:", sundays, "->", sunfile)
           PY
-          
+
       - name: Pre-clean existing weekly files for target Sundays
         shell: bash
         run: |
@@ -140,10 +140,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # clean temp files if present
           rm -f sundays.txt days.txt "$SUNFILE" 2>/dev/null || true
 
-          # Only look under reports/weekly
           CHANGES=$(git status --porcelain -- reports/weekly || true)
           if [ -n "$CHANGES" ]; then
             if [ "${{ inputs.dry_run }}" = "true" ]; then
@@ -152,9 +150,7 @@ jobs:
             else
               git config user.name "github-actions[bot]"
               git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-              # Force add in case .gitignore excludes reports/
               git add -A -f reports/weekly
-              # Commit only if something actually staged
               if ! git diff --cached --quiet; then
                 git commit -m "backfill: weekly reports for ${MONTH_STR} (${SUNDAYS_COUNT} Sundays) [skip ci]"
                 git push
@@ -165,4 +161,5 @@ jobs:
           else
             echo "No changes to commit under reports/weekly."
           fi
+
 
