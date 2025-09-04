@@ -41,6 +41,8 @@ jobs:
     concurrency:
       group: backfill-weeklies-${{ github.ref }}
       cancel-in-progress: false
+    env:
+      INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }} 
 
     steps:
       - uses: actions/checkout@v4
