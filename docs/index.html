@@ -73,6 +73,8 @@
         <h2 class="text-lg font-semibold mb-3">Export / Import</h2>
         <div class="flex flex-col gap-2">
           <button id="exportBtn" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
+          <button id="saveRepoBtn" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
+
           <label class="block">
             <span class="block text-sm font-medium mb-1">Import JSON</span>
             <input id="importFile" type="file" accept="application/json" class="w-full text-sm" />
@@ -135,12 +137,54 @@
       </label>
     </div>
   </template>
+  
+<script>
+  async function saveToRepo(){
+    if (!state.weekStart) { alert('Pick a week start first.'); return; }
+    // Build the same payload as Export JSON
+    const out = {
+      version: 1,
+      tz: state.tz,
+      athlete_id: Number(state.athleteId||0),
+      week_start: state.weekStart,
+      workouts: []
+    };
+    for (const [date, list] of Object.entries(state.days)){
+      for (const w of list){
+        out.workouts.push({
+          date, name: w.name||'', type: w.type||'Ride', indoor: !!w.indoor,
+          duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||''
+        });
+      }
+    }
+    try {
+      const resp = await fetch('/.netlify/functions/save-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(out)
+      });
+      const txt = await resp.text();
+      if (!resp.ok) throw new Error(txt);
+      const data = JSON.parse(txt);
+      alert(`Saved ✓  ${data.path}`);
+    } catch (e) {
+      alert(`Save failed: ${e}`);
+    }
+  }
+
+  // hook up the button
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('saveRepoBtn');
+    if (btn) btn.addEventListener('click', saveToRepo);
+  });
+</script>
 
   <script>
   // --- Utilities ---
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
 
+  
   function fmtHMS(sec) {
     sec = Math.max(0, Math.round(sec));
     const h = Math.floor(sec / 3600);
