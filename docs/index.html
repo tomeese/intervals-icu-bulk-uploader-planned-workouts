@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Weekly Workout Planner</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    /* Small usability touches */
+    .number-input { width: 6rem; }
+    .time-input { width: 7.5rem; }
+    .scroll-area { max-height: 18rem; overflow: auto; }
+    .kbd { @apply px-1.5 py-0.5 rounded border text-xs; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+  <header class="px-4 sm:px-6 lg:px-8 py-6 border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 backdrop-blur">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">Weekly Workout Planner</h1>
+      <nav class="text-sm text-slate-500 dark:text-slate-400">
+        <span>Local-first · No build · Exports JSON</span>
+      </nav>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Controls -->
+    <section class="mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <label class="block">
+          <span class="block text-sm font-medium mb-1">Week start (Monday)</span>
+          <input id="weekStart" type="date" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2" />
+        </label>
+        <label class="block">
+          <span class="block text-sm font-medium mb-1">Time zone (IANA)</span>
+          <input id="tz" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2" value="America/Los_Angeles" />
+        </label>
+        <label class="block">
+          <span class="block text-sm font-medium mb-1">Athlete ID</span>
+          <input id="athleteId" type="number" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2" value="0" />
+        </label>
+        <div class="flex items-end gap-2">
+          <button id="newWeekBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">New / Clear week</button>
+        </div>
+      </div>
+      <div class="mt-3 text-xs text-slate-500">Tip: this auto-saves per week in your browser. Export to JSON to share or commit.</div>
+    </section>
+
+    <!-- Days grid -->
+    <section id="daysGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></section>
+
+    <!-- Totals & Actions -->
+    <section class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="lg:col-span-2 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
+        <h2 class="text-lg font-semibold mb-3">Totals</h2>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="text-xs text-slate-500">Planned Time</div>
+            <div id="totPlannedTime" class="text-base font-semibold">0h 00m</div>
+          </div>
+          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="text-xs text-slate-500">Planned TSS</div>
+            <div id="totPlannedTss" class="text-base font-semibold">0</div>
+          </div>
+          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="text-xs text-slate-500">By Type</div>
+            <div id="totByType" class="text-sm leading-6">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
+        <h2 class="text-lg font-semibold mb-3">Export / Import</h2>
+        <div class="flex flex-col gap-2">
+          <button id="exportBtn" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
+          <label class="block">
+            <span class="block text-sm font-medium mb-1">Import JSON</span>
+            <input id="importFile" type="file" accept="application/json" class="w-full text-sm" />
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-10 pb-8 text-xs text-slate-500">
+      Built to pair with <code>icu-*-summary</code> & <code>icu-make-zwo</code>. Data stays in your browser unless you export.
+    </footer>
+  </main>
+
+  <template id="dayCardTpl">
+    <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
+      <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
+        <div>
+          <div class="text-sm text-slate-500" data-day-name>Monday</div>
+          <div class="text-base font-semibold" data-day-date>2025-01-01</div>
+        </div>
+        <div class="flex gap-2">
+          <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-sm" data-copy-prev>Copy prev</button>
+          <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-sm" data-clear>Clear</button>
+          <button class="px-2.5 py-1.5 rounded-lg bg-indigo-600 text-white text-sm" data-add>Add</button>
+        </div>
+      </div>
+      <div class="p-4 scroll-area" data-rows></div>
+    </div>
+  </template>
+
+  <template id="rowTpl">
+    <div class="grid grid-cols-1 sm:grid-cols-7 gap-2 items-end py-2 border-b border-slate-100 dark:border-slate-900 last:border-0">
+      <label class="sm:col-span-2">
+        <span class="block text-xs text-slate-500">Name</span>
+        <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Endurance Z2 - 2h" data-name />
+      </label>
+      <label>
+        <span class="block text-xs text-slate-500">Type</span>
+        <select class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" data-type>
+          <option>Ride</option>
+          <option>Gravel Ride</option>
+          <option>Virtual Ride</option>
+        </select>
+      </label>
+      <label>
+        <span class="block text-xs text-slate-500">Indoor</span>
+        <input type="checkbox" class="h-5 w-5 align-middle" data-indoor />
+      </label>
+      <label>
+        <span class="block text-xs text-slate-500">Duration (hh:mm)</span>
+        <input type="time" step="60" class="time-input rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" value="01:00" data-duration />
+      </label>
+      <label>
+        <span class="block text-xs text-slate-500">TSS</span>
+        <input type="number" min="0" step="1" class="number-input rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" value="50" data-tss />
+      </label>
+      <label class="sm:col-span-2">
+        <span class="block text-xs text-slate-500">Notes</span>
+        <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Optional" data-notes />
+      </label>
+    </div>
+  </template>
+
+  <script>
+  // --- Utilities ---
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+  function fmtHMS(sec) {
+    sec = Math.max(0, Math.round(sec));
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    return `${h}h ${String(m).padStart(2,'0')}m`;
+  }
+  function parseHHMM(str) {
+    if (!str) return 0;
+    const [h,m] = str.split(":").map(x => parseInt(x||"0",10));
+    if (Number.isNaN(h) || Number.isNaN(m)) return 0;
+    return h*3600 + m*60;
+  }
+  function mondayOf(date) { // ensure Monday
+    const d = new Date(date);
+    const day = d.getDay(); // 0 Sun..6 Sat
+    const diff = (day === 0 ? -6 : 1 - day); // back to Monday
+    d.setDate(d.getDate() + diff);
+    d.setHours(0,0,0,0);
+    return d;
+  }
+  function addDays(date, n){ const d=new Date(date); d.setDate(d.getDate()+n); return d; }
+  function toISODate(d){ return d.toISOString().slice(0,10); }
+
+  // --- State ---
+  const state = {
+    weekStart: null, // YYYY-MM-DD (Monday)
+    tz: 'America/Los_Angeles',
+    athleteId: 0,
+    days: {} // date -> array of workouts
+  };
+
+  function storageKey(){ return `planner:${state.weekStart}`; }
+
+  function save(){
+    if (!state.weekStart) return;
+    localStorage.setItem(storageKey(), JSON.stringify(state));
+  }
+  function load(weekStart){
+    const raw = localStorage.getItem(`planner:${weekStart}`);
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch(e){ return null; }
+  }
+
+  // --- Rendering ---
+  const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+  function renderWeek(){
+    const grid = $('#daysGrid');
+    grid.innerHTML = '';
+    if (!state.weekStart) return;
+    const weekDate = new Date(state.weekStart);
+    for (let i=0;i<7;i++){
+      const d = addDays(weekDate,i);
+      const iso = toISODate(d);
+      const card = document.importNode($('#dayCardTpl').content, true);
+      card.querySelector('[data-day-name]').textContent = dayNames[i];
+      card.querySelector('[data-day-date]').textContent = iso;
+      const rows = card.querySelector('[data-rows]');
+
+      const list = state.days[iso] || [];
+      list.forEach(w => rows.appendChild(renderRow(iso, w)));
+
+      // Actions
+      card.querySelector('[data-add]').addEventListener('click', () => {
+        const w = { name:'', type:'Ride', indoor:false, duration_sec:3600, tss:50, notes:'' };
+        (state.days[iso] ||= []).push(w);
+        rows.appendChild(renderRow(iso, w));
+        totals(); save();
+      });
+      card.querySelector('[data-clear]').addEventListener('click', () => {
+        state.days[iso] = [];
+        rows.innerHTML = '';
+        totals(); save();
+      });
+      card.querySelector('[data-copy-prev]').addEventListener('click', () => {
+        if (i === 0) return; // no prev for Monday
+        const prevIso = toISODate(addDays(weekDate,i-1));
+        const from = (state.days[prevIso] || []).map(w => ({...w}));
+        state.days[iso] = from;
+        rows.innerHTML = '';
+        from.forEach(w => rows.appendChild(renderRow(iso, w)));
+        totals(); save();
+      });
+
+      grid.appendChild(card);
+    }
+    totals();
+  }
+
+  function renderRow(iso, w){
+    const node = document.importNode($('#rowTpl').content, true);
+    const el = node.querySelector(':scope > div');
+    const $name = el.querySelector('[data-name]');
+    const $type = el.querySelector('[data-type]');
+    const $indoor = el.querySelector('[data-indoor]');
+    const $dur = el.querySelector('[data-duration]');
+    const $tss = el.querySelector('[data-tss]');
+    const $notes = el.querySelector('[data-notes]');
+
+    $name.value = w.name || '';
+    $type.value = w.type || 'Ride';
+    $indoor.checked = !!w.indoor;
+    $dur.value = hhmmFromSec(w.duration_sec || 0);
+    $tss.value = Number.isFinite(w.tss) ? w.tss : 0;
+    $notes.value = w.notes || '';
+
+    $name.addEventListener('input', () => { w.name = $name.value; save(); });
+    $type.addEventListener('change', () => { w.type = $type.value; save(); totals(); });
+    $indoor.addEventListener('change', () => { w.indoor = $indoor.checked; save(); });
+    $dur.addEventListener('change', () => { w.duration_sec = parseHHMM($dur.value); save(); totals(); });
+    $tss.addEventListener('change', () => { w.tss = Math.max(0, parseFloat($tss.value||'0')); save(); totals(); });
+    $notes.addEventListener('input', () => { w.notes = $notes.value; save(); });
+
+    return node;
+  }
+
+  function hhmmFromSec(s){
+    s = Math.max(0, Math.round(s));
+    const h = Math.floor(s/3600);
+    const m = Math.floor((s%3600)/60);
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  }
+
+  function totals(){
+    let sec = 0, tss = 0;
+    const byType = new Map();
+    for (const list of Object.values(state.days)){
+      for (const w of list){
+        sec += (w.duration_sec||0);
+        tss += (w.tss||0);
+        const k = (w.type||'Ride');
+        const cur = byType.get(k) || {sec:0,tss:0};
+        cur.sec += (w.duration_sec||0); cur.tss += (w.tss||0);
+        byType.set(k, cur);
+      }
+    }
+    $('#totPlannedTime').textContent = fmtHMS(sec);
+    $('#totPlannedTss').textContent = Math.round(tss);
+    if (byType.size === 0) { $('#totByType').textContent = '—'; return; }
+    $('#totByType').innerHTML = Array.from(byType.entries())
+      .map(([k,v]) => `<div><span class="font-medium">${k}</span>: ${fmtHMS(v.sec)}, TSS ${Math.round(v.tss)}</div>`) 
+      .join('');
+  }
+
+  // --- Export / Import ---
+  function exportJson(){
+    if (!state.weekStart) { alert('Choose a week start first.'); return; }
+    const out = {
+      version: 1,
+      tz: state.tz,
+      athlete_id: Number(state.athleteId||0),
+      week_start: state.weekStart,
+      workouts: []
+    };
+    for (const [date, list] of Object.entries(state.days)){
+      for (const w of list){
+        out.workouts.push({
+          date,
+          name: w.name||'',
+          type: w.type||'Ride',
+          indoor: !!w.indoor,
+          duration_sec: Number(w.duration_sec||0),
+          tss: Number(w.tss||0),
+          notes: w.notes||''
+        });
+      }
+    }
+    const blob = new Blob([JSON.stringify(out, null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `plan-${state.weekStart}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function importJson(file){
+    if (!file) return;
+    const text = await file.text();
+    let data; try { data = JSON.parse(text); } catch(e){ alert('Invalid JSON'); return; }
+    if (!data || !data.week_start || !Array.isArray(data.workouts)) { alert('Missing fields'); return; }
+
+    // reset week
+    state.weekStart = data.week_start;
+    $('#weekStart').value = state.weekStart;
+    state.tz = data.tz || state.tz; $('#tz').value = state.tz;
+    state.athleteId = data.athlete_id ?? state.athleteId; $('#athleteId').value = state.athleteId;
+
+    state.days = {};
+    for (const w of data.workouts){
+      (state.days[w.date] ||= []).push({
+        name: w.name||'', type: w.type||'Ride', indoor: !!w.indoor,
+        duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||''
+      });
+    }
+    save();
+    renderWeek();
+  }
+
+  // --- Init ---
+  function setWeekStartFromInput(){
+    const raw = $('#weekStart').value;
+    if (!raw) return;
+    const monday = mondayOf(raw);
+    const iso = toISODate(monday);
+    $('#weekStart').value = iso; // normalize to Monday
+    state.weekStart = iso;
+    // load or init
+    const prev = load(iso);
+    if (prev) {
+      state.tz = prev.tz || state.tz; $('#tz').value = state.tz;
+      state.athleteId = prev.athleteId ?? state.athleteId; $('#athleteId').value = state.athleteId;
+      state.days = prev.days || {};
+    } else {
+      state.days = {};
+    }
+    save();
+    renderWeek();
+  }
+
+  $('#weekStart').addEventListener('change', setWeekStartFromInput);
+  $('#tz').addEventListener('change', () => { state.tz = $('#tz').value; save(); });
+  $('#athleteId').addEventListener('change', () => { state.athleteId = Number($('#athleteId').value||0); save(); });
+  $('#newWeekBtn').addEventListener('click', () => {
+    if (!$('#weekStart').value) { alert('Pick a Monday to start.'); return; }
+    // Clear current week data
+    state.days = {}; save(); renderWeek();
+  });
+  $('#exportBtn').addEventListener('click', exportJson);
+  $('#importFile').addEventListener('change', (e) => importJson(e.target.files[0]));
+
+  // default week = the Monday of today
+  (function boot(){
+    const now = new Date();
+    const isoMonday = toISODate(mondayOf(now));
+    $('#weekStart').value = isoMonday;
+    setWeekStartFromInput();
+  })();
+  </script>
+</body>
+</html>
