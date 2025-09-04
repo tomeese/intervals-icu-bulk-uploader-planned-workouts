@@ -7,8 +7,8 @@ import os
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Optional
 
-import requests
-from requests.auth import HTTPBasicAuth
+import requests # type: ignore 
+from requests.auth import HTTPBasicAuth # type: ignore 
 try:
     from zoneinfo import ZoneInfo  # py>=3.9
 except Exception:
@@ -16,7 +16,7 @@ except Exception:
 
 import os
 try:
-    import yaml
+    import yaml # type: ignore 
 except Exception:
     yaml = None
 
@@ -379,7 +379,7 @@ def build_summary(
     for a in activities:
         secs = _get_seconds(a)
         ld = _get_load(a)
-        t = canonicalize_obj_type(obj)
+        t = canonicalize_obj_type(a) 
         actual_seconds += secs
         actual_load += ld
         by_type_actual[t]["seconds"] += secs
@@ -394,7 +394,7 @@ def build_summary(
     for e in planned:
         secs = _get_seconds(e)
         ld = _get_load(e)
-        t = canonicalize_obj_type(obj)
+        t = canonicalize_obj_type(e)
         planned_seconds += secs
         planned_load += ld
         by_type_planned[t]["seconds"] += secs

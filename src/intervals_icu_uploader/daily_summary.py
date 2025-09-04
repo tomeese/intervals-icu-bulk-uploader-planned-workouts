@@ -7,15 +7,15 @@ import os
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Optional
 
-import requests
-from requests.auth import HTTPBasicAuth
+import requests # type: ignore 
+from requests.auth import HTTPBasicAuth # type: ignore 
 try:
     from zoneinfo import ZoneInfo  # py>=3.9
 except Exception:
     ZoneInfo = None  # type: ignore
 
 try:
-    import yaml  # add this
+    import yaml  # type: ignore 
 except Exception:
     yaml = None
 
