@@ -1,0 +1,2 @@
+type,actual_time_sec,actual_time_hms,actual_load,planned_time_sec,planned_time_hms,planned_load,delta_time_sec,delta_load
+gravel ride,17916,4h 58m 36s,253.0,0,0h 00m,0.0,17916,253.0

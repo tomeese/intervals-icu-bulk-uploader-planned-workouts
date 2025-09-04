@@ -1,0 +1,2 @@
+week_start,week_end,tss_actual,tss_planned,delta_tss,time_actual_sec,time_actual_hms,time_planned_sec,time_planned_hms,delta_time_sec,fitness_ctl,fatigue_atl,form_tsb,ramp_rate
+2025-08-18,2025-08-24,427.0,0.0,427.0,30089,8h 21m 29s,0,0h 00m,30089,86.6,115.0,-28.4,4.3
