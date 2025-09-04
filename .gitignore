@@ -14,3 +14,10 @@ build/
 # Editors
 .vscode/
 .idea/
+
+# allow summary artifacts
+!reports/
+!reports/weekly/
+!reports/weekly/**
+!reports/daily/
+!reports/daily/**
