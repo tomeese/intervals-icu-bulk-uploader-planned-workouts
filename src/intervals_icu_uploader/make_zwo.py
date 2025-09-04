@@ -219,7 +219,8 @@ def main(argv: List[str] | None = None) -> int:
 
         zwo_name = f"{date} - {name}"
         desc = f"Generated from Intervals.icu plan. Dur={dur_s}s TSS≈{tss}"
-        fname = os.path.join(args.outdir, f"{date} - {re.sub(r'[^\\w\\-.]+','_',name)}.zwo")
+        safe = re.sub(r"[^\w\-.]+", "_", name)
+        fname = os.path.join(args.outdir, f"{date} - {safe}.zwo")
         write_zwo(fname, zwo_name, desc, sport="bike", steps=steps)
         print(f"Wrote {fname}")
 
