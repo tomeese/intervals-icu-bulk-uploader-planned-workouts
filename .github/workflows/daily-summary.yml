@@ -26,8 +26,8 @@ jobs:
       - name: Generate daily summary
         env:
           INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
-        run: icu-daily-summary --athlete-id 0 --tz America/Los_Angeles --outdir reports/daily
-
+        run: icu-daily-summary --athlete-id 0 --tz America/Los_Angeles --outdir reports/daily --types "Ride,Gravel Ride,Virtual Ride"
+        
       - name: Commit report if changed
         run: |
           if [ -n "$(git status --porcelain)" ]; then

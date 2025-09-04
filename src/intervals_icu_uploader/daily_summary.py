@@ -107,13 +107,15 @@ def _get_load(obj: Dict[str, Any]) -> float:
 def _get_type(obj: Dict[str, Any]) -> str:
     return str(obj.get("type") or "Workout")
 
-
 def canonical_type(v: str | None) -> str:
     s = str(v or "").strip().lower()
+    # normalize common bike types
     if "gravel" in s:
         return "gravel ride"
-    if s == "ride":
+    if s in {"ride", "bike ride"}:
         return "ride"
+    if "virtual" in s and "ride" in s or s == "virtualride":
+        return "virtual ride"
     return s
 
 
@@ -455,11 +457,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--for-date", help="YYYY-MM-DD; default today in tz")
     p.add_argument("--outdir", default="reports/daily")
     p.add_argument("--timeout", type=int, default=30)
-    p.add_argument(
-        "--types",
-        default="Ride,Gravel Ride",
-        help="Comma-separated activity types to include (default: Ride,Gravel Ride)",
-    )
+    p.add_argument("--types", default="Ride,Gravel Ride,Virtual Ride",help="Comma-separated activity types to include (default: Ride,Gravel Ride)",)
     args = p.parse_args(argv)
 
     api_key = args.api_key or os.environ.get("INTERVALS_API_KEY")
@@ -479,7 +477,8 @@ def main(argv: list[str] | None = None) -> int:
     wellness = fetch_wellness(api_key, args.athlete_id, args.base_url, day, args.timeout)
 
     # Filter types
-    allowed = {t.strip().lower() for t in (args.types or "").split(",") if t.strip()}
+    allowed = {canonical_type(t) for t in (args.types or "").split(",") if t.strip()}
+
     def _allowed(obj) -> bool:
         return canonical_type(_get_type(obj)) in allowed
     acts = [a for a in acts if _allowed(a)]

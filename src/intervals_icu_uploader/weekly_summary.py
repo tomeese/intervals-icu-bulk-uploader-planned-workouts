@@ -116,11 +116,14 @@ def _get_type(obj: Dict[str, Any]) -> str:
 
 def canonical_type(v: str | None) -> str:
     s = str(v or "").strip().lower()
+    # normalize common bike types
     if "gravel" in s:
         return "gravel ride"
-    if s == "ride":
+    if s in {"ride", "bike ride"}:
         return "ride"
-    return s  # leave others as-is
+    if "virtual" in s and "ride" in s or s == "virtualride":
+        return "virtual ride"
+    return s
 
 
 def format_hms(seconds: int) -> str:
@@ -588,11 +591,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--outdir", default="reports/weekly", help="Directory for outputs")
     parser.add_argument("--filename", default="", help="Optional fixed filename for the markdown")
     parser.add_argument("--timeout", type=int, default=30)
-    parser.add_argument(
-        "--types",
-        default="Ride,Gravel Ride",
-        help="Comma-separated activity types to include (default: Ride,Gravel Ride)",
-    )
+    parser.add_argument("--types", default="Ride,Gravel Ride,Virtual Ride", help="Comma-separated activity types to include (default: Ride,Gravel Ride)",)
     args = parser.parse_args(argv)
 
     api_key = args.api_key or os.environ.get("INTERVALS_API_KEY")
@@ -613,7 +612,8 @@ def main(argv: list[str] | None = None) -> int:
     wellness = fetch_wellness(api_key, args.athlete_id, args.base_url, week_end, args.timeout)
 
     # Filter types
-    allowed = {t.strip().lower() for t in (args.types or "").split(",") if t.strip()}
+    allowed = {canonical_type(t) for t in (args.types or "").split(",") if t.strip()}
+
     def _allowed(obj) -> bool:
         return canonical_type(_get_type(obj)) in allowed
 
