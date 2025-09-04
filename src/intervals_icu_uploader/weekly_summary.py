@@ -7,19 +7,18 @@ import os
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Optional
 
-import requests # type: ignore 
-from requests.auth import HTTPBasicAuth # type: ignore 
+import requests
+from requests.auth import HTTPBasicAuth
 try:
     from zoneinfo import ZoneInfo  # py>=3.9
 except Exception:
     ZoneInfo = None  # type: ignore
 
-import os
+# Optional: config for alert thresholds
 try:
-    import yaml # type: ignore 
+    import yaml  # PyYAML
 except Exception:
-    yaml = None
-
+    yaml = None  # type: ignore
 
 INTERVALS_DEFAULT_BASE = "https://intervals.icu"
 
@@ -27,49 +26,6 @@ INTERVALS_DEFAULT_BASE = "https://intervals.icu"
 # ---------------------------
 # Helpers
 # ---------------------------
-
-def load_config(path: str = ".icu.yaml") -> dict:
-    if not os.path.exists(path) or yaml is None:
-        return {
-            "daily": {"min_tsb": -20, "warn_tsb": -10, "max_daily_ramp": 8.0, "max_delta_tss": 75},
-            "weekly": {"min_tsb": -20, "max_weekly_ramp": 8.0, "max_delta_tss": 150},
-        }
-    with open(path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f) or {}
-    d = data.get("daily", {})
-    w = data.get("weekly", {})
-    return {
-        "daily": {
-            "min_tsb": float(d.get("min_tsb", -20)),
-            "warn_tsb": float(d.get("warn_tsb", -10)),
-            "max_daily_ramp": float(d.get("max_daily_ramp", 8.0)),
-            "max_delta_tss": float(d.get("max_delta_tss", 75)),
-        },
-        "weekly": {
-            "min_tsb": float(w.get("min_tsb", -20)),
-            "max_weekly_ramp": float(w.get("max_weekly_ramp", 8.0)),
-            "max_delta_tss": float(w.get("max_delta_tss", 150)),
-        },
-    }
-
-def build_weekly_alerts(summary: dict, cfg: dict) -> dict:
-    flags = []
-    tsb = summary["form_tsb"]
-    ramp = summary["ramp_rate"]
-    delta_tss = summary["delta_tss"]
-    min_tsb = cfg["weekly"]["min_tsb"]
-    max_ramp = cfg["weekly"]["max_weekly_ramp"]
-    max_delta = cfg["weekly"]["max_delta_tss"]
-
-    if tsb <= min_tsb:
-        flags.append(f"TSB {tsb} (deep red)")
-    if abs(delta_tss) >= max_delta:
-        flags.append(f"ΔTSS {delta_tss:+}")
-    if ramp >= max_ramp:
-        flags.append(f"Ramp {ramp} CTL/wk high")
-
-    subject_tag = ", ".join(flags)
-    return {"flags": flags, "subject_tag": subject_tag}
 
 def _date_str(d: dt.date) -> str:
     return d.strftime("%Y-%m-%d")
@@ -111,7 +67,8 @@ def _get_load(obj: Dict[str, Any]) -> float:
 
 
 def _get_type(obj: Dict[str, Any]) -> str:
-    return str(obj.get("type") or "Workout")
+    return str(obj.get("type") or "")
+
 
 def canonical_type(v: str | None) -> str:
     s = str(v or "").strip().lower()
@@ -128,11 +85,12 @@ def canonical_type(v: str | None) -> str:
         return "virtual ride"
     return s
 
+
 def canonicalize_obj_type(obj: dict) -> str:
-    '''
+    """
     Best-guess type using both fields and name.
     Intervals events often have type="" or "Workout"; infer from name.
-    '''
+    """
     raw = (
         obj.get("type")
         or obj.get("sport")
@@ -154,7 +112,7 @@ def canonicalize_obj_type(obj: dict) -> str:
             return "ride"
 
     return ct
-    
+
 
 def format_hms(seconds: int) -> str:
     h = seconds // 3600
@@ -266,10 +224,10 @@ def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]
         if ext:
             by_ext[ext].append(a)
         d = _local_date(a) or ""
-        t = canonicalize_obj_type(_get_type(a))
+        t = canonicalize_obj_type(a)
         by_date_type[(d, t)].append(a)
 
-    # sort activity buckets by time
+    # Sort activity buckets by time
     for k in by_ext:
         by_ext[k].sort(key=act_key)
     for k in by_date_type:
@@ -283,7 +241,7 @@ def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]
     for e in planned_list:
         p_ext = str(e.get("external_id") or "")
         p_name = str(e.get("name") or "").strip() or "Planned"
-        p_type = canonical_obj_type(_get_type(e))
+        p_type = canonicalize_obj_type(e)
         p_secs = _get_seconds(e)
         p_tss = _get_load(e)
         p_start = _parse_dt(_local_start_iso(e))
@@ -338,33 +296,32 @@ def match_sessions(activities: List[Dict[str, Any]], events: List[Dict[str, Any]
             a_secs = _get_seconds(chosen)
             a_tss = _get_load(chosen)
             a_start = _parse_dt(_local_start_iso(chosen))
-            pair = {
+            pairs.append({
                 "planned_name": p_name,
                 "planned_type": p_type,
+                "planned_start": p_start.isoformat() if p_start else "",
                 "planned_time_sec": int(p_secs),
                 "planned_time_hms": format_hms(int(p_secs)),
                 "planned_tss": round(p_tss, 1),
-                "planned_start": p_start.isoformat() if p_start else "",
                 "actual_name": a_name,
-                "actual_type": canonicalize_obj_type(_get_type(chosen)),
+                "actual_type": canonicalize_obj_type(chosen),
+                "actual_start": a_start.isoformat() if a_start else "",
                 "actual_time_sec": int(a_secs),
                 "actual_time_hms": format_hms(int(a_secs)),
                 "actual_tss": round(a_tss, 1),
-                "actual_start": a_start.isoformat() if a_start else "",
                 "delta_time_sec": int(a_secs - p_secs),
                 "delta_tss": round(a_tss - p_tss, 1),
                 "match_method": method,
-            }
-            pairs.append(pair)
+            })
 
-    # Unmatched
+    # Unmatched sets
     matched_actuals = {id_entry for id_entry in used_ids}
     unmatched_actual = [a for a in activities if id(a) not in matched_actuals]
-    matched_planned_names = {(p["planned_name"], p["planned_start"]) for p in pairs}
+    matched_planned_keys = {(p["planned_name"], p["planned_start"]) for p in pairs}
     unmatched_planned = []
     for e in planned_list:
         key = (str(e.get("name") or "").strip() or "Planned", (_parse_dt(_local_start_iso(e)) or dt.datetime.min).isoformat())
-        if key not in matched_planned_names:
+        if key not in matched_planned_keys:
             unmatched_planned.append(e)
 
     return pairs, unmatched_planned, unmatched_actual
@@ -389,7 +346,7 @@ def build_summary(
     for a in activities:
         secs = _get_seconds(a)
         ld = _get_load(a)
-        t = canonicalize_obj_type(a) 
+        t = canonicalize_obj_type(a)
         actual_seconds += secs
         actual_load += ld
         by_type_actual[t]["seconds"] += secs
@@ -434,12 +391,12 @@ def build_summary(
     pairs, unmatched_planned, unmatched_actual = match_sessions(activities, events)
 
     return {
-        # Actuals
+        # Totals (Actual)
         "tss": round(actual_load, 1),
         "load": round(actual_load, 1),
         "total_time_sec": int(actual_seconds),
         "total_time_hms": format_hms(int(actual_seconds)),
-        # Planned
+        # Totals (Planned)
         "planned_tss": round(planned_load, 1),
         "planned_time_sec": int(planned_seconds),
         "planned_time_hms": format_hms(int(planned_seconds)),
@@ -478,12 +435,67 @@ def build_summary(
 
 
 # ---------------------------
+# Alerts (config)
+# ---------------------------
+
+def load_config(path: str = ".icu.yaml") -> dict:
+    if not os.path.exists(path) or yaml is None:
+        return {
+            "daily": {"min_tsb": -20, "warn_tsb": -10, "max_daily_ramp": 8.0, "max_delta_tss": 75},
+            "weekly": {"min_tsb": -20, "max_weekly_ramp": 8.0, "max_delta_tss": 150},
+        }
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    w = data.get("weekly", {})
+    d = data.get("daily", {})
+    return {
+        "daily": {
+            "min_tsb": float(d.get("min_tsb", -20)),
+            "warn_tsb": float(d.get("warn_tsb", -10)),
+            "max_daily_ramp": float(d.get("max_daily_ramp", 8.0)),
+            "max_delta_tss": float(d.get("max_delta_tss", 75)),
+        },
+        "weekly": {
+            "min_tsb": float(w.get("min_tsb", -20)),
+            "max_weekly_ramp": float(w.get("max_weekly_ramp", 8.0)),
+            "max_delta_tss": float(w.get("max_delta_tss", 150)),
+        },
+    }
+
+
+def build_weekly_alerts(summary: dict, cfg: dict) -> dict:
+    flags = []
+    tsb = summary["form_tsb"]
+    ramp = summary["ramp_rate"]
+    delta_tss = summary["delta_tss"]
+    min_tsb = cfg["weekly"]["min_tsb"]
+    max_ramp = cfg["weekly"]["max_weekly_ramp"]
+    max_delta = cfg["weekly"]["max_delta_tss"]
+
+    if tsb <= min_tsb:
+        flags.append(f"TSB {tsb} (deep red)")
+    if abs(delta_tss) >= max_delta:
+        flags.append(f"ΔTSS {delta_tss:+}")
+    if ramp >= max_ramp:
+        flags.append(f"Ramp {ramp} CTL/wk high")
+
+    subject_tag = ", ".join(flags)
+    return {"flags": flags, "subject_tag": subject_tag}
+
+
+# ---------------------------
 # Outputs
 # ---------------------------
 
-def write_markdown(path: str, week_start: dt.date, week_end: dt.date, s: Dict[str, Any]) -> None:
+def write_markdown(path: str, week_start: dt.date, week_end: dt.date, s: Dict[str, Any], alerts: Optional[Dict[str, Any]] = None) -> None:
     lines = []
     lines.append(f"# Weekly Summary ({week_start} → {week_end})\n")
+
+    if alerts and alerts.get("flags"):
+        lines.append("## Red flags\n")
+        for fl in alerts["flags"]:
+            lines.append(f"- ⚠️ {fl}")
+        lines.append("")
 
     lines.append("## Totals\n")
     lines.append("| Metric | Value |")
@@ -511,7 +523,7 @@ def write_markdown(path: str, week_start: dt.date, week_end: dt.date, s: Dict[st
     for t, v in s["by_type_planned"].items():
         lines.append(f"| {t} | {v['time_hms']} | {v['load']} |")
 
-    # Sessions (limit to 20 in the email-friendly markdown)
+    # Sessions (limit to 20; CSV has all)
     lines.append("\n## Per-Workout Planned vs Actual (top 20)\n")
     lines.append("| Planned | Type | Act | ΔTime | ΔTSS | Match |")
     lines.append("|---|---|---|---:|---:|---|")
@@ -621,7 +633,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--outdir", default="reports/weekly", help="Directory for outputs")
     parser.add_argument("--filename", default="", help="Optional fixed filename for the markdown")
     parser.add_argument("--timeout", type=int, default=30)
-    parser.add_argument("--types", default="Ride,Gravel Ride,Virtual Ride", help="Comma-separated activity types to include (default: Ride,Gravel Ride)",)
+    parser.add_argument(
+        "--types",
+        default="Ride,Gravel Ride,Virtual Ride",
+        help="Comma-separated activity types to include (default: Ride,Gravel Ride,Virtual Ride)",
+    )
     args = parser.parse_args(argv)
 
     api_key = args.api_key or os.environ.get("INTERVALS_API_KEY")
@@ -641,8 +657,8 @@ def main(argv: list[str] | None = None) -> int:
     events = fetch_events(api_key, args.athlete_id, args.base_url, week_start, week_end, args.timeout)
     wellness = fetch_wellness(api_key, args.athlete_id, args.base_url, week_end, args.timeout)
 
-    # Filter types
-    allowed = {canonicalize_obj_type(t) for t in (args.types or "").split(",") if t.strip()}
+    # Filter types (use canonical names)
+    allowed = {canonical_type(t) for t in (args.types or "").split(",") if t.strip()}
 
     def _allowed(obj) -> bool:
         return canonicalize_obj_type(obj) in allowed
@@ -658,9 +674,9 @@ def main(argv: list[str] | None = None) -> int:
         ramp=wellness["rampRate"],
     )
 
+    # Alerts
     cfg = load_config()
     alerts = build_weekly_alerts(summary, cfg)
-
 
     # Ensure output directory
     outdir = os.path.abspath(args.outdir)
@@ -669,7 +685,7 @@ def main(argv: list[str] | None = None) -> int:
     # Markdown
     fname = args.filename or f"weekly-{week_end.isoformat()}.md"
     md_path = os.path.join(outdir, fname)
-    write_markdown(md_path, week_start, week_end, summary)
+    write_markdown(md_path, week_start, week_end, summary, alerts=alerts)
 
     # JSON
     json_path = os.path.join(outdir, f"weekly-{week_end.isoformat()}.json")
