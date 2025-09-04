@@ -64,6 +64,13 @@ jobs:
           echo "ATL=$(jq -r .summary.fatigue_atl "$LATEST_JSON")" >> "$GITHUB_ENV"
           echo "FORM=$(jq -r .summary.form_tsb "$LATEST_JSON")" >> "$GITHUB_ENV"
           echo "RAMP=$(jq -r .summary.ramp_rate "$LATEST_JSON")" >> "$GITHUB_ENV"
+          echo "ALERT_SUBJ=$(jq -r '.alerts.subject_tag // ""' "$LATEST_JSON")" >> $GITHUB_ENV
+          if [ -n "${ALERT_SUBJ}" ]; then
+            echo "ALERT_PREFIX=[⚠️ ${ALERT_SUBJ}] " >> $GITHUB_ENV
+          else
+            echo "ALERT_PREFIX=" >> $GITHUB_ENV
+          fi
+
 
       - name: Send email
         uses: dawidd6/action-send-mail@v3
@@ -73,7 +80,7 @@ jobs:
           secure: true
           username: ${{ secrets.GMAIL_USER }}
           password: ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject: "Weekly Intervals Report: ${{ env.WEEK_START }} -> ${{ env.WEEK_END }} (TSS ${{ env.TSS }}, CTL ${{ env.CTL }}, ATL ${{ env.ATL }}, TSB ${{ env.FORM }})"
+          subject: "${{ env.ALERT_PREFIX }}Weekly Intervals Report: ${{ env.WEEK_START }} -> ${{ env.WEEK_END }} (TSS ${{ env.TSS }}, CTL ${{ env.CTL }}, ATL ${{ env.ATL }}, TSB ${{ env.FORM }})"
           to: ${{ secrets.REPORT_TO }}
           from: "Intervals Bot <${{ secrets.GMAIL_USER }}>"
           body: |
