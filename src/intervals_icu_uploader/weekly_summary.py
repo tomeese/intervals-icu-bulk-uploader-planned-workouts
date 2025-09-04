@@ -116,14 +116,34 @@ def _get_type(obj: Dict[str, Any]) -> str:
 
 def canonical_type(v: str | None) -> str:
     s = str(v or "").strip().lower()
-    # normalize common bike types
+    # normalize common bike types / synonyms
     if "gravel" in s:
         return "gravel ride"
-    if s in {"ride", "bike ride"}:
+    if s in {"ride", "bike ride", "cycling", "bike"}:
         return "ride"
-    if "virtual" in s and "ride" in s or s == "virtualride":
+    if s.replace(" ", "") in {"virtualride"} or ("virtual" in s and "ride" in s):
+        return "virtual ride"
+    if "zwift" in s or "trainer" in s or "indoor" in s:
         return "virtual ride"
     return s
+
+def canonicalize_obj_type(obj: dict) -> str:
+    """Return the best-guess canonical type using both 'type' and 'name'."""
+    t = str(obj.get("type") or "").strip()
+    name = str(obj.get("name") or "").strip()
+    ct = canonical_type(t)
+    if ct and ct not in {"workout", ""}:
+        return ct
+    # Fallback from name when type is missing/generic
+    n = name.lower()
+    if any(k in n for k in ["zwift", "trainer", "indoor", "virtual"]):
+        return "virtual ride"
+    if "gravel" in n:
+        return "gravel ride"
+    if any(k in n for k in ["ride", "bike", "cycling", "spin"]):
+        return "ride"
+    # default: leave as-is so it can be filtered out if not allowed
+    return ct or ""
 
 
 def format_hms(seconds: int) -> str:
@@ -359,7 +379,7 @@ def build_summary(
     for a in activities:
         secs = _get_seconds(a)
         ld = _get_load(a)
-        t = canonical_type(_get_type(a))
+        t = canonicalize_obj_type(obj)
         actual_seconds += secs
         actual_load += ld
         by_type_actual[t]["seconds"] += secs
@@ -374,7 +394,7 @@ def build_summary(
     for e in planned:
         secs = _get_seconds(e)
         ld = _get_load(e)
-        t = canonical_type(_get_type(e))
+        t = canonicalize_obj_type(obj)
         planned_seconds += secs
         planned_load += ld
         by_type_planned[t]["seconds"] += secs
@@ -615,7 +635,7 @@ def main(argv: list[str] | None = None) -> int:
     allowed = {canonical_type(t) for t in (args.types or "").split(",") if t.strip()}
 
     def _allowed(obj) -> bool:
-        return canonical_type(_get_type(obj)) in allowed
+        return canonicalize_obj_type(obj) in allowed
 
     activities = [a for a in activities if _allowed(a)]
     events = [e for e in events if _allowed(e)]
