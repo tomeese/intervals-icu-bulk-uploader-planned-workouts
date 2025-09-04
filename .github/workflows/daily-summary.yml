@@ -90,3 +90,5 @@ jobs:
           attachments: |
             ${{ env.BASE }}.md
             ${{ env.BASE }}-summary.csv
+            ${{ env.BASE }}-sessions.csv
+
