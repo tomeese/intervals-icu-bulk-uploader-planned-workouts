@@ -73,8 +73,7 @@ jobs:
           else
             echo "ALERT_PREFIX=" >> "$GITHUB_ENV"
           fi
-
-
+          
       - name: Email daily report
         uses: dawidd6/action-send-mail@v3
         with:
