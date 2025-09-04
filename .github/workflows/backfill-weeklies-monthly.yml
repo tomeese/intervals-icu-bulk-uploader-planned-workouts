@@ -1,0 +1,120 @@
+name: backfill-weeklies-month
+
+on:
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Year (e.g., 2025)'
+        required: true
+        type: number
+      month:
+        description: 'Month 1-12'
+        required: true
+        type: number
+      tz:
+        description: 'Timezone (IANA)'
+        required: false
+        type: string
+        default: 'America/Los_Angeles'
+      athlete_id:
+        description: 'Athlete ID (0 = self)'
+        required: false
+        type: number
+        default: 0
+      types:
+        description: 'Activity types (comma-separated)'
+        required: false
+        type: string
+        default: 'Ride,Gravel Ride'
+      dry_run:
+        description: 'Do not commit/push changes'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  backfill_weeklies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    concurrency:
+      group: backfill-weeklies-${{ github.ref }}
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install project
+        run: pip install -e .
+
+      - name: Compute Sundays in month
+        shell: bash
+        env:
+          YEAR: ${{ inputs.year }}
+          MONTH: ${{ inputs.month }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, datetime as dt, calendar
+          y = int(os.environ['YEAR']); m = int(os.environ['MONTH'])
+          first = dt.date(y, m, 1)
+          # last day of month
+          last = dt.date(y, m, calendar.monthrange(y, m)[1])
+          # first Sunday on/after first
+          first_sun = first + dt.timedelta((6 - first.weekday()) % 7)  # Mon=0..Sun=6
+          sundays = []
+          d = first_sun
+          while d <= last:
+              sundays.append(d.isoformat())
+              d += dt.timedelta(days=7)
+          open('sundays.txt','w').write("\n".join(sundays))
+          with open(os.environ['GITHUB_ENV'], 'a') as fh:
+              fh.write(f"MONTH_STR={first.strftime('%Y-%m')}\n")
+              fh.write(f"SUNDAYS_COUNT={len(sundays)}\n")
+          print("Sundays:", sundays)
+          PY
+
+      - name: Backfill weekly reports (weeks end on these Sundays)
+        shell: bash
+        env:
+          ATHLETE: ${{ inputs.athlete_id }}
+          TZSTR: ${{ inputs.tz }}
+          TYPES: ${{ inputs.types }}
+        run: |
+          set -euo pipefail
+          mkdir -p reports/weekly
+          if [ ! -s sundays.txt ]; then
+            echo "No Sundays in this month. Nothing to do."
+            exit 0
+          fi
+          while IFS= read -r SUN; do
+            [ -z "$SUN" ] && continue
+            echo "== Weekly ending $SUN =="
+            icu-weekly-summary --athlete-id "${ATHLETE}" --tz "${TZSTR}" --outdir reports/weekly --for-date "$SUN" --types "${TYPES}"
+            sleep 0.3
+          done < sundays.txt
+
+      - name: Commit reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain)" ]; then
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              echo "DRY RUN: changes detected but not committing."
+              git status --porcelain
+            else
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add reports/weekly
+              git commit -m "backfill: weekly reports for ${MONTH_STR} (${SUNDAYS_COUNT} Sundays) [skip ci]"
+              git push
+            fi
+          else
+            echo "No changes to commit."
+          fi
