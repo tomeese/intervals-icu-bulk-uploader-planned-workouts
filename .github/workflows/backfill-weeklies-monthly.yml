@@ -84,6 +84,26 @@ jobs:
               fh.write(f"SUNFILE={sunfile}\n")
           print("Sundays:", sundays, "->", sunfile)
           PY
+          
+      - name: Pre-clean existing weekly files for target Sundays
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Use $SUNFILE if you adopted the temp-file approach; else fallback to sundays.txt in repo
+          FILE="${SUNFILE:-sundays.txt}"
+          if [ ! -s "$FILE" ]; then
+            echo "No Sundays list found; skipping pre-clean."
+            exit 0
+          fi
+          while IFS= read -r SUN; do
+            [ -z "$SUN" ] && continue
+            echo "Removing existing weekly artifacts for $SUN (if any)"
+            rm -f "reports/weekly/weekly-${SUN}.md" \
+                  "reports/weekly/weekly-${SUN}.json" \
+                  "reports/weekly/weekly-${SUN}-summary.csv" \
+                  "reports/weekly/weekly-${SUN}-bytype.csv" \
+                  "reports/weekly/weekly-${SUN}-sessions.csv"
+          done < "$FILE"
 
       - name: Backfill weekly reports (weeks end on these Sundays)
         shell: bash
