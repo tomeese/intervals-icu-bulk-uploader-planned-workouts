@@ -1,0 +1,11 @@
+# thresholds (tweak anytime)
+daily:
+  min_tsb: -20        # flag if TSB below this
+  warn_tsb: -10       # softer warning band
+  max_daily_ramp: 8.0 # CTL/week ramp “high”
+  max_delta_tss: 75   # |actual - planned| TSS in a day
+
+weekly:
+  min_tsb: -20
+  max_weekly_ramp: 8.0
+  max_delta_tss: 150  # |actual - planned| TSS in a week

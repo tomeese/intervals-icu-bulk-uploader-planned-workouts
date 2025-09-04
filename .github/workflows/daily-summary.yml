@@ -43,28 +43,53 @@ jobs:
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Read latest daily JSON
+      - name: Read latest daily JSON & derive env
         id: pick
         shell: bash
         run: |
           set -euo pipefail
           LATEST_JSON=$(ls -1t reports/daily/daily-*.json | head -n1)
-          echo "LATEST_JSON=$LATEST_JSON" >> "$GITHUB_ENV"
           BASE="${LATEST_JSON%.json}"
-          echo "BASE=$BASE" >> "$GITHUB_ENV"
-          echo "DATE=$(jq -r .date "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "PLANNED_TSS=$(jq -r .summary.planned_tss "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "ACTUAL_TSS=$(jq -r .summary.actual_tss "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "DELTA_TSS=$(jq -r .summary.delta_tss "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "PLANNED_TIME=$(jq -r .summary.planned_time_hms "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "ACTUAL_TIME=$(jq -r .summary.actual_time_hms "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "CTL=$(jq -r .advice.ctl "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "ATL=$(jq -r .advice.atl "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "TSB=$(jq -r .advice.tsb "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "RAMP=$(jq -r .advice.ramp "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "REC=$(jq -r .advice.recommendation "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "TOM_PLAN=$(jq -r .advice.tomorrow_planned_tss "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "TOM_SUGG=$(jq -r .advice.tomorrow_suggested_tss "$LATEST_JSON")" >> "$GITHUB_ENV"
+          DATE=$(jq -r .date "$LATEST_JSON")
+          PLANNED_TSS=$(jq -r .summary.planned_tss "$LATEST_JSON")
+          ACTUAL_TSS=$(jq -r .summary.actual_tss "$LATEST_JSON")
+          DELTA_TSS=$(jq -r .summary.delta_tss "$LATEST_JSON")
+          PLANNED_TIME=$(jq -r .summary.planned_time_hms "$LATEST_JSON")
+          ACTUAL_TIME=$(jq -r .summary.actual_time_hms "$LATEST_JSON")
+          CTL=$(jq -r .advice.ctl "$LATEST_JSON")
+          ATL=$(jq -r .advice.atl "$LATEST_JSON")
+          TSB=$(jq -r .advice.tsb "$LATEST_JSON")
+          RAMP=$(jq -r .advice.ramp "$LATEST_JSON")
+          REC=$(jq -r .advice.recommendation "$LATEST_JSON")
+          TOM_PLAN=$(jq -r .advice.tomorrow_planned_tss "$LATEST_JSON")
+          TOM_SUGG=$(jq -r .advice.tomorrow_suggested_tss "$LATEST_JSON")
+          ALERT_SUBJ=$(jq -r '.alerts.subject_tag // ""' "$LATEST_JSON")
+          ALERT_FLAGS=$(jq -r '.alerts.flags // [] | join("; ")' "$LATEST_JSON")
+
+          {
+            echo "LATEST_JSON=$LATEST_JSON"
+            echo "BASE=$BASE"
+            echo "DATE=$DATE"
+            echo "PLANNED_TSS=$PLANNED_TSS"
+            echo "ACTUAL_TSS=$ACTUAL_TSS"
+            echo "DELTA_TSS=$DELTA_TSS"
+            echo "PLANNED_TIME=$PLANNED_TIME"
+            echo "ACTUAL_TIME=$ACTUAL_TIME"
+            echo "CTL=$CTL"
+            echo "ATL=$ATL"
+            echo "TSB=$TSB"
+            echo "RAMP=$RAMP"
+            echo "REC=$REC"
+            echo "TOM_PLAN=$TOM_PLAN"
+            echo "TOM_SUGG=$TOM_SUGG"
+            echo "ALERT_SUBJ=$ALERT_SUBJ"
+            echo "ALERT_FLAGS=$ALERT_FLAGS"
+            if [ -n "$ALERT_SUBJ" ]; then
+              echo "ALERT_PREFIX=[ALERT $ALERT_SUBJ] "
+            else
+              echo "ALERT_PREFIX="
+            fi
+          } >> "$GITHUB_ENV"
 
       - name: Email daily report
         uses: dawidd6/action-send-mail@v3
@@ -74,7 +99,7 @@ jobs:
           secure: true
           username: ${{ secrets.GMAIL_USER }}
           password: ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject: "Daily Intervals: ${{ env.DATE }}  TSS ${{ env.ACTUAL_TSS }} (plan ${{ env.PLANNED_TSS }})  CTL ${{ env.CTL }} ATL ${{ env.ATL }} TSB ${{ env.TSB }}"
+          subject: "${{ env.ALERT_PREFIX }}Daily Intervals: ${{ env.DATE }}  TSS ${{ env.ACTUAL_TSS }} (plan ${{ env.PLANNED_TSS }})  CTL ${{ env.CTL }} ATL ${{ env.ATL }} TSB ${{ env.TSB }}"
           to: ${{ secrets.REPORT_TO }}
           from: "Intervals Bot <${{ secrets.GMAIL_USER }}>"
           body: |
@@ -83,10 +108,14 @@ jobs:
             Time:       ${{ env.ACTUAL_TIME }} (plan ${{ env.PLANNED_TIME }})
             Fitness:    CTL ${{ env.CTL }} | ATL ${{ env.ATL }} | TSB ${{ env.TSB }} | Ramp ${{ env.RAMP }}
 
+            Red flags:
+            ${{ env.ALERT_FLAGS }}
+
             Coach's note:
             ${{ env.REC }}
 
-            Tomorrow: planned ${{ env.TOM_PLAN }} → suggested ${{ env.TOM_SUGG }}
+            Tomorrow: planned ${{ env.TOM_PLAN }} -> suggested ${{ env.TOM_SUGG }}
           attachments: |
             ${{ env.BASE }}.md
             ${{ env.BASE }}-summary.csv
+            ${{ env.BASE }}-sessions.csv

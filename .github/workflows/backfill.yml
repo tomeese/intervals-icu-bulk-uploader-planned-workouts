@@ -1,0 +1,169 @@
+name: backfill-reports
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: 'Start date (YYYY-MM-DD)'
+        required: true
+        type: string
+      end_date:
+        description: 'End date (YYYY-MM-DD). Leave blank for today (in tz).'
+        required: false
+        type: string
+      tz:
+        description: 'Timezone (IANA)'
+        required: false
+        type: string
+        default: 'America/Los_Angeles'
+      athlete_id:
+        description: 'Athlete ID (0 = self)'
+        required: false
+        type: number
+        default: 0
+      types:
+        description: 'Activity types (comma-separated)'
+        required: false
+        type: string
+        default: 'Ride,Gravel Ride'
+      include_weekly:
+        description: 'Also backfill weekly reports (weeks end on Sundays)'
+        required: false
+        type: boolean
+        default: true
+      dry_run:
+        description: 'Do not commit/push changes'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    concurrency:
+      group: backfill-${{ github.ref }}
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install project
+        run: pip install -e .
+
+      - name: Compute date ranges (days & Sundays)
+        shell: bash
+        env:
+          START: ${{ inputs.start_date }}
+          END: ${{ inputs.end_date }}
+          TZSTR: ${{ inputs.tz }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, datetime as dt
+          try:
+              from zoneinfo import ZoneInfo
+          except Exception:
+              ZoneInfo = None
+
+          start = dt.date.fromisoformat(os.environ['START'])
+          end_in = os.environ.get('END', '').strip()
+          tz = os.environ.get('TZSTR') or 'America/Los_Angeles'
+          if end_in:
+              end = dt.date.fromisoformat(end_in)
+          else:
+              if ZoneInfo:
+                  end = dt.datetime.now(ZoneInfo(tz)).date()
+              else:
+                  end = dt.date.today()
+
+          # Days list (inclusive)
+          days = []
+          d = start
+          while d <= end:
+              days.append(d.isoformat())
+              d += dt.timedelta(days=1)
+
+          # All Sundays between start..end (inclusive)
+          first_sunday = start + dt.timedelta((6 - start.weekday()) % 7)
+          sundays = []
+          s = first_sunday
+          while s <= end:
+              sundays.append(s.isoformat())
+              s += dt.timedelta(days=7)
+
+          open('days.txt','w').write("\n".join(days))
+          open('sundays.txt','w').write("\n".join(sundays))
+
+          # export for later steps
+          with open(os.environ['GITHUB_ENV'], 'a') as fh:
+              fh.write(f"START={start.isoformat()}\n")
+              fh.write(f"END_PRINT={end.isoformat()}\n")
+              fh.write(f"DAYS_COUNT={len(days)}\n")
+              fh.write(f"SUNDAYS_COUNT={len(sundays)}\n")
+
+          print(f"Backfill from {start} to {end} | days={len(days)} sundays={len(sundays)}")
+          PY
+
+      - name: Backfill daily reports
+        shell: bash
+        env:
+          ATHLETE: ${{ inputs.athlete_id }}
+          TZSTR: ${{ inputs.tz }}
+          TYPES: ${{ inputs.types }}
+        run: |
+          set -euo pipefail
+          mkdir -p reports/daily
+          while IFS= read -r DAY; do
+            [ -z "$DAY" ] && continue
+            echo "== Daily $DAY =="
+            icu-daily-summary --athlete-id "${ATHLETE}" --tz "${TZSTR}" --outdir reports/daily --for-date "$DAY" --types "${TYPES}"
+            sleep 1
+          done < days.txt
+
+      - name: Backfill weekly reports (weeks ending Sundays)
+        if: ${{ inputs.include_weekly == true }}
+        shell: bash
+        env:
+          ATHLETE: ${{ inputs.athlete_id }}
+          TZSTR: ${{ inputs.tz }}
+          TYPES: ${{ inputs.types }}
+        run: |
+          set -euo pipefail
+          if [ ! -s sundays.txt ]; then
+            echo "No Sundays in range. Skipping weekly."
+            exit 0
+          fi
+          mkdir -p reports/weekly
+          while IFS= read -r SUN; do
+            [ -z "$SUN" ] && continue
+            echo "== Weekly ending $SUN =="
+            icu-weekly-summary --athlete-id "${ATHLETE}" --tz "${TZSTR}" --outdir reports/weekly --for-date "$SUN" --types "${TYPES}"
+            sleep 1
+          done < sundays.txt
+
+      - name: Commit backfilled reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain)" ]; then
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              echo "DRY RUN: changes detected but not committing."
+              git status --porcelain
+            else
+              git config user.name "github-actions[bot]"
+              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+              git add reports/daily reports/weekly || true
+              git commit -m "backfill: ${START}..${END_PRINT} (${DAYS_COUNT} days, ${SUNDAYS_COUNT} Sundays) [skip ci]"
+              git push
+            fi
+          else
+            echo "No changes to commit."
+          fi

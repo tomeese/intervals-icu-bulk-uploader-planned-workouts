@@ -14,12 +14,62 @@ try:
 except Exception:
     ZoneInfo = None  # type: ignore
 
+import os
+try:
+    import yaml
+except Exception:
+    yaml = None
+
+
 INTERVALS_DEFAULT_BASE = "https://intervals.icu"
 
 
 # ---------------------------
 # Helpers
 # ---------------------------
+
+def load_config(path: str = ".icu.yaml") -> dict:
+    if not os.path.exists(path) or yaml is None:
+        return {
+            "daily": {"min_tsb": -20, "warn_tsb": -10, "max_daily_ramp": 8.0, "max_delta_tss": 75},
+            "weekly": {"min_tsb": -20, "max_weekly_ramp": 8.0, "max_delta_tss": 150},
+        }
+    with open(path, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    d = data.get("daily", {})
+    w = data.get("weekly", {})
+    return {
+        "daily": {
+            "min_tsb": float(d.get("min_tsb", -20)),
+            "warn_tsb": float(d.get("warn_tsb", -10)),
+            "max_daily_ramp": float(d.get("max_daily_ramp", 8.0)),
+            "max_delta_tss": float(d.get("max_delta_tss", 75)),
+        },
+        "weekly": {
+            "min_tsb": float(w.get("min_tsb", -20)),
+            "max_weekly_ramp": float(w.get("max_weekly_ramp", 8.0)),
+            "max_delta_tss": float(w.get("max_delta_tss", 150)),
+        },
+    }
+
+def build_weekly_alerts(summary: dict, cfg: dict) -> dict:
+    flags = []
+    tsb = summary["form_tsb"]
+    ramp = summary["ramp_rate"]
+    delta_tss = summary["delta_tss"]
+    min_tsb = cfg["weekly"]["min_tsb"]
+    max_ramp = cfg["weekly"]["max_weekly_ramp"]
+    max_delta = cfg["weekly"]["max_delta_tss"]
+
+    if tsb <= min_tsb:
+        flags.append(f"TSB {tsb} (deep red)")
+    if abs(delta_tss) >= max_delta:
+        flags.append(f"ΔTSS {delta_tss:+}")
+    if ramp >= max_ramp:
+        flags.append(f"Ramp {ramp} CTL/wk high")
+
+    subject_tag = ", ".join(flags)
+    return {"flags": flags, "subject_tag": subject_tag}
 
 def _date_str(d: dt.date) -> str:
     return d.strftime("%Y-%m-%d")
@@ -578,6 +628,10 @@ def main(argv: list[str] | None = None) -> int:
         ramp=wellness["rampRate"],
     )
 
+    cfg = load_config()
+    alerts = build_weekly_alerts(summary, cfg)
+
+
     # Ensure output directory
     outdir = os.path.abspath(args.outdir)
     os.makedirs(outdir, exist_ok=True)
@@ -590,7 +644,7 @@ def main(argv: list[str] | None = None) -> int:
     # JSON
     json_path = os.path.join(outdir, f"weekly-{week_end.isoformat()}.json")
     with open(json_path, "w", encoding="utf-8") as f:
-        json.dump({"week_start": week_start.isoformat(), "week_end": week_end.isoformat(), "summary": summary}, f, indent=2)
+        json.dump({"week_start": week_start.isoformat(), "week_end": week_end.isoformat(), "summary": summary, "alerts": alerts}, f, indent=2)
 
     # CSVs
     base = os.path.join(outdir, f"weekly-{week_end.isoformat()}")
