@@ -1,32 +1,43 @@
 {
   "date": "2025-09-04",
   "summary": {
-    "actual_time_sec": 0,
-    "actual_time_hms": "0h 00m",
-    "actual_tss": 0,
-    "planned_time_sec": 9000,
-    "planned_time_hms": "2h 30m",
-    "planned_tss": 105.0,
-    "delta_time_sec": -9000,
-    "delta_time_hms": "2h 30m",
-    "delta_tss": -105.0,
-    "by_type_actual": {},
+    "actual_time_sec": 6413,
+    "actual_time_hms": "1h 46m",
+    "actual_tss": 99.0,
+    "planned_time_sec": 5400,
+    "planned_time_hms": "1h 30m",
+    "planned_tss": 100.0,
+    "delta_time_sec": 1013,
+    "delta_time_hms": "0h 16m",
+    "delta_tss": -1.0,
+    "by_type_actual": {
+      "virtual ride": {
+        "time_sec": 6413,
+        "time_hms": "1h 46m",
+        "tss": 99.0
+      }
+    },
     "by_type_planned": {
-      "Ride": {
-        "time_sec": 9000,
-        "time_hms": "2h 30m",
-        "tss": 105.0
+      "ride": {
+        "time_sec": 5400,
+        "time_hms": "1h 30m",
+        "tss": 100.0
       }
     }
   },
   "advice": {
-    "tsb": 1.7,
-    "ctl": 81.9,
-    "atl": 80.1,
+    "tsb": 1.8,
+    "ctl": 81.8,
+    "atl": 80.0,
     "ramp": -2.0,
     "recommendation": "Stick to plan.",
     "tomorrow_planned_tss": 25.0,
     "tomorrow_suggested_tss": 25.0,
     "adjust_pct": 0.0
+  },
+  "sessions": [],
+  "alerts": {
+    "flags": [],
+    "subject_tag": ""
   }
 }
