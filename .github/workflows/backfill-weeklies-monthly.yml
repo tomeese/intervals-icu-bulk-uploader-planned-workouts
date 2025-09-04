@@ -60,38 +60,42 @@ jobs:
         env:
           YEAR: ${{ inputs.year }}
           MONTH: ${{ inputs.month }}
+          TMP: ${{ runner.temp }}
         run: |
           set -euo pipefail
           python - <<'PY'
           import os, datetime as dt, calendar
           y = int(os.environ['YEAR']); m = int(os.environ['MONTH'])
           first = dt.date(y, m, 1)
-          # last day of month
           last = dt.date(y, m, calendar.monthrange(y, m)[1])
-          # first Sunday on/after first
-          first_sun = first + dt.timedelta((6 - first.weekday()) % 7)  # Mon=0..Sun=6
+          first_sun = first + dt.timedelta((6 - first.weekday()) % 7)
           sundays = []
           d = first_sun
           while d <= last:
               sundays.append(d.isoformat())
               d += dt.timedelta(days=7)
-          open('sundays.txt','w').write("\n".join(sundays))
+          sunfile = os.path.join(os.environ['TMP'], 'sundays.txt')
+          with open(sunfile, 'w') as f:
+              f.write("\n".join(sundays))
+          # export paths & counters
           with open(os.environ['GITHUB_ENV'], 'a') as fh:
               fh.write(f"MONTH_STR={first.strftime('%Y-%m')}\n")
               fh.write(f"SUNDAYS_COUNT={len(sundays)}\n")
-          print("Sundays:", sundays)
+              fh.write(f"SUNFILE={sunfile}\n")
+          print("Sundays:", sundays, "->", sunfile)
           PY
 
       - name: Backfill weekly reports (weeks end on these Sundays)
         shell: bash
         env:
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
           ATHLETE: ${{ inputs.athlete_id }}
           TZSTR: ${{ inputs.tz }}
           TYPES: ${{ inputs.types }}
         run: |
           set -euo pipefail
           mkdir -p reports/weekly
-          if [ ! -s sundays.txt ]; then
+          if [ ! -s "$SUNFILE" ]; then
             echo "No Sundays in this month. Nothing to do."
             exit 0
           fi
@@ -100,7 +104,7 @@ jobs:
             echo "== Weekly ending $SUN =="
             icu-weekly-summary --athlete-id "${ATHLETE}" --tz "${TZSTR}" --outdir reports/weekly --for-date "$SUN" --types "${TYPES}"
             sleep 0.3
-          done < sundays.txt
+          done < "$SUNFILE"
 
       - name: Commit reports
         shell: bash
