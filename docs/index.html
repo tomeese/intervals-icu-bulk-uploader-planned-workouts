@@ -7,19 +7,17 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <meta name="color-scheme" content="light dark" />
   <style>
-    /* Small usability touches */
     .number-input { width: 6rem; }
     .time-input { width: 7.5rem; }
     .scroll-area { max-height: 18rem; overflow: auto; }
-    .kbd { @apply px-1.5 py-0.5 rounded border text-xs; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
   <header class="px-4 sm:px-6 lg:px-8 py-6 border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 backdrop-blur">
     <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
       <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">Weekly Workout Planner</h1>
-      <nav class="text-sm text-slate-500 dark:text-slate-400">
-        <span>Local-first · No build · Exports JSON</span>
+      <nav class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
+        Local-first · Exports JSON · Saves to GitHub
       </nav>
     </div>
   </header>
@@ -44,7 +42,7 @@
           <button id="newWeekBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">New / Clear week</button>
         </div>
       </div>
-      <div class="mt-3 text-xs text-slate-500">Tip: this auto-saves per week in your browser. Export to JSON to share or commit.</div>
+      <div class="mt-3 text-xs text-slate-500">Tip: auto-saves per week in your browser. Export or “Save to repo” to share.</div>
     </section>
 
     <!-- Days grid -->
@@ -69,25 +67,56 @@
           </div>
         </div>
       </div>
+
       <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
         <h2 class="text-lg font-semibold mb-3">Export / Import</h2>
         <div class="flex flex-col gap-2">
           <button id="exportBtn" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
           <button id="saveRepoBtn" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
-
           <label class="block">
             <span class="block text-sm font-medium mb-1">Import JSON</span>
             <input id="importFile" type="file" accept="application/json" class="w-full text-sm" />
           </label>
         </div>
+
+        <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <div class="text-xs text-slate-500 mb-2">GitHub save settings (stored only in this browser)</div>
+          <label class="block mb-2">
+            <span class="block text-xs text-slate-500">Personal Access Token (fine-grained)</span>
+            <input id="ghToken" type="password" placeholder="ghp_…" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" />
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <label>
+              <span class="block text-xs text-slate-500">Owner</span>
+              <input id="ghOwner" value="tomeese" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" />
+            </label>
+            <label>
+              <span class="block text-xs text-slate-500">Repo</span>
+              <input id="ghRepo" value="intervals-icu-bulk-uploader-planned-workouts" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" />
+            </label>
+            <label>
+              <span class="block text-xs text-slate-500">Branch</span>
+              <input id="ghBranch" value="main" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" />
+            </label>
+            <label>
+              <span class="block text-xs text-slate-500">Path prefix</span>
+              <input id="ghPrefix" value="plans" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" />
+            </label>
+          </div>
+          <div class="flex items-center gap-2 mt-2">
+            <button id="saveGhCfg" class="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm">Save settings</button>
+            <span class="text-xs text-slate-500">Token stays in <code>localStorage</code> on this device.</span>
+          </div>
+        </div>
       </div>
     </section>
 
     <footer class="mt-10 pb-8 text-xs text-slate-500">
-      Built to pair with <code>icu-*-summary</code> & <code>icu-make-zwo</code>. Data stays in your browser unless you export.
+      Built to pair with <code>icu-*-summary</code> &amp; <code>icu-make-zwo</code>. Data stays in your browser unless you export or save to GitHub.
     </footer>
   </main>
 
+  <!-- Templates -->
   <template id="dayCardTpl">
     <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
       <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
@@ -137,54 +166,12 @@
       </label>
     </div>
   </template>
-  
-<script>
-  async function saveToRepo(){
-    if (!state.weekStart) { alert('Pick a week start first.'); return; }
-    // Build the same payload as Export JSON
-    const out = {
-      version: 1,
-      tz: state.tz,
-      athlete_id: Number(state.athleteId||0),
-      week_start: state.weekStart,
-      workouts: []
-    };
-    for (const [date, list] of Object.entries(state.days)){
-      for (const w of list){
-        out.workouts.push({
-          date, name: w.name||'', type: w.type||'Ride', indoor: !!w.indoor,
-          duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||''
-        });
-      }
-    }
-    try {
-      const resp = await fetch('/.netlify/functions/save-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(out)
-      });
-      const txt = await resp.text();
-      if (!resp.ok) throw new Error(txt);
-      const data = JSON.parse(txt);
-      alert(`Saved ✓  ${data.path}`);
-    } catch (e) {
-      alert(`Save failed: ${e}`);
-    }
-  }
-
-  // hook up the button
-  document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('saveRepoBtn');
-    if (btn) btn.addEventListener('click', saveToRepo);
-  });
-</script>
 
   <script>
   // --- Utilities ---
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
 
-  
   function fmtHMS(sec) {
     sec = Math.max(0, Math.round(sec));
     const h = Math.floor(sec / 3600);
@@ -325,7 +312,7 @@
     $('#totPlannedTss').textContent = Math.round(tss);
     if (byType.size === 0) { $('#totByType').textContent = '—'; return; }
     $('#totByType').innerHTML = Array.from(byType.entries())
-      .map(([k,v]) => `<div><span class="font-medium">${k}</span>: ${fmtHMS(v.sec)}, TSS ${Math.round(v.tss)}</div>`) 
+      .map(([k,v]) => `<div><span class="font-medium">${k}</span>: ${fmtHMS(v.sec)}, TSS ${Math.round(v.tss)}</div>`)
       .join('');
   }
 
@@ -383,6 +370,94 @@
     renderWeek();
   }
 
+  // --- GitHub Save helpers ---
+  const GH_STORE_KEY = "planner:ghcfg";
+  function ghLoad(){
+    try { return JSON.parse(localStorage.getItem(GH_STORE_KEY)||"{}"); } catch { return {}; }
+  }
+  function ghSave(cfg){
+    localStorage.setItem(GH_STORE_KEY, JSON.stringify(cfg || {}));
+  }
+  function ghGetCfg(){
+    const cfg = ghLoad();
+    return {
+      token: $('#ghToken').value || cfg.token || "",
+      owner: $('#ghOwner').value || cfg.owner || "tomeese",
+      repo:  $('#ghRepo').value  || cfg.repo  || "intervals-icu-bulk-uploader-planned-workouts",
+      branch: $('#ghBranch').value || cfg.branch || "main",
+      prefix: $('#ghPrefix').value || cfg.prefix || "plans",
+    };
+  }
+
+  function encodePathPreserveSlashes(p) {
+    // Encode each segment, keep '/'
+    return p.split('/').map(encodeURIComponent).join('/');
+  }
+
+  function base64EncodeUTF8(str) {
+    // UTF-8 safe base64
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+
+  async function saveToRepo(){
+    if (!state.weekStart) { alert('Pick a week start first.'); return; }
+    const cfg = ghGetCfg();
+    if (!cfg.token) { alert("Add a GitHub fine-grained token first."); return; }
+
+    const out = {
+      version: 1,
+      tz: state.tz,
+      athlete_id: Number(state.athleteId||0),
+      week_start: state.weekStart,
+      workouts: []
+    };
+    for (const [date, list] of Object.entries(state.days)){
+      for (const w of list){
+        out.workouts.push({
+          date, name: w.name||'', type: w.type||'Ride', indoor: !!w.indoor,
+          duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||''
+        });
+      }
+    }
+
+    const path = `${(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'')}/plan-${state.weekStart}.json`;
+    const api = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(path)}`;
+    const headers = {
+      "Authorization": `token ${cfg.token}`,
+      "Accept": "application/vnd.github+json",
+      "Content-Type": "application/json"
+    };
+    const content = base64EncodeUTF8(JSON.stringify(out, null, 2));
+
+    // Get existing sha (if any)
+    let sha = undefined;
+    try {
+      const getRes = await fetch(`${api}?ref=${encodeURIComponent(cfg.branch)}`, { headers });
+      if (getRes.status === 200) {
+        const info = await getRes.json();
+        sha = info.sha;
+      } else if (getRes.status !== 404) {
+        const txt = await getRes.text();
+        throw new Error(`GET ${getRes.status}: ${txt.slice(0,400)}`);
+      }
+    } catch (e){ alert(`GitHub GET failed: ${e}`); return; }
+
+    // Create/update file
+    const body = {
+      message: `feat(planner): save ${path}`,
+      content, branch: cfg.branch, sha,
+      committer: { name: "planner-bot", email: "planner@users.noreply.github.com" },
+      author: { name: "planner-bot", email: "planner@users.noreply.github.com" }
+    };
+    try {
+      const putRes = await fetch(api, { method: "PUT", headers, body: JSON.stringify(body) });
+      const txt = await putRes.text();
+      if (!putRes.ok) throw new Error(`PUT ${putRes.status}: ${txt.slice(0,400)}`);
+      const data = JSON.parse(txt);
+      alert(`Saved ✓ ${path}`);
+    } catch (e){ alert(`GitHub PUT failed: ${e}`); }
+  }
+
   // --- Init ---
   function setWeekStartFromInput(){
     const raw = $('#weekStart').value;
@@ -409,13 +484,33 @@
   $('#athleteId').addEventListener('change', () => { state.athleteId = Number($('#athleteId').value||0); save(); });
   $('#newWeekBtn').addEventListener('click', () => {
     if (!$('#weekStart').value) { alert('Pick a Monday to start.'); return; }
-    // Clear current week data
     state.days = {}; save(); renderWeek();
   });
   $('#exportBtn').addEventListener('click', exportJson);
   $('#importFile').addEventListener('change', (e) => importJson(e.target.files[0]));
+  $('#saveRepoBtn').addEventListener('click', saveToRepo);
+  $('#saveGhCfg').addEventListener('click', () => {
+    const cfg = {
+      token: $('#ghToken').value,
+      owner: $('#ghOwner').value,
+      repo:  $('#ghRepo').value,
+      branch: $('#ghBranch').value,
+      prefix: $('#ghPrefix').value
+    };
+    ghSave(cfg);
+    alert('GitHub settings saved locally.');
+  });
+  // preload saved cfg inputs
+  (function initGhInputs(){
+    const cfg = ghLoad();
+    if (cfg.token) $('#ghToken').value = cfg.token;
+    if (cfg.owner) $('#ghOwner').value = cfg.owner;
+    if (cfg.repo)  $('#ghRepo').value  = cfg.repo;
+    if (cfg.branch)$('#ghBranch').value= cfg.branch;
+    if (cfg.prefix)$('#ghPrefix').value= cfg.prefix;
+  })();
 
-  // default week = the Monday of today
+  // default week = Monday of today
   (function boot(){
     const now = new Date();
     const isoMonday = toISODate(mondayOf(now));
