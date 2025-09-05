@@ -61,7 +61,8 @@ jobs:
                 exit 1
             fi
             echo "Using $FILE"
-
+            PY
+            
       - name: Generate ZWOs
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
