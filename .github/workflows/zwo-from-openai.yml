@@ -38,27 +38,21 @@ jobs:
         id: plan
         shell: bash
         env:
-          INPUT_WEEK: ${{ github.event.inputs.week_start }}
+            INPUT_WEEK: ${{ github.event.inputs.week_start }}
         run: |
-          set -euo pipefail
-          if [[ -n "${INPUT_WEEK:-}" ]]; then
+            set -euo pipefail
+            if [[ -n "${INPUT_WEEK:-}" ]]; then
             MON="${INPUT_WEEK}"
-          else
-            MON="$(python - <<'PY'
-            import datetime as dt, zoneinfo
-            tz=zoneinfo.ZoneInfo("America/Los_Angeles")
-            today=dt.datetime.now(tz).date()
-            mon=today - dt.timedelta(days=today.weekday())
-            print(mon.isoformat())
-            PY
-            )"
+            else
+            # Monday of current week in America/Los_Angeles (no heredoc)
+            MON="$(python -c 'import datetime as dt, zoneinfo; tz=zoneinfo.ZoneInfo("America/Los_Angeles"); today=dt.datetime.now(tz).date(); mon=today - dt.timedelta(days=today.weekday()); print(mon.isoformat())')"
             fi
             FILE="plans/plan-${MON}.json"
             echo "mon=${MON}"   >> "$GITHUB_OUTPUT"
             echo "file=${FILE}" >> "$GITHUB_OUTPUT"
             if [[ ! -s "$FILE" ]]; then
-                echo "::error::Plan not found: $FILE"
-                exit 1
+            echo "::error::Plan not found: $FILE"
+            exit 1
             fi
             echo "Using $FILE"
 
