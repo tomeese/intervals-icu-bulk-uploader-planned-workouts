@@ -1,0 +1,215 @@
+diff --git a/docs/index.html b/docs/index.html
+--- a/docs/index.html
++++ b/docs/index.html
+@@ -180,13 +180,49 @@
+   <template id="rowTpl">
+-    <div class="grid grid-cols-1 sm:grid-cols-8 gap-2 items-end py-2 border-b border-slate-100 dark:border-slate-900 last:border-0">
++    <div class="grid grid-cols-1 sm:grid-cols-8 gap-2 items-start py-2 border-b border-slate-100 dark:border-slate-900 last:border-0">
+       <label class="sm:col-span-2">
+         <span class="block text-xs text-slate-500">Name</span>
+         <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Endurance Z2 - 2h" data-name />
+       </label>
+       <label>
+         <span class="block text-xs text-slate-500">Type</span>
+         <select class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" data-type>
+           <option>Ride</option>
+           <option>Gravel Ride</option>
+           <option>Virtual Ride</option>
+         </select>
+       </label>
+       <label>
+         <span class="block text-xs text-slate-500">Indoor</span>
+         <input type="checkbox" class="h-5 w-5 align-middle" data-indoor />
+       </label>
+       <label>
+         <span class="block text-xs text-slate-500">Duration (hh:mm)</span>
+         <input type="time" step="60" class="time-input rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" value="01:00" data-duration />
+       </label>
+       <label>
+         <span class="block text-xs text-slate-500">TSS</span>
+         <input type="number" min="0" step="1" class="number-input rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" value="50" data-tss />
+       </label>
+       <label class="sm:col-span-2">
+         <span class="block text-xs text-slate-500">Notes</span>
+         <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Optional" data-notes />
+       </label>
+-      <div class="flex items-center justify-end">
+-        <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-zwo>ZWO</button>
+-      </div>
++      <div class="flex items-center justify-end gap-2">
++        <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-design-btn>Design</button>
++        <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-zwo>ZWO</button>
++      </div>
++
++      <!-- DESIGN PANEL -->
++      <div class="sm:col-span-8 col-span-1 hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 mt-2" data-design-panel>
++        <div class="text-xs text-slate-500 mb-2">Workout design (saved to plan JSON for ZWO generation)</div>
++        <div class="grid grid-cols-2 md:grid-cols-6 gap-2">
++          <label><span class="block text-[11px] text-slate-500">FTP (W)</span><input type="number" min="50" max="600" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-ftp></label>
++          <label><span class="block text-[11px] text-slate-500">Sets</span><input type="number" min="1" max="20" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-sets></label>
++          <label><span class="block text-[11px] text-slate-500">Work (sec)</span><input type="number" min="15" max="7200" step="5" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-work></label>
++          <label><span class="block text-[11px] text-slate-500">Rest (sec)</span><input type="number" min="10" max="7200" step="5" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-rec></label>
++          <label><span class="block text-[11px] text-slate-500">Target %FTP</span><input type="number" min="0.3" max="1.8" step="0.01" placeholder="0.95" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-target></label>
++          <label class="flex items-end gap-2"><input type="checkbox" class="h-5 w-5" data-d-ou><span class="text-[11px] text-slate-500">Over/Under</span></label>
++          <label><span class="block text-[11px] text-slate-500">Under %FTP</span><input type="number" min="0.3" max="1.5" step="0.01" placeholder="0.95" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-under></label>
++          <label><span class="block text-[11px] text-slate-500">Over %FTP</span><input type="number" min="0.3" max="1.8" step="0.01" placeholder="1.05" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-over></label>
++          <label><span class="block text-[11px] text-slate-500">Warmup (sec)</span><input type="number" min="60" max="3600" step="30" placeholder="600" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-warm></label>
++          <label><span class="block text-[11px] text-slate-500">Cooldown (sec)</span><input type="number" min="60" max="3600" step="30" placeholder="600" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-cool></label>
++          <label><span class="block text-[11px] text-slate-500">Cadence (rpm)</span><input type="number" min="50" max="130" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-cad></label>
++          <label class="flex items-end gap-2"><input type="checkbox" class="h-5 w-5" data-d-erg checked><span class="text-[11px] text-slate-500">ERG</span></label>
++        </div>
++        <div class="mt-2 flex gap-2 justify-end">
++          <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-design-cancel>Close</button>
++          <button class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs" data-design-save>Save</button>
++        </div>
++      </div>
+     </div>
+   </template>
+@@ -295,6 +331,10 @@
+   function hhmmFromSec(s){ s = Math.max(0, Math.round(s)); const h = Math.floor(s/3600); const m = Math.floor((s%3600)/60); return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
++  function numOrNull(x){ const v = Number(x); return Number.isFinite(v) ? v : null; }
++  function defaultTargetPctByName(name){
++    if (/sweet\s*spot/i.test(name||"")) return 0.88;
++    if (/threshold/i.test(name||"")) return 0.95; if (/vo2/i.test(name||"")) return 1.2; if (/anaerobic|sprint/i.test(name||"")) return 1.5; return 0.9;
++  }
+@@ -372,6 +412,7 @@
+   function buildPayload(){
+-    const out = { version: 1, tz: state.tz, athlete_id: Number(state.athleteId||0), week_start: state.weekStart, workouts: [] };
++    const out = { version: 1, tz: state.tz, athlete_id: Number(state.athleteId||0), week_start: state.weekStart, workouts: [] };
+     for (const [date, list] of Object.entries(state.days)){
+       for (const w of list){
+-        out.workouts.push({
++        const wo = {
+           date, name: w.name||'', type: w.type||'Ride', indoor: !!w.indoor,
+-          duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||''
+-        });
++          duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||''
++        };
++        if (w.design && typeof w.design === 'object' && Object.keys(w.design).length) wo.design = w.design;
++        out.workouts.push(wo);
+       }
+     }
+     return out;
+@@ -395,6 +436,7 @@
+       (state.days[w.date] ||= []).push({
+         name: w.name||'', type: w.type||'Ride', indoor: !!w.indoor,
+-        duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||''
++        duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||'',
++        design: (w.design && typeof w.design==='object') ? w.design : undefined
+       });
+     }
+     save(); renderWeek();
+@@ -427,12 +469,63 @@
+   function renderRow(iso, w){
+     const frag = document.importNode(document.getElementById('rowTpl').content, true);
+     const el = frag.firstElementChild || frag.querySelector('div');
+     const $name = el.querySelector('[data-name]');
+     const $type = el.querySelector('[data-type]');
+     const $indoor = el.querySelector('[data-indoor]');
+     const $dur = el.querySelector('[data-duration]');
+     const $tss = el.querySelector('[data-tss]');
+     const $notes = el.querySelector('[data-notes]');
+-    const $zwo = el.querySelector('[data-zwo]');
++    const $zwo = el.querySelector('[data-zwo]');
++    const $designBtn = el.querySelector('[data-design-btn]');
++    const $panel = el.querySelector('[data-design-panel]');
++    const $d_ftp = el.querySelector('[data-d-ftp]');
++    const $d_sets = el.querySelector('[data-d-sets]');
++    const $d_work = el.querySelector('[data-d-work]');
++    const $d_rec = el.querySelector('[data-d-rec]');
++    const $d_target = el.querySelector('[data-d-target]');
++    const $d_ou = el.querySelector('[data-d-ou]');
++    const $d_under = el.querySelector('[data-d-under]');
++    const $d_over = el.querySelector('[data-d-over]');
++    const $d_warm = el.querySelector('[data-d-warm]');
++    const $d_cool = el.querySelector('[data-d-cool]');
++    const $d_cad = el.querySelector('[data-d-cad]');
++    const $d_erg = el.querySelector('[data-d-erg]');
+ 
+     $name.value = w.name || '';
+     $type.value = w.type || 'Ride';
+     $indoor.checked = !!w.indoor;
+     $dur.value = hhmmFromSec(w.duration_sec || 0);
+     $tss.value = Number.isFinite(w.tss) ? w.tss : 0;
+     $notes.value = w.notes || '';
+ 
+     $name.addEventListener('input', () => { w.name = $name.value; save(); });
+     $type.addEventListener('change', () => { w.type = $type.value; save(); totals(); });
+     $indoor.addEventListener('change', () => { w.indoor = $indoor.checked; save(); });
+     $dur.addEventListener('change', () => { w.duration_sec = parseHHMM($dur.value); save(); totals(); });
+     $tss.addEventListener('change', () => { w.tss = Math.max(0, parseFloat($tss.value||'0')); save(); totals(); });
+     $notes.addEventListener('input', () => { w.notes = $notes.value; save(); });
+ 
++    // Prefill design fields from existing or sensible defaults
++    const d = w.design || {};
++    $d_ftp.value = d.ftp_watts ?? '';
++    $d_sets.value = d.sets ?? 3;
++    $d_work.value = d.work_sec ?? 720;
++    $d_rec.value = d.rec_sec ?? 300;
++    $d_target.value = d.target_pct ?? defaultTargetPctByName(w.name||'');
++    $d_ou.checked = !!d.overunder;
++    $d_under.value = d.under_pct ?? '';
++    $d_over.value = d.over_pct ?? '';
++    $d_warm.value = d.warmup_sec ?? 600;
++    $d_cool.value = d.cooldown_sec ?? 600;
++    $d_cad.value = d.cadence ?? '';
++    $d_erg.checked = (d.erg ?? true);
++
++    function togglePanel(show){
++      $panel.classList.toggle('hidden', !show);
++    }
++    $designBtn.addEventListener('click', () => {
++      if (!$indoor.checked && !/endurance\s*z?2/i.test($name.value||"")) {
++        if (confirm("Mark as Indoor to design ERG intervals?")) { $indoor.checked = true; w.indoor = true; save(); }
++      }
++      togglePanel($panel.classList.contains('hidden'));
++    });
++    el.querySelector('[data-design-cancel]').addEventListener('click', () => togglePanel(false));
++    el.querySelector('[data-design-save]').addEventListener('click', () => {
++      const obj = {
++        kind: (/sweet\s*spot/i.test($name.value||"")) ? "sweetspot" :
++              (/threshold/i.test($name.value||"")) ? "threshold" :
++              (/vo2/i.test($name.value||"")) ? "vo2" :
++              (/anaerobic|sprint/i.test($name.value||"")) ? "anaerobic" : "custom",
++        ftp_watts: numOrNull($d_ftp.value),
++        sets: numOrNull($d_sets.value) ?? 3,
++        work_sec: numOrNull($d_work.value) ?? 720,
++        rec_sec: numOrNull($d_rec.value) ?? 300,
++        target_pct: numOrNull($d_target.value) ?? defaultTargetPctByName($name.value||""),
++        overunder: $d_ou.checked,
++        under_pct: numOrNull($d_under.value) || undefined,
++        over_pct: numOrNull($d_over.value) || undefined,
++        warmup_sec: numOrNull($d_warm.value) ?? 600,
++        cooldown_sec: numOrNull($d_cool.value) ?? 600,
++        cadence: numOrNull($d_cad.value) || undefined,
++        erg: !!$d_erg.checked
++      };
++      // prune undefined/null
++      for (const k of Object.keys(obj)) if (obj[k] === null || obj[k] === undefined) delete obj[k];
++      w.design = obj;
++      save();
++      togglePanel(false);
++    });
++
+     $zwo.addEventListener('click', async () => {
+       try {
+         if (!w.indoor) { if (!confirm("This workout isn't marked Indoor. Generate ZWO anyway?")) return; }
+         if (/endurance z2/i.test(w.name||"")) { alert("Skipping Z2 endurance for ZWO (non-ERG recommended)."); return; }
+         const xml = makeZwoXml(w);
+         const safe = safeFilename(`${iso} - ${w.name||'Workout'}`).replace(/\.zwo$/i,'') + '.zwo';
+         // Offer upload if token present
+         const cfg = ghGetCfg();
+         if (cfg.token && confirm("Upload .zwo to your repo? (Cancel = download only)")) {
+           const path = `zwo/${safe}`;
+           await githubPutFile(cfg, path, xml, `feat(zwo): ${safe}`);
+           alert(`Uploaded ✓ ${path}`);
+         } else {
+           downloadText(safe, xml, 'application/xml');
+         }
+       } catch (e) {
+         alert(`ZWO generation failed: ${e.message || e}`);
+       }
+     });
+ 
+     return frag;
+   }
