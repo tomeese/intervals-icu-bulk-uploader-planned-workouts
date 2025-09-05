@@ -3,5 +3,51 @@
   "tz": "America/Los_Angeles",
   "athlete_id": 0,
   "week_start": "2025-08-25",
-  "workouts": []
+  "workouts": [
+    {
+      "date": "2025-08-26",
+      "name": "Threshold 3x12' @95%",
+      "type": "Virtual Ride",
+      "indoor": true,
+      "duration_sec": 0,
+      "tss": 80,
+      "notes": "Indoor ERG"
+    },
+    {
+      "date": "2025-08-27",
+      "name": "Endurance Z2 - 60m",
+      "type": "Ride",
+      "indoor": false,
+      "duration_sec": 3600,
+      "tss": 40,
+      "notes": ""
+    },
+    {
+      "date": "2025-08-28",
+      "name": "Threshold 4x8' @100%",
+      "type": "Virtual Ride",
+      "indoor": true,
+      "duration_sec": 4800,
+      "tss": 80,
+      "notes": ""
+    },
+    {
+      "date": "2025-08-30",
+      "name": "Sweet Spot 3x20' @88%",
+      "type": "Ride",
+      "indoor": false,
+      "duration_sec": 14400,
+      "tss": 110,
+      "notes": ""
+    },
+    {
+      "date": "2025-08-31",
+      "name": "Endurance Z2 - 90m",
+      "type": "Ride",
+      "indoor": false,
+      "duration_sec": 5400,
+      "tss": 60,
+      "notes": ""
+    }
+  ]
 }
