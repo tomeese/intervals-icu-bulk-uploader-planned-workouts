@@ -10,7 +10,6 @@
     .number-input { width: 6rem; }
     .time-input { width: 7.5rem; }
     .scroll-area { max-height: 18rem; overflow: auto; }
-    .btn { @apply inline-flex items-center justify-center rounded-lg px-3 py-2 font-medium; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
@@ -40,7 +39,7 @@
           <input id="athleteId" type="number" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2" value="0" />
         </label>
         <div class="flex items-end gap-2">
-          <button id="newWeekBtn" class="w-full btn bg-indigo-600 hover:bg-indigo-500 text-white">New / Clear week</button>
+          <button id="newWeekBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">New / Clear week</button>
         </div>
       </div>
       <div class="mt-3 text-xs text-slate-500">Tip: auto-saves per week in your browser. Export or “Save to repo” to share.</div>
@@ -71,7 +70,7 @@
           <div id="templateDesc" class="mt-1 text-xs text-slate-500"></div>
         </label>
         <div class="flex items-end gap-2">
-          <button id="loadTemplateBtn" class="btn bg-emerald-600 hover:bg-emerald-500 text-white w-full">Load template</button>
+          <button id="loadTemplateBtn" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium w-full">Load template</button>
         </div>
       </div>
     </section>
@@ -102,8 +101,8 @@
       <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
         <h2 class="text-lg font-semibold mb-3">Export / Import</h2>
         <div class="flex flex-col gap-2">
-          <button id="exportBtn" class="btn bg-emerald-600 hover:bg-emerald-500 text-white">Export JSON</button>
-          <button id="saveRepoBtn" class="btn bg-indigo-600 hover:bg-indigo-500 text-white">Save to repo</button>
+          <button id="exportBtn" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
+          <button id="saveRepoBtn" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
           <label class="block">
             <span class="block text-sm font-medium mb-1">Import JSON</span>
             <input id="importFile" type="file" accept="application/json" class="w-full text-sm" />
@@ -166,9 +165,9 @@
     </div>
   </template>
 
-  <!-- Workout row template -->
+  <!-- Workout row template (includes Design panel) -->
   <template id="rowTpl">
-    <div class="grid grid-cols-1 sm:grid-cols-8 gap-2 items-end py-2 border-b border-slate-100 dark:border-slate-900 last:border-0">
+    <div class="grid grid-cols-1 sm:grid-cols-8 gap-2 items-start py-2 border-b border-slate-100 dark:border-slate-900 last:border-0">
       <label class="sm:col-span-2">
         <span class="block text-xs text-slate-500">Name</span>
         <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Endurance Z2 - 2h" data-name />
@@ -197,8 +196,32 @@
         <span class="block text-xs text-slate-500">Notes</span>
         <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Optional" data-notes />
       </label>
-      <div class="flex items-center justify-end">
+      <div class="flex items-center justify-end gap-2">
+        <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-design-btn>Design</button>
         <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-zwo>ZWO</button>
+      </div>
+
+      <!-- DESIGN PANEL -->
+      <div class="sm:col-span-8 col-span-1 hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 mt-2" data-design-panel>
+        <div class="text-xs text-slate-500 mb-2">Workout design (saved to plan JSON for ZWO generation)</div>
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-2">
+          <label><span class="block text-[11px] text-slate-500">FTP (W)</span><input type="number" min="50" max="600" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-ftp></label>
+          <label><span class="block text-[11px] text-slate-500">Sets</span><input type="number" min="1" max="20" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-sets></label>
+          <label><span class="block text-[11px] text-slate-500">Work (sec)</span><input type="number" min="15" max="7200" step="5" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-work></label>
+          <label><span class="block text-[11px] text-slate-500">Rest (sec)</span><input type="number" min="10" max="7200" step="5" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-rec></label>
+          <label><span class="block text-[11px] text-slate-500">Target %FTP</span><input type="number" min="0.3" max="1.8" step="0.01" placeholder="0.95" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-target></label>
+          <label class="flex items-end gap-2"><input type="checkbox" class="h-5 w-5" data-d-ou><span class="text-[11px] text-slate-500">Over/Under</span></label>
+          <label><span class="block text-[11px] text-slate-500">Under %FTP</span><input type="number" min="0.3" max="1.5" step="0.01" placeholder="0.95" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-under></label>
+          <label><span class="block text-[11px] text-slate-500">Over %FTP</span><input type="number" min="0.3" max="1.8" step="0.01" placeholder="1.05" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-over></label>
+          <label><span class="block text-[11px] text-slate-500">Warmup (sec)</span><input type="number" min="60" max="3600" step="30" placeholder="600" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-warm></label>
+          <label><span class="block text-[11px] text-slate-500">Cooldown (sec)</span><input type="number" min="60" max="3600" step="30" placeholder="600" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-cool></label>
+          <label><span class="block text-[11px] text-slate-500">Cadence (rpm)</span><input type="number" min="50" max="130" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-cad></label>
+          <label class="flex items-end gap-2"><input type="checkbox" class="h-5 w-5" data-d-erg checked><span class="text-[11px] text-slate-500">ERG</span></label>
+        </div>
+        <div class="mt-2 flex gap-2 justify-end">
+          <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-design-cancel>Close</button>
+          <button class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs" data-design-save>Save</button>
+        </div>
       </div>
     </div>
   </template>
@@ -206,159 +229,104 @@
   <script>
   // --- Utilities ---
   const $ = sel => document.querySelector(sel);
-
-  function fmtHMS(sec) {
-    sec = Math.max(0, Math.round(sec));
-    const h = Math.floor(sec / 3600);
-    const m = Math.floor((sec % 3600) / 60);
-    return `${h}h ${String(m).padStart(2,'0')}m`;
-  }
-  function parseHHMM(str) {
-    if (!str) return 0;
-    const [h,m] = (str||"").split(":").map(x => parseInt(x||"0",10));
-    if (Number.isNaN(h) || Number.isNaN(m)) return 0;
-    return h*3600 + m*60;
-  }
-  function mondayOf(date) {
-    const d = new Date(date);
-    const day = d.getDay(); // 0 Sun..6 Sat
-    const diff = (day === 0 ? -6 : 1 - day);
-    d.setDate(d.getDate() + diff);
-    d.setHours(0,0,0,0);
-    return d;
-  }
+  function fmtHMS(sec) { sec = Math.max(0, Math.round(sec)); const h = Math.floor(sec / 3600); const m = Math.floor((sec % 3600) / 60); return `${h}h ${String(m).padStart(2,'0')}m`; }
+  function parseHHMM(str) { if (!str) return 0; const [h,m] = (str||"").split(":").map(x => parseInt(x||"0",10)); if (Number.isNaN(h) || Number.isNaN(m)) return 0; return h*3600 + m*60; }
+  function mondayOf(date) { const d = new Date(date); const day = d.getDay(); const diff = (day === 0 ? -6 : 1 - day); d.setDate(d.getDate() + diff); d.setHours(0,0,0,0); return d; }
   function addDays(date, n){ const d=new Date(date); d.setDate(d.getDate()+n); return d; }
   function toISODate(d){ return d.toISOString().slice(0,10); }
   function hhmmFromSec(s){ s = Math.max(0, Math.round(s)); const h = Math.floor(s/3600); const m = Math.floor((s%3600)/60); return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+  function numOrNull(x){ const v = Number(x); return Number.isFinite(v) ? v : null; }
+  function defaultTargetPctByName(name){
+    if (/sweet\s*spot/i.test(name||"")) return 0.88;
+    if (/threshold/i.test(name||"")) return 0.95;
+    if (/vo2/i.test(name||"")) return 1.20;
+    if (/anaerobic|sprint/i.test(name||"")) return 1.50;
+    return 0.90;
+  }
   const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
 
   // --- State ---
-  const state = {
-    weekStart: null,
-    tz: 'America/Los_Angeles',
-    athleteId: 0,
-    days: {} // { isoDate: Workout[] }
-  };
+  const state = { weekStart: null, tz: 'America/Los_Angeles', athleteId: 0, days: {} };
   function storageKey(){ return `planner:${state.weekStart}`; }
   function save(){ if (!state.weekStart) return; localStorage.setItem(storageKey(), JSON.stringify(state)); }
   function load(weekStart){ const raw = localStorage.getItem(`planner:${weekStart}`); if (!raw) return null; try { return JSON.parse(raw); } catch { return null; } }
 
   // --- Templates ---
-  // Define a few sensible defaults per Macro-phase and Focus
-  // You can tweak/extend these later.
   const TEMPLATES = {
     "Base": {
       "Build": {
-        "Base-1 (endurance focus)": {
-          desc: "Mostly Z2 endurance with light tempo. Long ride Sat.",
-          days: {
-            0: [{name:"Rest or 45' Recovery", type:"Ride", indoor:false, duration_sec:2700, tss:20, notes:"Optional spin"}],
-            1: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60, notes:"Steady Z2"}],
-            2: [{name:"Tempo 2x20' @85%", type:"Virtual Ride", indoor:true, duration_sec:4800, tss:70, notes:"Short tempo set"}],
-            3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:40}],
-            4: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}],
-            5: [{name:"Long Endurance Z2 - 3h", type:"Ride", indoor:false, duration_sec:10800, tss:135}],
-            6: [{name:"Endurance Z2 - 2h", type:"Ride", indoor:false, duration_sec:7200, tss:90}]
-          }
-        }
+        "Base-1 (endurance focus)": { desc: "Mostly Z2 endurance with light tempo. Long ride Sat.", days: {
+          0: [{name:"Rest or 45' Recovery", type:"Ride", indoor:false, duration_sec:2700, tss:20, notes:"Optional spin"}],
+          1: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}],
+          2: [{name:"Tempo 2x20' @85%", type:"Virtual Ride", indoor:true, duration_sec:4800, tss:70}],
+          3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:40}],
+          4: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}],
+          5: [{name:"Long Endurance Z2 - 3h", type:"Ride", indoor:false, duration_sec:10800, tss:135}],
+          6: [{name:"Endurance Z2 - 2h", type:"Ride", indoor:false, duration_sec:7200, tss:90}]
+        }}
       },
       "Recovery": {
-        "Recovery-Base": {
-          desc: "Reduced volume, no intensity.",
-          days: {
-            0: [],
-            1: [{name:"Recovery Spin - 45m", type:"Virtual Ride", indoor:true, duration_sec:2700, tss:20}],
-            2: [],
-            3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}],
-            4: [],
-            5: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}],
-            6: []
-          }
-        }
+        "Recovery-Base": { desc: "Reduced volume, no intensity.", days: {
+          0: [], 1: [{name:"Recovery Spin - 45m", type:"Virtual Ride", indoor:true, duration_sec:2700, tss:20}], 2: [],
+          3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}],
+          4: [], 5: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}], 6: []
+        }}
       }
     },
     "Build": {
       "Build": {
-        "Threshold-1": {
-          desc: "Threshold focus: 3x12' and 4x8'.",
-          days: {
-            0: [],
-            1: [{name:"Threshold 3x12' @95%", type:"Virtual Ride", indoor:true, duration_sec:5400, tss:80, notes:"Indoor ERG"}],
-            2: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:40}],
-            3: [{name:"Threshold 4x8' @100%", type:"Virtual Ride", indoor:true, duration_sec:4800, tss:80}],
-            4: [],
-            5: [{name:"Sweet Spot 3x20' @88%", type:"Ride", indoor:false, duration_sec:7200, tss:110}],
-            6: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}]
-          }
-        }
+        "Threshold-1": { desc: "Threshold focus: 3x12' and 4x8'.", days: {
+          0: [],
+          1: [{name:"Threshold 3x12' @95%", type:"Virtual Ride", indoor:true, duration_sec:5400, tss:80}],
+          2: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:40}],
+          3: [{name:"Threshold 4x8' @100%", type:"Virtual Ride", indoor:true, duration_sec:4800, tss:80}],
+          4: [],
+          5: [{name:"Sweet Spot 3x20' @88%", type:"Ride", indoor:false, duration_sec:7200, tss:110}],
+          6: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}]
+        }}
       },
       "Recovery": {
-        "Recovery-Build": {
-          desc: "Keep legs spinning; minimal intensity.",
-          days: {
-            0: [],
-            1: [{name:"Recovery Spin - 45m", type:"Virtual Ride", indoor:true, duration_sec:2700, tss:20}],
-            2: [],
-            3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}],
-            4: [],
-            5: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:55}],
-            6: []
-          }
-        }
+        "Recovery-Build": { desc: "Keep legs spinning; minimal intensity.", days: {
+          0: [], 1: [{name:"Recovery Spin - 45m", type:"Virtual Ride", indoor:true, duration_sec:2700, tss:20}], 2: [],
+          3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}],
+          4: [], 5: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:55}], 6: []
+        }}
       }
     },
     "Specialty": {
       "Build": {
-        "VO2/Anaerobic-1": {
-          desc: "VO2Max + Anaerobic focus.",
-          days: {
-            0: [],
-            1: [{name:"VO2Max 5x3' @120%", type:"Virtual Ride", indoor:true, duration_sec:4200, tss:75}],
-            2: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:40}],
-            3: [{name:"VO2Max 6x2' @125%", type:"Virtual Ride", indoor:true, duration_sec:3600, tss:70}],
-            4: [],
-            5: [{name:"Anaerobic 8x1' @150%", type:"Virtual Ride", indoor:true, duration_sec:3600, tss:65}],
-            6: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}]
-          }
-        }
+        "VO2/Anaerobic-1": { desc: "VO2Max + Anaerobic focus.", days: {
+          0: [],
+          1: [{name:"VO2Max 5x3' @120%", type:"Virtual Ride", indoor:true, duration_sec:4200, tss:75}],
+          2: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:40}],
+          3: [{name:"VO2Max 6x2' @125%", type:"Virtual Ride", indoor:true, duration_sec:3600, tss:70}],
+          4: [],
+          5: [{name:"Anaerobic 8x1' @150%", type:"Virtual Ride", indoor:true, duration_sec:3600, tss:65}],
+          6: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}]
+        }}
       },
       "Recovery": {
-        "Recovery-Specialty": {
-          desc: "Strip intensity, keep short endurance.",
-          days: {
-            0: [],
-            1: [{name:"Recovery Spin - 45m", type:"Virtual Ride", indoor:true, duration_sec:2700, tss:20}],
-            2: [],
-            3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}],
-            4: [],
-            5: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}],
-            6: []
-          }
-        }
+        "Recovery-Specialty": { desc: "Strip intensity, keep short endurance.", days: {
+          0: [], 1: [{name:"Recovery Spin - 45m", type:"Virtual Ride", indoor:true, duration_sec:2700, tss:20}], 2: [],
+          3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}],
+          4: [], 5: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}], 6: []
+        }}
       }
     }
   };
-
   function updateTemplateList(){
-    const phase = $('#phase').value;
-    const focus = $('#focus').value;
-    const sel = $('#templateKey');
-    const desc = $('#templateDesc');
+    const phase = $('#phase').value, focus = $('#focus').value;
+    const sel = $('#templateKey'), desc = $('#templateDesc');
     const group = (TEMPLATES[phase] || {})[focus] || {};
     sel.innerHTML = '';
-    Object.keys(group).forEach(key => {
-      const opt = document.createElement('option');
-      opt.value = key; opt.textContent = key;
-      sel.appendChild(opt);
-    });
+    for (const key of Object.keys(group)) {
+      const opt = document.createElement('option'); opt.value = key; opt.textContent = key; sel.appendChild(opt);
+    }
     const first = sel.value || Object.keys(group)[0] || '';
     desc.textContent = first ? group[first].desc || '' : 'No templates found for this phase/focus.';
   }
-
   function applyTemplate(){
-    const phase = $('#phase').value;
-    const focus = $('#focus').value;
-    const key = $('#templateKey').value;
+    const phase = $('#phase').value, focus = $('#focus').value, key = $('#templateKey').value;
     const tpl = (((TEMPLATES[phase]||{})[focus]||{})[key]);
     if (!tpl) { alert('No template for selection'); return; }
     if (!state.weekStart) { alert('Pick a week start first.'); return; }
@@ -422,6 +390,20 @@
     const $tss = el.querySelector('[data-tss]');
     const $notes = el.querySelector('[data-notes]');
     const $zwo = el.querySelector('[data-zwo]');
+    const $designBtn = el.querySelector('[data-design-btn]');
+    const $panel = el.querySelector('[data-design-panel]');
+    const $d_ftp = el.querySelector('[data-d-ftp]');
+    const $d_sets = el.querySelector('[data-d-sets]');
+    const $d_work = el.querySelector('[data-d-work]');
+    const $d_rec = el.querySelector('[data-d-rec]');
+    const $d_target = el.querySelector('[data-d-target]');
+    const $d_ou = el.querySelector('[data-d-ou]');
+    const $d_under = el.querySelector('[data-d-under]');
+    const $d_over = el.querySelector('[data-d-over]');
+    const $d_warm = el.querySelector('[data-d-warm]');
+    const $d_cool = el.querySelector('[data-d-cool]');
+    const $d_cad = el.querySelector('[data-d-cad]');
+    const $d_erg = el.querySelector('[data-d-erg]');
 
     $name.value = w.name || '';
     $type.value = w.type || 'Ride';
@@ -437,13 +419,60 @@
     $tss.addEventListener('change', () => { w.tss = Math.max(0, parseFloat($tss.value||'0')); save(); totals(); });
     $notes.addEventListener('input', () => { w.notes = $notes.value; save(); });
 
+    // Prefill design fields from existing or sensible defaults
+    const d = w.design || {};
+    $d_ftp.value = d.ftp_watts ?? '';
+    $d_sets.value = d.sets ?? 3;
+    $d_work.value = d.work_sec ?? 720;
+    $d_rec.value = d.rec_sec ?? 300;
+    $d_target.value = d.target_pct ?? defaultTargetPctByName(w.name||'');
+    $d_ou.checked = !!d.overunder;
+    $d_under.value = d.under_pct ?? '';
+    $d_over.value = d.over_pct ?? '';
+    $d_warm.value = d.warmup_sec ?? 600;
+    $d_cool.value = d.cooldown_sec ?? 600;
+    $d_cad.value = d.cadence ?? '';
+    $d_erg.checked = (d.erg ?? true);
+
+    function togglePanel(show){ $panel.classList.toggle('hidden', !show); }
+    $designBtn.addEventListener('click', () => {
+      if (!$indoor.checked && !/endurance\s*z?2/i.test($name.value||"")) {
+        if (confirm("Mark as Indoor to design ERG intervals?")) { $indoor.checked = true; w.indoor = true; save(); }
+      }
+      togglePanel($panel.classList.contains('hidden'));
+    });
+    el.querySelector('[data-design-cancel]').addEventListener('click', () => togglePanel(false));
+    el.querySelector('[data-design-save]').addEventListener('click', () => {
+      const obj = {
+        kind: (/sweet\s*spot/i.test($name.value||"")) ? "sweetspot" :
+              (/threshold/i.test($name.value||"")) ? "threshold" :
+              (/vo2/i.test($name.value||"")) ? "vo2" :
+              (/anaerobic|sprint/i.test($name.value||"")) ? "anaerobic" : "custom",
+        ftp_watts: numOrNull($d_ftp.value),
+        sets: numOrNull($d_sets.value) ?? 3,
+        work_sec: numOrNull($d_work.value) ?? 720,
+        rec_sec: numOrNull($d_rec.value) ?? 300,
+        target_pct: numOrNull($d_target.value) ?? defaultTargetPctByName($name.value||""),
+        overunder: $d_ou.checked,
+        under_pct: numOrNull($d_under.value) || undefined,
+        over_pct: numOrNull($d_over.value) || undefined,
+        warmup_sec: numOrNull($d_warm.value) ?? 600,
+        cooldown_sec: numOrNull($d_cool.value) ?? 600,
+        cadence: numOrNull($d_cad.value) || undefined,
+        erg: !!$d_erg.checked
+      };
+      for (const k of Object.keys(obj)) if (obj[k] === null || obj[k] === undefined) delete obj[k];
+      w.design = obj;
+      save();
+      togglePanel(false);
+    });
+
     $zwo.addEventListener('click', async () => {
       try {
         if (!w.indoor) { if (!confirm("This workout isn't marked Indoor. Generate ZWO anyway?")) return; }
-        if (/endurance z2/i.test(w.name||"")) { alert("Skipping Z2 endurance for ZWO (non-ERG recommended)."); return; }
+        if (/endurance\s*z?2/i.test(w.name||"")) { alert("Skipping Z2 endurance for ZWO (non-ERG recommended)."); return; }
         const xml = makeZwoXml(w);
-        const safe = safeFilename(`${iso} - ${w.name||'Workout'}`).replace(/\\.zwo$/i,'') + '.zwo';
-        // Offer upload if token present
+        const safe = safeFilename(`${iso} - ${w.name||'Workout'}`).replace(/\.zwo$/i,'') + '.zwo';
         const cfg = ghGetCfg();
         if (cfg.token && confirm("Upload .zwo to your repo? (Cancel = download only)")) {
           const path = `zwo/${safe}`;
@@ -474,11 +503,10 @@
         byType.set(k, cur);
       }
     }
-    document.getElementById('totPlannedTime').textContent = fmtHMS(sec);
-    document.getElementById('totPlannedTss').textContent = Math.round(tss);
-    const byTypeEl = document.getElementById('totByType');
-    if (byType.size === 0) { byTypeEl.textContent = '—'; return; }
-    byTypeEl.innerHTML = Array.from(byType.entries())
+    $('#totPlannedTime').textContent = fmtHMS(sec);
+    $('#totPlannedTss').textContent = Math.round(tss);
+    if (byType.size === 0) { $('#totByType').textContent = '—'; return; }
+    $('#totByType').innerHTML = Array.from(byType.entries())
       .map(([k,v]) => `<div><span class="font-medium">${k}</span>: ${fmtHMS(v.sec)}, TSS ${Math.round(v.tss)}</div>`)
       .join('');
   }
@@ -488,10 +516,12 @@
     const out = { version: 1, tz: state.tz, athlete_id: Number(state.athleteId||0), week_start: state.weekStart, workouts: [] };
     for (const [date, list] of Object.entries(state.days)){
       for (const w of list){
-        out.workouts.push({
+        const wo = {
           date, name: w.name||'', type: w.type||'Ride', indoor: !!w.indoor,
           duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||''
-        });
+        };
+        if (w.design && typeof w.design === 'object' && Object.keys(w.design).length) wo.design = w.design;
+        out.workouts.push(wo);
       }
     }
     return out;
@@ -510,14 +540,15 @@
     const text = await file.text();
     let data; try { data = JSON.parse(text); } catch(e){ alert('Invalid JSON'); return; }
     if (!data || !data.week_start || !Array.isArray(data.workouts)) { alert('Missing fields'); return; }
-    state.weekStart = data.week_start; document.getElementById('weekStart').value = state.weekStart;
-    state.tz = data.tz || state.tz; document.getElementById('tz').value = state.tz;
-    state.athleteId = data.athlete_id ?? state.athleteId; document.getElementById('athleteId').value = state.athleteId;
+    state.weekStart = data.week_start; $('#weekStart').value = state.weekStart;
+    state.tz = data.tz || state.tz; $('#tz').value = state.tz;
+    state.athleteId = data.athlete_id ?? state.athleteId; $('#athleteId').value = state.athleteId;
     state.days = {};
     for (const w of data.workouts){
       (state.days[w.date] ||= []).push({
         name: w.name||'', type: w.type||'Ride', indoor: !!w.indoor,
-        duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||''
+        duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||'',
+        design: (w.design && typeof w.design==='object') ? w.design : undefined
       });
     }
     save(); renderWeek();
@@ -530,11 +561,11 @@
   function ghGetCfg(){
     const cfg = ghLoad();
     return {
-      token: document.getElementById('ghToken').value || cfg.token || "",
-      owner: document.getElementById('ghOwner').value || cfg.owner || "tomeese",
-      repo:  document.getElementById('ghRepo').value  || cfg.repo  || "intervals-icu-bulk-uploader-planned-workouts",
-      branch: document.getElementById('ghBranch').value || cfg.branch || "main",
-      prefix: document.getElementById('ghPrefix').value || cfg.prefix || "plans",
+      token: $('#ghToken').value || cfg.token || "",
+      owner: $('#ghOwner').value || cfg.owner || "tomeese",
+      repo:  $('#ghRepo').value  || cfg.repo  || "intervals-icu-bulk-uploader-planned-workouts",
+      branch: $('#ghBranch').value || cfg.branch || "main",
+      prefix: $('#ghPrefix').value || cfg.prefix || "plans",
     };
   }
   function encodePathPreserveSlashes(p){ return p.split('/').map(encodeURIComponent).join('/'); }
@@ -564,44 +595,54 @@
     if (!state.weekStart) { alert('Pick a week start first.'); return; }
     const cfg = ghGetCfg();
     if (!cfg.token) { alert("Add a GitHub fine-grained token first."); return; }
-    const path = `${(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'')}/plan-${state.weekStart}.json`;
+    const prefix = (cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
+    const path = `${prefix}/plan-${state.weekStart}.json`;
     await githubPutFile(cfg, path, JSON.stringify(buildPayload(), null, 2), `feat(planner): save ${path}`);
     alert(`Saved ✓ ${path}`);
   }
 
-  // --- ZWO generator (simple, local) ---
-  // Emits a basic workout with warmup + cooldown and typical main sets by name
+  // --- ZWO generator (local preview). Uses design if present; simplifies OU locally.
   function makeZwoXml(w){
     const name = w.name || "Workout";
-    const is = (s) => new RegExp(s, 'i').test(name);
-    if (is('endurance\\s*z?2')) throw new Error('Endurance Z2 not converted to ZWO (ride free / non-ERG).');
+    if (/endurance\s*z?2/i.test(name)) throw new Error('Endurance Z2 not converted to ZWO (ride free / non-ERG).');
 
-    // Determine main set from name
-    let main = { type: 'tempo', reps: 2, work: 1200, rec: 300, wp: 0.85, rp: 0.55 };
-    if (is('threshold')) main = { type:'threshold', reps:3, work: 720, rec: 300, wp:0.95, rp:0.55 };          // 3x12'
-    if (is('sweet\\s*spot')) main = { type:'sweetspot', reps:3, work:1200, rec: 300, wp:0.88, rp:0.55 };      // 3x20'
-    if (is('vo2')) main = { type:'vo2', reps:5, work:180, rec:180, wp:1.20, rp:0.50 };                        // 5x3'
-    if (is('anaerobic')) main = { type:'anaerobic', reps:8, work:60, rec:120, wp:1.50, rp:0.50 };             // 8x1'
+    const d = w.design || {};
+    const warmSec = d.warmup_sec ?? 600;
+    const coolSec = d.cooldown_sec ?? 600;
 
-    const warm = { ramp: true, from:0.5, to:0.75, sec: 10*60 };
-    const cd   = { ramp: true, from:0.75, to:0.5, sec: 10*60 };
-
-    const title = name;
+    // Build steps
     const steps = [];
+    steps.push(`<Warmup Duration="${warmSec}" PowerLow="0.5" PowerHigh="0.75"/>`);
 
-    // Warmup
-    steps.push(`<Warmup Duration="${warm.sec}" PowerLow="${warm.from}" PowerHigh="${warm.to}"/>`);
+    const sets = Math.max(1, parseInt(d.sets ?? 3, 10));
+    const work = Math.max(15, parseInt(d.work_sec ?? 720, 10));
+    const rec  = Math.max(10, parseInt(d.rec_sec  ?? 300, 10));
+    const pct  = Number.isFinite(d.target_pct) ? d.target_pct : defaultTargetPctByName(name);
+    const cad  = (d.cadence && Number.isFinite(d.cadence)) ? ` Cadence="${Math.round(d.cadence)}"` : '';
 
-    // Main set
-    steps.push(`<IntervalsT Repeat="${main.reps}" OnDuration="${main.work}" OffDuration="${main.rec}" OnPower="${main.wp}" OffPower="${main.rp}" Cadence="0"/>`);
+    if (d.overunder) {
+      // Local simplification: use steady target; Action will create real OU.
+      steps.push(`<!-- NOTE: Over/Under simplified locally; Action will generate OU blocks -->`);
+    }
 
-    // Cooldown
-    steps.push(`<Cooldown Duration="${cd.sec}" PowerLow="${cd.to}" PowerHigh="${cd.from}"/>`);
+    if (d.erg === false) {
+      // Free-ride main block(s)
+      for (let i=0;i<sets;i++){
+        steps.push(`<FreeRide Duration="${work}" />`);
+        if (rec > 0 && (i !== sets-1)) steps.push(`<SteadyState Duration="${rec}" Power="0.55"${cad}/>`);
+      }
+    } else {
+      // ERG intervals
+      steps.push(`<IntervalsT Repeat="${sets}" OnDuration="${work}" OffDuration="${rec}" OnPower="${pct}" OffPower="0.55"${cad}/>`);
+    }
 
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+    steps.push(`<Cooldown Duration="${coolSec}" PowerLow="0.5" PowerHigh="0.75"/>`);
+
+    const esc=s=>String(s).replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;'}[c]));
+    return `<?xml version="1.0" encoding="UTF-8"?>
 <workout_file>
   <author>planner</author>
-  <name>${escapeXml(title)}</name>
+  <name>${esc(name)}</name>
   <description>Auto-generated from planner</description>
   <sportType>bike</sportType>
   <tags></tags>
@@ -609,22 +650,20 @@
     ${steps.join('\n    ')}
   </workout>
 </workout_file>`;
-    return xml;
   }
-  function escapeXml(s){ return String(s).replace(/[<>&'"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c])); }
 
   // --- Init / events ---
   function setWeekStartFromInput(){
-    const raw = document.getElementById('weekStart').value;
+    const raw = $('#weekStart').value;
     if (!raw) return;
     const monday = mondayOf(raw);
     const iso = toISODate(monday);
-    document.getElementById('weekStart').value = iso;
+    $('#weekStart').value = iso;
     state.weekStart = iso;
     const prev = load(iso);
     if (prev) {
-      state.tz = prev.tz || state.tz; document.getElementById('tz').value = state.tz;
-      state.athleteId = prev.athleteId ?? state.athleteId; document.getElementById('athleteId').value = state.athleteId;
+      state.tz = prev.tz || state.tz; $('#tz').value = state.tz;
+      state.athleteId = prev.athleteId ?? state.athleteId; $('#athleteId').value = state.athleteId;
       state.days = prev.days || {};
     } else {
       state.days = {};
@@ -632,42 +671,42 @@
     save(); renderWeek();
   }
 
-  document.getElementById('weekStart').addEventListener('change', setWeekStartFromInput);
-  document.getElementById('tz').addEventListener('change', () => { state.tz = document.getElementById('tz').value; save(); });
-  document.getElementById('athleteId').addEventListener('change', () => { state.athleteId = Number(document.getElementById('athleteId').value||0); save(); });
-  document.getElementById('newWeekBtn').addEventListener('click', () => {
-    if (!document.getElementById('weekStart').value) { alert('Pick a Monday to start.'); return; }
+  $('#weekStart').addEventListener('change', setWeekStartFromInput);
+  $('#tz').addEventListener('change', () => { state.tz = $('#tz').value; save(); });
+  $('#athleteId').addEventListener('change', () => { state.athleteId = Number($('#athleteId').value||0); save(); });
+  $('#newWeekBtn').addEventListener('click', () => {
+    if (!$('#weekStart').value) { alert('Pick a Monday to start.'); return; }
     state.days = {}; save(); renderWeek();
   });
-  document.getElementById('exportBtn').addEventListener('click', exportJson);
-  document.getElementById('importFile').addEventListener('change', (e) => importJson(e.target.files[0]));
-  document.getElementById('saveRepoBtn').addEventListener('click', saveToRepo);
-  document.getElementById('saveGhCfg').addEventListener('click', () => {
+  $('#exportBtn').addEventListener('click', exportJson);
+  $('#importFile').addEventListener('change', (e) => importJson(e.target.files[0]));
+  $('#saveRepoBtn').addEventListener('click', saveToRepo);
+  $('#saveGhCfg').addEventListener('click', () => {
     ghSave({
-      token: document.getElementById('ghToken').value,
-      owner: document.getElementById('ghOwner').value,
-      repo:  document.getElementById('ghRepo').value,
-      branch: document.getElementById('ghBranch').value,
-      prefix: document.getElementById('ghPrefix').value
+      token: $('#ghToken').value,
+      owner: $('#ghOwner').value,
+      repo:  $('#ghRepo').value,
+      branch: $('#ghBranch').value,
+      prefix: $('#ghPrefix').value
     });
     alert('GitHub settings saved locally.');
   });
-  document.getElementById('clearGhCfg').addEventListener('click', () => {
+  $('#clearGhCfg').addEventListener('click', () => {
     localStorage.removeItem(GH_STORE_KEY);
-    document.getElementById('ghToken').value = '';
+    $('#ghToken').value = '';
     alert('Cleared token from this browser.');
   });
 
-  document.getElementById('phase').addEventListener('change', updateTemplateList);
-  document.getElementById('focus').addEventListener('change', updateTemplateList);
-  document.getElementById('templateKey').addEventListener('change', updateTemplateList);
-  document.getElementById('loadTemplateBtn').addEventListener('click', applyTemplate);
+  $('#phase').addEventListener('change', updateTemplateList);
+  $('#focus').addEventListener('change', updateTemplateList);
+  $('#templateKey').addEventListener('change', updateTemplateList);
+  $('#loadTemplateBtn').addEventListener('click', applyTemplate);
 
   // default week = Monday of today
   (function boot(){
     const now = new Date();
     const isoMonday = toISODate(mondayOf(now));
-    document.getElementById('weekStart').value = isoMonday;
+    $('#weekStart').value = isoMonday;
     setWeekStartFromInput();
     updateTemplateList();
   })();
