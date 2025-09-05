@@ -9,7 +9,7 @@ on:
         type: string
   push:
     paths:
-      - "plans/plan-*.json"   # regenerate when you save a plan
+      - "plans/plan-*.json"
 
 permissions:
   contents: write
@@ -21,7 +21,7 @@ jobs:
   build-zwo:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -41,22 +41,25 @@ jobs:
           INPUT_WEEK: ${{ github.event.inputs.week_start }}
         run: |
           set -euo pipefail
-          if [ -n "${INPUT_WEEK:-}" ]; then
+          if [[ -n "${INPUT_WEEK:-}" ]]; then
             MON="${INPUT_WEEK}"
           else
-            # Monday of current week in LA
-            python - <<'PY' >> "$GITHUB_OUTPUT"
+            MON="$(python - <<'PY'
             import datetime as dt, zoneinfo
             tz=zoneinfo.ZoneInfo("America/Los_Angeles")
             today=dt.datetime.now(tz).date()
             mon=today - dt.timedelta(days=today.weekday())
-            print(f"mon={mon.isoformat()}")
+            print(mon.isoformat())
             PY
-            MON="${{ steps.plan.outputs.mon }}"
+            )"
             fi
             FILE="plans/plan-${MON}.json"
+            echo "mon=${MON}"   >> "$GITHUB_OUTPUT"
             echo "file=${FILE}" >> "$GITHUB_OUTPUT"
-            test -s "$FILE" || { echo "::error::Plan not found: $FILE"; exit 1; }
+            if [[ ! -s "$FILE" ]]; then
+                echo "::error::Plan not found: $FILE"
+                exit 1
+            fi
             echo "Using $FILE"
 
       - name: Generate ZWOs
@@ -66,20 +69,18 @@ jobs:
           set -euo pipefail
           mkdir -p zwo
           python - <<'PY'
-            import os, json, re, base64, sys, pathlib
-            from jsonschema import validate, ValidationError
+          import os, json, re, pathlib
+          from jsonschema import validate
+          from openai import OpenAI
 
-            PLAN = os.environ.get("PLAN_FILE") or "${{ steps.plan.outputs.file }}"
-            with open(PLAN, "r", encoding="utf-8") as f:
-                plan = json.load(f)
+          PLAN = "${{ steps.plan.outputs.file }}"
+          with open(PLAN, "r", encoding="utf-8") as f:
+          plan = json.load(f)
 
-            def slug(s):
-            return re.sub(r'[^A-Za-z0-9_.-]+','_', s)[:120]
+            def slug(s): return re.sub(r'[^A-Za-z0-9_.-]+','_', s)[:120]
 
-            # ---- JSON schema for model output
             SCHEMA = {
-            "type":"object",
-            "required":["name","segments"],
+            "type":"object","required":["name","segments"],
             "properties":{
                 "name":{"type":"string"},
                 "segments":{"type":"array","items":{
@@ -101,64 +102,44 @@ jobs:
             }
             }
 
-            # ---- OpenAI call (Responses/Chat). Keep it simple and robust.
-            # Docs: Quickstart + API reference on platform.openai.com
-            from openai import OpenAI
             client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
             def call_model(design, name):
-                sys_prompt = (
-                "You generate structured cycling workouts as JSON segments. "
-                "Return ONLY JSON matching the provided schema. Do not include XML."
+                resp = client.chat.completions.create(
+                model="gpt-4o-mini",
+                temperature=0.2,
+                response_format={"type":"json_object"},
+                messages=[
+                    {"role":"system","content":"You generate structured cycling workouts as JSON segments only. Return STRICT JSON that matches the schema. No XML, no prose."},
+                    {"role":"user","content":f"Design a workout from these inputs. Use steady ERG steps for work/rest. Include a ramp warmup 50%→75% and cooldown 75%→50%.\n\nInputs:\n{json.dumps(design, indent=2)}"}
+                ]
                 )
-                user = {
-                "role":"user",
-                "content": f"""
-            Design a workout from these inputs. Use steady ERG steps for work and recovery. 
-            Include a ramp warmup 50%→75% and cooldown 75%→50%.
-
-            Inputs:
-            {json.dumps(design, indent=2)}
-            """
-            }
-
-            # Prefer a small, fast model that can do structured JSON.
-            # If your account has a different name, swap it here.
-            resp = client.chat.completions.create(
-            model="gpt-4o-mini",
-            temperature=0.2,
-            response_format={"type":"json_object"},
-            messages=[{"role":"system","content":sys_prompt}, user]
-            )
-            text = resp.choices[0].message.content
-            data = json.loads(text)
-            validate(instance=data, schema=SCHEMA)
-            # enforce sane bounds
-            for seg in data["segments"]:
-                if seg["type"] in ("warmup","cooldown"):
-                    seg["seconds"] = int(min(max(seg["seconds"], 60), 3600))
-                    seg["from_pct"] = float(max(min(seg["from_pct"], 1.5), 0.3))
-                    seg["to_pct"]   = float(max(min(seg["to_pct"],   1.5), 0.3))
-                elif seg["type"]=="repeat":
-                    seg["repeat"] = int(min(max(seg["repeat"], 1), 20))
-                    for k in ("work","rest"):
-                        seg[k]["seconds"] = int(min(max(seg[k]["seconds"], 15), 3600))
-                        seg[k]["pct"] = float(max(min(seg[k]["pct"], 1.8), 0.3))
-            return data
+                data = json.loads(resp.choices[0].message.content)
+                validate(instance=data, schema=SCHEMA)
+                # clamp
+                for seg in data["segments"]:
+                    if seg["type"] in ("warmup","cooldown"):
+                        seg["seconds"] = int(min(max(seg["seconds"], 60), 3600))
+                        seg["from_pct"] = float(max(min(seg["from_pct"], 1.5), 0.3))
+                        seg["to_pct"]   = float(max(min(seg["to_pct"],   1.5), 0.3))
+                    elif seg["type"]=="repeat":
+                        seg["repeat"] = int(min(max(seg["repeat"], 1), 20))
+                        for k in ("work","rest"):
+                            seg[k]["seconds"] = int(min(max(seg[k]["seconds"], 15), 3600))
+                            seg[k]["pct"] = float(max(min(seg[k]["pct"], 1.8), 0.3))
+                return data
 
             def to_zwo(spec, title):
+                esc=lambda s: (s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
+                            .replace('"',"&quot;").replace("'","&apos;"))
                 steps=[]
                 for seg in spec["segments"]:
                     if seg["type"]=="warmup":
                         steps.append(f'<Warmup Duration="{seg["seconds"]}" PowerLow="{seg["from_pct"]}" PowerHigh="{seg["to_pct"]}"/>')
                     elif seg["type"]=="repeat":
-                        steps.append(
-                        f'<IntervalsT Repeat="{seg["repeat"]}" OnDuration="{seg["work"]["seconds"]}" OffDuration="{seg["rest"]["seconds"]}" '
-                        f'OnPower="{seg["work"]["pct"]}" OffPower="{seg["rest"]["pct"]}" Cadence="0"/>'
-                        )
+                        steps.append(f'<IntervalsT Repeat="{seg["repeat"]}" OnDuration="{seg["work"]["seconds"]}" OffDuration="{seg["rest"]["seconds"]}" OnPower="{seg["work"]["pct"]}" OffPower="{seg["rest"]["pct"]}" Cadence="0"/>')
                     elif seg["type"]=="cooldown":
                         steps.append(f'<Cooldown Duration="{seg["seconds"]}" PowerLow="{seg["to_pct"]}" PowerHigh="{seg["from_pct"]}"/>')
-                esc=lambda s: (s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace('"',"&quot;").replace("'","&apos;"))
                 return f'''<?xml version="1.0" encoding="UTF-8"?>
             <workout_file>
             <author>planner</author>
@@ -172,13 +153,12 @@ jobs:
             </workout_file>
             '''
 
-            def fallback_spec(design, name):
-                # Deterministic backup if the model fails
-                warm = {"type":"warmup","seconds":design.get("warmup_sec",600),"from_pct":0.5,"to_pct":0.75}
-                rep  = {"type":"repeat","repeat":max(1,int(design.get("sets",3))),
-                        "work":{"type":"steady","seconds":int(design.get("work_sec",720)),"pct":float(design.get("target_pct",0.95))},
-                        "rest":{"type":"steady","seconds":int(design.get("rec_sec",300)),"pct":0.55}}
-                cool = {"type":"cooldown","seconds":design.get("cooldown_sec",600),"from_pct":0.75,"to_pct":0.5}
+            def fallback_spec(d, name):
+                warm = {"type":"warmup","seconds":int(d.get("warmup_sec",600)),"from_pct":0.5,"to_pct":0.75}
+                rep  = {"type":"repeat","repeat":max(1,int(d.get("sets",3))),
+                        "work":{"type":"steady","seconds":int(d.get("work_sec",720)),"pct":float(d.get("target_pct",0.95))},
+                        "rest":{"type":"steady","seconds":int(d.get("rec_sec",300)),"pct":0.55}}
+                cool = {"type":"cooldown","seconds":int(d.get("cooldown_sec",600)),"from_pct":0.75,"to_pct":0.5}
                 return {"name": name, "segments":[warm, rep, cool]}
 
             made = 0
@@ -187,20 +167,15 @@ jobs:
                 if not (w.get("indoor") and d and (w.get("type") in ("Virtual Ride","Ride"))):
                     continue
                 name = w.get("name") or "Workout"
-                # Skip obvious Z2 endurance
                 if re.search(r"endurance\\s*z?2", name, flags=re.I):
                     continue
-
                 try:
                     spec = call_model(d, name)
-                except Exception as e:
-                    # fallback
+                except Exception:
                     spec = fallback_spec(d, name)
-
                 date = w.get("date")
                 fname = f'{date}-{slug(name)}.zwo'
-                xml = to_zwo(spec, name)
-                pathlib.Path("zwo", fname).write_text(xml, encoding="utf-8")
+                pathlib.Path("zwo", fname).write_text(to_zwo(spec, name), encoding="utf-8")
                 print("Wrote", fname); made += 1
 
             if made == 0:
@@ -218,4 +193,3 @@ jobs:
             git push
           else
             echo "No changes to commit."
-          fi
