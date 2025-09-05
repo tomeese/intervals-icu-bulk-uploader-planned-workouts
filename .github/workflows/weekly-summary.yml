@@ -41,6 +41,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
           python -c "import intervals_icu_uploader.weekly_summary as m; print('weekly_summary import OK')"
+   
+      - name: Fetch weekly plan JSON
+        shell: bash
+        run: |
+            set -euo pipefail
+            MON=$(python - <<'PY'
+            import datetime as dt
+            today = dt.date.today()
+            monday = today - dt.timedelta(days=today.weekday())  # 0=Mon
+            print(monday.isoformat())
+            PY
+                )
+            curl -fL "https://raw.githubusercontent.com/tomeese/intervals-icu-bulk-uploader-planned-workouts/main/plans/plan-${MON}.json" -o plan.json
+            jq . plan.json
 
       - name: Determine Sunday (America/Los_Angeles)
         id: when
