@@ -1,99 +1,129 @@
-name: weekly-summary
+name: Weekly Intervals Summary
 
 on:
-  schedule:
-    # 05:00 UTC each Monday ≈ Sunday night in Pacific (handles DST)
-    - cron: '0 5 * * MON'
   workflow_dispatch:
+    inputs:
+      for_date:
+        description: "Week ending Sunday (YYYY-MM-DD). If empty, uses last Sunday in America/Los_Angeles."
+        required: false
+        type: string
+      types:
+        description: "Comma-separated activity types"
+        required: false
+        default: "Ride,Gravel Ride,Virtual Ride"
+        type: string
+  schedule:
+    # 07:30 UTC every Monday ≈ Sunday 23:30 America/Los_Angeles during PDT
+    - cron: "30 7 * * 1"
+
+permissions:
+  contents: write
+
+env:
+  ATHLETE: 0
+  TZSTR: America/Los_Angeles
+  TYPES: 'Ride,Gravel Ride,Virtual Ride'  # default; can be overridden via workflow_dispatch
 
 jobs:
   weekly:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
-      - name: Install project
-        run: pip install -e .
-        
-      - name: Verify package contents
+      - name: Install package
         run: |
-          python -c "import sys, pkgutil; import intervals_icu_uploader as p; import importlib; print('pkg:', p.__file__); importlib.import_module('intervals_icu_uploader.weekly_summary'); print('weekly_summary import OK')"
+          python -m pip install --upgrade pip
+          pip install -e .
+          python -c "import intervals_icu_uploader.weekly_summary as m; print('weekly_summary import OK')"
+
+      - name: Determine Sunday (America/Los_Angeles)
+        id: when
+        shell: bash
+        env:
+          INPUT_FOR_DATE: ${{ github.event.inputs.for_date }}
+        run: |
+          set -euo pipefail
+          if [ -n "${INPUT_FOR_DATE:-}" ]; then
+            SUNDAY="${INPUT_FOR_DATE}"
+          else
+            python - <<'PY' >> "$GITHUB_OUTPUT"
+            import os, datetime as dt
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo(os.environ.get("TZSTR","America/Los_Angeles"))
+            today = dt.datetime.now(tz).date()
+            dow = today.weekday()              # Mon=0..Sun=6
+            sunday = today if dow==6 else today - dt.timedelta(days=dow+1)
+            print(f"sunday={sunday.isoformat()}")
+            PY
+            SUNDAY="${{ steps.when.outputs.sunday }}"
+          fi
+          echo "sunday=${SUNDAY}" >> "$GITHUB_OUTPUT"
+          echo "SUNDAY=${SUNDAY}" >> "$GITHUB_ENV"
+          echo "BASE=reports/weekly/weekly-${SUNDAY}" >> "$GITHUB_ENV"
+          echo "TYPES_EFF=${{ github.event.inputs.types || env.TYPES }}" >> "$GITHUB_ENV"
 
       - name: Generate weekly summary
         env:
           INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
-        run: icu-weekly-summary --athlete-id 0 --tz America/Los_Angeles --outdir reports/weekly --types "Ride,Gravel Ride,Virtual Ride"
-
-      - name: Commit report if changed
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add reports/weekly
-            git commit -m "chore: add weekly summary [skip ci]"
-            git push
-          else
-            echo "No changes to commit."
-          fi
+          set -euo pipefail
+          mkdir -p reports/weekly
+          icu-weekly-summary \
+            --athlete-id "${ATHLETE}" \
+            --tz "${TZSTR}" \
+            --outdir reports/weekly \
+            --for-date "${SUNDAY}" \
+            --types "${TYPES_EFF}"
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Inspect outputs
+        run: |
+          echo "Generated files for ${SUNDAY}:"
+          ls -l reports/weekly | sed -n '1,200p'
+          echo
+          echo "Preview (first 40 lines) ${BASE}.md:"
+          sed -n '1,40p' "${BASE}.md" || true
 
-      - name: Capture latest report paths
-        id: pick
+      - name: Commit weekly reports
         shell: bash
         run: |
           set -euo pipefail
-          LATEST_JSON=$(ls -1t reports/weekly/weekly-*.json | head -n1)
-          echo "LATEST_JSON=$LATEST_JSON" >> "$GITHUB_ENV"
-          BASE="${LATEST_JSON%.json}"
-          echo "BASE=$BASE" >> "$GITHUB_ENV"
-          echo "WEEK_START=$(jq -r .week_start "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "WEEK_END=$(jq -r .week_end "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "TSS=$(jq -r .summary.tss "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "TIME=$(jq -r .summary.total_time_hms "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "CTL=$(jq -r .summary.fitness_ctl "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "ATL=$(jq -r .summary.fatigue_atl "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "FORM=$(jq -r .summary.form_tsb "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "RAMP=$(jq -r .summary.ramp_rate "$LATEST_JSON")" >> "$GITHUB_ENV"
-          echo "ALERT_SUBJ=$(jq -r '.alerts.subject_tag // ""' "$LATEST_JSON")" >> $GITHUB_ENV
-          if [ -n "${ALERT_SUBJ}" ]; then
-            echo "ALERT_PREFIX=[⚠️ ${ALERT_SUBJ}] " >> $GITHUB_ENV
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stage only this week's files (safe if they already exist)
+          git add -A "${BASE}.md" "${BASE}-summary.csv" "${BASE}-sessions.csv" "${BASE}-bytype.csv" "${BASE}.json" || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
           else
-            echo "ALERT_PREFIX=" >> $GITHUB_ENV
+            git commit -m "chore(reports): weekly ${SUNDAY} (types: ${TYPES_EFF})"
+            git push
           fi
 
-
-      - name: Send email
+      - name: Email weekly report (optional)
+        if: ${{ secrets.MAIL_HOST != '' && secrets.MAIL_TO != '' }}
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.GMAIL_USER }}
-          password: ${{ secrets.GMAIL_APP_PASSWORD }}
-          subject: "${{ env.ALERT_PREFIX }}Weekly Intervals Report: ${{ env.WEEK_START }} -> ${{ env.WEEK_END }} (TSS ${{ env.TSS }}, CTL ${{ env.CTL }}, ATL ${{ env.ATL }}, TSB ${{ env.FORM }})"
-          to: ${{ secrets.REPORT_TO }}
-          from: "Intervals Bot <${{ secrets.GMAIL_USER }}>"
-          body: |
-            Week: ${{ env.WEEK_START }} -> ${{ env.WEEK_END }}
-            Total Time: ${{ env.TIME }}
-            TSS/Load: ${{ env.TSS }}
-            Fitness (CTL): ${{ env.CTL }}
-            Fatigue (ATL): ${{ env.ATL }}
-            Form (TSB): ${{ env.FORM }}
-            Ramp Rate: ${{ env.RAMP }}
+          server_address: ${{ secrets.MAIL_HOST }}
+          server_port: ${{ secrets.MAIL_PORT }}
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Weekly Intervals Summary – ${{ env.SUNDAY }} (types: ${{ env.TYPES_EFF }})"
+          to: ${{ secrets.MAIL_TO }}
+          from: ${{ secrets.MAIL_FROM }}
+          content_type: text/html
+          html_body: |
+            <p>Weekly report for <b>${{ env.SUNDAY }}</b> (types: ${{ env.TYPES_EFF }}).</p>
+            <p>See attachments for Markdown summary, per-session CSV, by-type CSV, and raw JSON.</p>
           attachments: |
             ${{ env.BASE }}.md
             ${{ env.BASE }}-summary.csv
-            ${{ env.BASE }}-bytype.csv
             ${{ env.BASE }}-sessions.csv
-
+            ${{ env.BASE }}-bytype.csv
+            ${{ env.BASE }}.json

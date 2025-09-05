@@ -262,8 +262,9 @@
   }
 
   function renderRow(iso, w){
-    const node = document.importNode($('#rowTpl').content, true);
-    const el = node.querySelector(':scope > div');
+    // Import the template and grab its root element safely    
+    const frag = document.importNode($('#rowTpl').content, true);
+    const el = frag.firstElementChild || frag.querySelector('div');
     const $name = el.querySelector('[data-name]');
     const $type = el.querySelector('[data-type]');
     const $indoor = el.querySelector('[data-indoor]');
@@ -285,7 +286,7 @@
     $tss.addEventListener('change', () => { w.tss = Math.max(0, parseFloat($tss.value||'0')); save(); totals(); });
     $notes.addEventListener('input', () => { w.notes = $notes.value; save(); });
 
-    return node;
+    return frag;
   }
 
   function hhmmFromSec(s){
