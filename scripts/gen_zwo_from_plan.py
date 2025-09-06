@@ -55,17 +55,19 @@ def clamp_spec(data: dict) -> dict:
 def to_zwo(spec: dict, title: str) -> str:
     esc = lambda s: (s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;")
                      .replace('"',"&quot;").replace("'","&apos;"))
-    steps=[]
+    steps = []
     for seg in spec["segments"]:
-        if seg["type"]=="warmup":
+        if seg["type"] == "warmup":
             steps.append(f'<Warmup Duration="{seg["seconds"]}" PowerLow="{seg["from_pct"]}" PowerHigh="{seg["to_pct"]}"/>')
-        elif seg["type"]=="repeat":
+        elif seg["type"] == "repeat":
             steps.append(
-              f'<IntervalsT Repeat="{seg["repeat"]}" OnDuration="{seg["work"]["seconds"]}" OffDuration="{seg["rest"]["seconds"]}" '
-              f'OnPower="{seg["work"]["pct"]}" OffPower="{seg["rest"]["pct"]}" Cadence="0"/>'
+                f'<IntervalsT Repeat="{seg["repeat"]}" OnDuration="{seg["work"]["seconds"]}" OffDuration="{seg["rest"]["seconds"]}" '
+                f'OnPower="{seg["work"]["pct"]}" OffPower="{seg["rest"]["pct"]}" Cadence="0"/>'
             )
-        elif seg["type"]=="cooldown":
+        elif seg["type"] == "cooldown":
             steps.append(f'<Cooldown Duration="{seg["seconds"]}" PowerLow="{seg["to_pct"]}" PowerHigh="{seg["from_pct"]}"/>')
+
+    body = "\n    ".join(steps)  # ← precompute; no backslashes inside f-string braces
     return f'''<?xml version="1.0" encoding="UTF-8"?>
 <workout_file>
   <author>planner</author>
@@ -74,7 +76,7 @@ def to_zwo(spec: dict, title: str) -> str:
   <sportType>bike</sportType>
   <tags></tags>
   <workout>
-    {'\\n    '.join(steps)}
+    {body}
   </workout>
 </workout_file>
 '''
