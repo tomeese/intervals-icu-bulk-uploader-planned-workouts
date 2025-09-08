@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "tz": "America/Los_Angeles",
+  "athlete_id": 0,
+  "week_start": "2025-09-08",
+  "workouts": [
+    {
+      "date": "2025-09-09",
+      "name": "VO2Max 5x3' @120%",
+      "type": "Virtual Ride",
+      "indoor": true,
+      "duration_sec": 4200,
+      "tss": 75,
+      "notes": ""
+    },
+    {
+      "date": "2025-09-10",
+      "name": "Endurance Z2 - 60m",
+      "type": "Ride",
+      "indoor": false,
+      "duration_sec": 3600,
+      "tss": 40,
+      "notes": ""
+    },
+    {
+      "date": "2025-09-11",
+      "name": "VO2Max 6x2' @125%",
+      "type": "Virtual Ride",
+      "indoor": true,
+      "duration_sec": 3600,
+      "tss": 70,
+      "notes": ""
+    },
+    {
+      "date": "2025-09-13",
+      "name": "Anaerobic 8x1' @150%",
+      "type": "Virtual Ride",
+      "indoor": true,
+      "duration_sec": 3600,
+      "tss": 65,
+      "notes": ""
+    },
+    {
+      "date": "2025-09-14",
+      "name": "Endurance Z2 - 90m",
+      "type": "Ride",
+      "indoor": false,
+      "duration_sec": 5400,
+      "tss": 60,
+      "notes": ""
+    }
+  ]
+}
