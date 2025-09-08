@@ -102,12 +102,42 @@
         <h2 class="text-lg font-semibold mb-3">Export / Import</h2>
         <div class="flex flex-col gap-2">
           <button id="exportBtn" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
-          <button id="saveRepoBtn" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
-          <label class="block">
+          <button id="saveRepoBtn" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>          
+          <button id="uploadIntervalsBtn" class="inline-flex items-center justify-center rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 font-medium">Upload to Intervals</button>
+<label class="block">
             <span class="block text-sm font-medium mb-1">Import JSON</span>
             <input id="importFile" type="file" accept="application/json" class="w-full text-sm" />
           </label>
         </div>
+        <!-- Load from repo -->
+<div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+  <div class="flex items-center justify-between">
+    <h3 class="text-sm font-medium">Load Week Plan from repo</h3>
+    <button id="refreshPlansBtn"
+      class="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm">
+      Refresh list
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-2">
+    <select id="loadPlanSelect" class="sm:col-span-3 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
+      <option value="">— select plan —</option>
+    </select>
+
+    <button id="loadPlanBtn"
+      class="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 text-sm">
+      Load selected
+    </button>
+
+    <a id="openPlanLink" href="#" target="_blank"
+       class="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 text-center">
+      Open on GitHub
+    </a>
+  </div>
+
+  <div id="loadPlanMsg" class="text-xs text-slate-500 mt-2"></div>
+</div>
+
 
         <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
           <div class="text-xs text-slate-500 mb-2">GitHub save settings (stored only in this browser)</div>
@@ -339,6 +369,87 @@
     }
     save(); renderWeek();
   }
+
+  // Use your existing ghGetCfg, ghListPlans, ghGetJsonFile.
+
+  // Apply a plan JSON object to the editor state
+  function applyPlanData(data){
+    if (!data || !data.week_start || !Array.isArray(data.workouts)) {
+      throw new Error('Invalid plan JSON: missing week_start or workouts[]');
+    }
+    state.weekStart = data.week_start; document.getElementById('weekStart').value = state.weekStart;
+    state.tz = data.tz || state.tz;    document.getElementById('tz').value = state.tz;
+    state.athleteId = (data.athlete_id ?? state.athleteId);
+    document.getElementById('athleteId').value = state.athleteId;
+
+    state.days = {};
+    for (const w of data.workouts){
+      (state.days[w.date] ||= []).push({
+        name: w.name || '',
+        type: w.type || 'Ride',
+        indoor: !!w.indoor,
+        duration_sec: Number(w.duration_sec || 0),
+        tss: Number(w.tss || 0),
+        notes: w.notes || '',
+        design: (w.design && typeof w.design === 'object') ? w.design : undefined
+      });
+    }
+    save(); renderWeek();
+  }
+
+  async function refreshPlanList(){
+    const msg = document.getElementById('loadPlanMsg');
+    try {
+      const cfg = ghGetCfg();
+      if (!cfg.token) { msg.textContent = 'Add a GitHub token above first.'; return; }
+      const prefix = (cfg.prefix || 'plans').replace(/^\/+|\/+$/g,'');
+      const items = await ghListPlans(cfg, prefix);
+
+      // Newest first by filename (plan-YYYY-MM-DD.json sorts lexicographically)
+      items.sort((a,b) => b.name.localeCompare(a.name));
+
+      const sel = document.getElementById('loadPlanSelect');
+      sel.innerHTML = '<option value="">— select plan —</option>';
+      for (const it of items) {
+        const label = it.name.replace(/^plan-/, '').replace(/\.json$/,''); // YYYY-MM-DD
+        const opt = document.createElement('option');
+        opt.value = it.path;          // e.g., plans/plan-2025-09-01.json
+        opt.textContent = label;      // show date
+        sel.appendChild(opt);
+      }
+      msg.textContent = `${items.length} plan(s) found in ${prefix}/`;
+    } catch (e) {
+      document.getElementById('loadPlanMsg').textContent = `Error: ${e.message || e}`;
+    }
+  }
+
+  async function loadSelectedPlan(){
+    const sel = document.getElementById('loadPlanSelect');
+    const path = sel.value;
+    if (!path) { alert('Pick a plan first.'); return; }
+    try {
+      const cfg = ghGetCfg();
+      const data = await ghGetJsonFile(cfg, path);
+      applyPlanData(data);
+
+      // Update "Open on GitHub" link
+      const link = document.getElementById('openPlanLink');
+      link.href = `https://github.com/${cfg.owner}/${cfg.repo}/blob/${encodeURIComponent(cfg.branch)}/${path}`;
+      document.getElementById('loadPlanMsg').textContent = `Loaded ${path}`;
+    } catch (e) {
+      alert(`Load failed: ${e.message || e}`);
+    }
+  }
+
+  // Hook up buttons
+  document.getElementById('refreshPlansBtn').addEventListener('click', refreshPlanList);
+  document.getElementById('loadPlanBtn').addEventListener('click', loadSelectedPlan);
+
+  // Auto-refresh if a token is present
+  (function(){
+    try { if (ghGetCfg().token) refreshPlanList(); } catch {}
+  })();
+
 
   // --- Rendering week & rows ---
   function renderWeek(){
@@ -671,6 +782,28 @@
     save(); renderWeek();
   }
 
+  document.getElementById('uploadIntervalsBtn').addEventListener('click', async () => {
+    try {
+      if (!state.weekStart) { alert('Pick a week start first.'); return; }
+      // ensure the plan JSON exists in repo
+      const cfg = ghGetCfg();
+      await githubPutFile(cfg, `${(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'')}/plan-${state.weekStart}.json`,
+                          JSON.stringify(buildPayload(), null, 2),
+                          `feat(planner): save plan-${state.weekStart}.json`);
+      // dispatch the uploader workflow
+      await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', {
+        plan_path: `${cfg.prefix || 'plans'}/plan-${state.weekStart}.json`,
+        tz: state.tz || 'America/Los_Angeles',
+        athlete_id: String(state.athleteId || 0),
+        default_start: '06:00',      // you can surface this as a UI field later
+        dry_run: 'false'             // flip to 'true' to preview in logs only
+      });
+      alert('Upload started ✅ (watch Actions for progress)');
+    } catch (e) {
+      alert(`Upload failed: ${e.message || e}`);
+    }
+  });
+
   $('#weekStart').addEventListener('change', setWeekStartFromInput);
   $('#tz').addEventListener('change', () => { state.tz = $('#tz').value; save(); });
   $('#athleteId').addEventListener('change', () => { state.athleteId = Number($('#athleteId').value||0); save(); });
@@ -710,6 +843,38 @@
     setWeekStartFromInput();
     updateTemplateList();
   })();
+
+  // --- Dispatch a workflow on GitHub (needs token with actions:write) ---
+async function ghDispatchWorkflow(cfg, workflowFile, inputs){
+  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/workflows/${encodeURIComponent(workflowFile)}/dispatches`;
+  const body = { ref: cfg.branch, inputs: inputs || {} };
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Authorization": `token ${cfg.token}`, "Accept": "application/vnd.github+json" },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`dispatch ${res.status}: ${await res.text()}`);
+  return true;
+}
+
+// Load plan list from repo (to enable “Load Week Plan”)
+async function ghListPlans(cfg, prefix="plans"){
+  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(prefix)}`;
+  const res = await fetch(url, { headers: { "Authorization": `token ${cfg.token}` }});
+  if (!res.ok) throw new Error(`list ${res.status}: ${await res.text()}`);
+  const items = await res.json();
+  return items.filter(it => it.type === "file" && /^plan-\d{4}-\d{2}-\d{2}\.json$/.test(it.name))
+              .map(it => ({ name: it.name, path: it.path }));
+}
+
+async function ghGetJsonFile(cfg, path){
+  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(cfg.branch)}`;
+  const res = await fetch(url, { headers: { "Authorization": `token ${cfg.token}` }});
+  if (!res.ok) throw new Error(`get ${res.status}: ${await res.text()}`);
+  const obj = await res.json();
+  const txt = atob(obj.content.replace(/\n/g,''));
+  return JSON.parse(txt);
+}
   </script>
 </body>
 </html>
