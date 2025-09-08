@@ -493,7 +493,6 @@
 
     // Update button label + disabled state
     const btn = document.getElementById('uploadIntervalsBtn');
-    const nWos = buildPayloadFiltered(dates).workouts.length;
     btn.textContent = nWos ? `Upload to Intervals (${nWos})` : 'Upload to Intervals';
     btn.disabled = nWos === 0;
     btn.classList.toggle('opacity-50', nWos === 0);
