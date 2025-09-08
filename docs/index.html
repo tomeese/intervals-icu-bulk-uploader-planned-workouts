@@ -457,6 +457,7 @@
     $type.addEventListener('change',()=>{w.type=$type.value; save(); totals();});
     $ind.addEventListener('change',()=>{w.indoor=$ind.checked; save();});
     $dur.addEventListener('change',()=>{w.duration_sec=parseHHMM($dur.value); save(); totals();});
+    $dur.addEventListener('blur', ()=>{ $dur.value = normalizeHHMM($dur.value); });
     $tss.addEventListener('change',()=>{w.tss=Math.max(0,parseFloat($tss.value||'0')); save(); totals();});
     $notes.addEventListener('input',()=>{w.notes=$notes.value; save();});
 
@@ -594,6 +595,14 @@
   </workout>
 </workout_file>`;
   }
+
+  function normalizeHHMM(s){
+  const m = String(s||'').trim().match(/^(\d{1,2}):([0-5]\d)$/);
+  if(!m) return s;
+  const h = m[1].padStart(2,'0');
+  const mm = m[2];
+  return `${h}:${mm}`;
+}
 
   // ---------- Events / Boot ----------
   function setWeekStartFromInput(){
