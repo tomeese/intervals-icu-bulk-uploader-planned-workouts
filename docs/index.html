@@ -200,7 +200,7 @@
 
         <label class="field col-span-3">
           <span class="lbl">Duration (HH:MM)</span>
-          <input type="time" step="60" class="inp dark" value="01:00" data-duration/>
+          <input type="text" inputmode="numeric" pattern="^\d{1,2}:[0-5]\d$" placeholder="HH:MM" class="inp dark" value="01:00" data-duration/>
         </label>
         <label class="field col-span-3">
           <span class="lbl">TSS</span>
