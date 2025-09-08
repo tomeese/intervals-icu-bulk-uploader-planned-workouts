@@ -7,52 +7,54 @@
   <meta name="color-scheme" content="light dark"/>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .scroll-area{max-height:18rem;overflow:auto}
-    .number-input{width:6rem}
-    .time-input{width:7.5rem}
-    .card{border-radius:0.75rem}
+    :root{--ring:0 0 0 2px rgba(37,99,235,.35)}
+    .card{border-radius:.75rem}
+    .scroll-area{max-height:22rem;overflow:auto}
+    .field{display:flex;flex-direction:column;gap:.35rem}
+    .lbl{font-size:.78rem;line-height:1rem;color:rgb(100 116 139)}
+    .inp{width:100%;padding:.5rem .65rem;border-radius:.5rem;border:1px solid rgb(203 213 225)}
+    .inp.dark{border-color:rgb(51 65 85);background:rgb(15 23 42)}
+    .inp:focus{outline:none;box-shadow:var(--ring)}
+    .sm-btn{padding:.4rem .6rem;border-radius:.5rem;border:1px solid rgb(203 213 225)}
+    .grid-compact{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.6rem}
+    @media (min-width: 1024px){.grid-compact{grid-template-columns:repeat(4,minmax(0,1fr))}}
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-
   <!-- Runtime error banner -->
   <div id="errBanner" class="hidden bg-rose-600 text-white text-sm px-4 py-2"></div>
 
-  <!-- Header -->
   <header class="bg-white/70 dark:bg-slate-900/60 backdrop-blur border-b border-slate-200 dark:border-slate-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between gap-4">
-      <h1 class="text-2xl font-semibold tracking-tight">Weekly Workout Planner 2</h1>
+      <h1 class="text-2xl font-semibold tracking-tight">Weekly Workout Planner</h1>
       <div class="hidden sm:flex items-center gap-2 text-xs text-slate-500">
-        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">1) Plan</span>
-        <span>→</span>
-        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">2) Save / Upload</span>
-        <span>→</span>
+        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">1) Plan</span>→
+        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">2) Save / Upload</span>→
         <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">3) Day-of ZWO</span>
       </div>
     </div>
   </header>
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- LEFT: Planner -->
+    <!-- Planner -->
     <section class="lg:col-span-2 space-y-6">
-
       <!-- Week toolbar -->
       <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <label class="block">
-            <span class="block text-sm font-medium mb-1">Week start (Monday)</span>
-            <input id="weekStart" type="date" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"/>
+          <label class="field">
+            <span class="lbl">Week start (Monday)</span>
+            <input id="weekStart" type="date" class="inp dark"/>
           </label>
-          <label class="block">
-            <span class="block text-sm font-medium mb-1">Time zone (IANA)</span>
-            <input id="tz" type="text" value="America/Los_Angeles" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"/>
+          <label class="field">
+            <span class="lbl">Time zone (IANA)</span>
+            <input id="tz" type="text" value="America/Los_Angeles" class="inp dark"/>
           </label>
-          <label class="block">
-            <span class="block text-sm font-medium mb-1">Athlete ID</span>
-            <input id="athleteId" type="number" value="0" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"/>
+          <label class="field">
+            <span class="lbl">Athlete ID</span>
+            <input id="athleteId" type="number" value="0" class="inp dark"/>
           </label>
-          <div class="flex items-end gap-2">
-            <button id="newWeekBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 font-medium">Clear week</button>
+          <div class="flex items-end">
+            <button id="newWeekBtn" class="w-full rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 font-medium">Clear week</button>
           </div>
         </div>
       </div>
@@ -63,40 +65,36 @@
           <h2 class="text-lg font-semibold">Macro-phase & templates</h2>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-          <label>
-            <span class="block text-sm text-slate-500 mb-1">Macro-phase</span>
-            <select id="phase" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
-              <option>Base</option>
-              <option>Build</option>
-              <option>Specialty</option>
+          <label class="field">
+            <span class="lbl">Macro-phase</span>
+            <select id="phase" class="inp dark">
+              <option>Base</option><option>Build</option><option>Specialty</option>
             </select>
           </label>
-          <label>
-            <span class="block text-sm text-slate-500 mb-1">Week focus</span>
-            <select id="focus" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
-              <option>Build</option>
-              <option>Recovery</option>
+          <label class="field">
+            <span class="lbl">Week focus</span>
+            <select id="focus" class="inp dark">
+              <option>Build</option><option>Recovery</option>
             </select>
           </label>
-          <label class="md:col-span-2">
-            <span class="block text-sm text-slate-500 mb-1">Template</span>
-            <select id="templateKey" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
+          <label class="field md:col-span-2">
+            <span class="lbl">Template</span>
+            <select id="templateKey" class="inp dark">
               <option value="">— choose phase & focus —</option>
             </select>
             <div id="templateDesc" class="mt-1 text-xs text-slate-500"></div>
           </label>
-          <div class="flex items-end gap-2">
-            <button id="loadTemplateBtn" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium w-full">Load template</button>
+          <div class="flex items-end">
+            <button id="loadTemplateBtn" class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Load template</button>
           </div>
         </div>
       </div>
 
-      <!-- Days grid -->
+      <!-- Days -->
       <section id="daysGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></section>
-
     </section>
 
-    <!-- RIGHT: Sidebar -->
+    <!-- Sidebar -->
     <aside class="lg:col-span-1 space-y-6">
       <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 sticky top-4">
         <h2 class="text-lg font-semibold mb-3">Totals</h2>
@@ -116,26 +114,29 @@
         </div>
 
         <div class="mt-5 space-y-2">
-          <button id="exportBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
-          <button id="saveRepoBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
-          <button id="uploadIntervalsBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 font-medium">Upload to Intervals</button>
+          <button id="exportBtn" class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
+          <button id="saveRepoBtn" class="w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
+          <button id="uploadIntervalsBtn" class="w-full rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 font-medium">Upload to Intervals</button>
 
-          <label class="block mt-3">
-            <span class="block text-sm font-medium mb-1">Import JSON</span>
-            <input id="importFile" type="file" accept="application/json" class="w-full text-sm"/>
+          <label class="field mt-3">
+            <span class="lbl">Import JSON</span>
+            <input id="importFile" type="file" accept="application/json" class="text-sm"/>
           </label>
 
           <!-- Load from repo -->
           <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             <div class="flex items-center justify-between">
               <h3 class="text-sm font-medium">Load Week Plan from repo</h3>
-              <button id="refreshPlansBtn" class="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm">Refresh list</button>
+              <div class="flex gap-2">
+                <button id="testGhBtn" class="sm-btn bg-slate-50 dark:bg-slate-900">Test GitHub</button>
+                <button id="refreshPlansBtn" class="sm-btn bg-slate-50 dark:bg-slate-900">Refresh</button>
+              </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-2">
-              <select id="loadPlanSelect" class="sm:col-span-3 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
+              <select id="loadPlanSelect" class="sm:col-span-3 inp dark">
                 <option value="">— select plan —</option>
               </select>
-              <button id="loadPlanBtn" class="rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 text-sm">Load selected</button>
+              <button id="loadPlanBtn" class="rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 text-sm">Load</button>
               <a id="openPlanLink" href="#" target="_blank" class="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 text-center">Open on GitHub</a>
             </div>
             <div id="loadPlanMsg" class="text-xs text-slate-500 mt-2"></div>
@@ -144,33 +145,21 @@
           <!-- GitHub settings -->
           <details class="mt-4" open>
             <summary class="cursor-pointer text-sm font-medium">GitHub save settings</summary>
-            <div class="mt-3 space-y-2 text-xs text-slate-500">Stored only in this browser.</div>
-            <label class="block mb-2">
-              <span class="block text-xs text-slate-500">Personal Access Token (fine-grained)</span>
-              <input id="ghToken" type="password" placeholder="ghp_…" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"/>
+            <div class="mt-3 text-xs text-slate-500">Stored only in this browser.</div>
+            <label class="field mt-2">
+              <span class="lbl">Personal Access Token (fine-grained)</span>
+              <input id="ghToken" type="password" placeholder="ghp_…" class="inp dark"/>
             </label>
-            <div class="grid grid-cols-2 gap-2">
-              <label>
-                <span class="block text-xs text-slate-500">Owner</span>
-                <input id="ghOwner" value="tomeese" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"/>
-              </label>
-              <label>
-                <span class="block text-xs text-slate-500">Repo</span>
-                <input id="ghRepo" value="intervals-icu-bulk-uploader-planned-workouts" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"/>
-              </label>
-              <label>
-                <span class="block text-xs text-slate-500">Branch</span>
-                <input id="ghBranch" value="main" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"/>
-              </label>
-              <label>
-                <span class="block text-xs text-slate-500">Path prefix</span>
-                <input id="ghPrefix" value="plans" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"/>
-              </label>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <label class="field"><span class="lbl">Owner</span><input id="ghOwner" value="tomeese" class="inp dark"/></label>
+              <label class="field"><span class="lbl">Repo</span><input id="ghRepo" value="intervals-icu-bulk-uploader-planned-workouts" class="inp dark"/></label>
+              <label class="field"><span class="lbl">Branch</span><input id="ghBranch" value="main" class="inp dark"/></label>
+              <label class="field"><span class="lbl">Path prefix</span><input id="ghPrefix" value="plans" class="inp dark"/></label>
             </div>
-            <div class="flex items-center gap-2 mt-2">
-              <button id="saveGhCfg" class="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm">Save settings</button>
+            <div class="flex items-center gap-2 mt-3">
+              <button id="saveGhCfg" class="sm-btn bg-slate-50 dark:bg-slate-900">Save settings</button>
               <span id="saveGhMsg" class="text-xs text-emerald-500"></span>
-              <button id="clearGhCfg" class="ml-auto inline-flex items-center justify-center rounded-lg border border-rose-300 dark:border-rose-700 px-3 py-1.5 text-sm">Clear token</button>
+              <button id="clearGhCfg" class="ml-auto sm-btn border-rose-300 dark:border-rose-700">Clear token</button>
             </div>
           </details>
         </div>
@@ -187,9 +176,9 @@
           <div class="text-base font-semibold" data-day-date>2025-01-01</div>
         </div>
         <div class="flex gap-2">
-          <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-sm" data-copy-prev>Copy prev</button>
-          <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-sm" data-clear>Clear</button>
-          <button class="px-2.5 py-1.5 rounded-lg bg-indigo-600 text-white text-sm" data-add>Add</button>
+          <button class="sm-btn" data-copy-prev>Copy prev</button>
+          <button class="sm-btn" data-clear>Clear</button>
+          <button class="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm" data-add>Add</button>
         </div>
       </div>
       <div class="p-4 scroll-area" data-rows></div>
@@ -198,136 +187,132 @@
 
   <!-- Workout row template -->
   <template id="rowTpl">
-    <div class="grid grid-cols-1 sm:grid-cols-9 gap-2 items-start py-2 border-b border-slate-100 dark:border-slate-900 last:border-0">
-      <label class="sm:col-span-2">
-        <span class="block text-xs text-slate-500">Name</span>
-        <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Endurance Z2 - 2h" data-name/>
-      </label>
-      <label>
-        <span class="block text-xs text-slate-500">Type</span>
-        <select class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" data-type>
-          <option>Ride</option>
-          <option>Gravel Ride</option>
-          <option>Virtual Ride</option>
-        </select>
-      </label>
-      <label>
-        <span class="block text-xs text-slate-500">Indoor</span>
-        <input type="checkbox" class="h-5 w-5 align-middle" data-indoor/>
-      </label>
-      <label>
-        <span class="block text-xs text-slate-500">Duration</span>
-        <input type="time" step="60" class="time-input rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" value="01:00" data-duration/>
-      </label>
-      <label>
-        <span class="block text-xs text-slate-500">TSS</span>
-        <input type="number" min="0" step="1" class="number-input rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" value="50" data-tss/>
-      </label>
-      <label class="sm:col-span-2">
-        <span class="block text-xs text-slate-500">Notes</span>
-        <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Optional" data-notes/>
-      </label>
-      <div class="flex items-center justify-end gap-2">
-        <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-design-btn>Design</button>
-        <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-zwo>ZWO</button>
-        <button class="px-2.5 py-1.5 rounded-lg border border-rose-300 text-xs text-rose-500" data-del>Del</button>
+    <div class="py-3 border-b border-slate-100 dark:border-slate-900 last:border-0">
+      <!-- Top fields (all JSON workout fields) -->
+      <div class="grid-compact">
+        <label class="field">
+          <span class="lbl">Name</span>
+          <input type="text" class="inp dark" placeholder="Endurance Z2 - 2h" data-name/>
+        </label>
+        <label class="field">
+          <span class="lbl">Type</span>
+          <select class="inp dark" data-type>
+            <option>Ride</option><option>Gravel Ride</option><option>Virtual Ride</option>
+          </select>
+        </label>
+        <label class="field">
+          <span class="lbl">Indoor</span>
+          <input type="checkbox" class="h-5 w-5 mt-2" data-indoor/>
+        </label>
+        <label class="field">
+          <span class="lbl">Duration (HH:MM)</span>
+          <input type="time" step="60" class="inp dark" value="01:00" data-duration/>
+        </label>
+        <label class="field">
+          <span class="lbl">TSS</span>
+          <input type="number" min="0" step="1" class="inp dark" value="50" data-tss/>
+        </label>
+        <label class="field col-span-2">
+          <span class="lbl">Notes</span>
+          <input type="text" class="inp dark" placeholder="Optional" data-notes/>
+        </label>
       </div>
 
-      <!-- DESIGN PANEL -->
-      <div class="sm:col-span-9 col-span-1 hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 mt-2" data-design-panel>
-        <div class="text-xs text-slate-500 mb-2">Workout design (saved into plan JSON for ZWO generation)</div>
+      <!-- Actions -->
+      <div class="mt-2 flex gap-2 justify-end">
+        <button class="sm-btn" data-design-btn>Design</button>
+        <button class="sm-btn" data-zwo>ZWO</button>
+        <button class="sm-btn border-rose-300 text-rose-600" data-del>Delete</button>
+      </div>
+
+      <!-- DESIGN (optional JSON 'design' block) -->
+      <div class="hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 mt-3" data-design-panel>
+        <div class="text-xs text-slate-500 mb-2">Workout design (saved into JSON for ZWO generation)</div>
         <div class="grid grid-cols-2 md:grid-cols-6 gap-2">
-          <label><span class="block text-[11px] text-slate-500">FTP (W)</span><input type="number" min="50" max="600" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-ftp></label>
-          <label><span class="block text-[11px] text-slate-500">Sets</span><input type="number" min="1" max="20" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-sets></label>
-          <label><span class="block text-[11px] text-slate-500">Work (sec)</span><input type="number" min="15" max="7200" step="5" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-work></label>
-          <label><span class="block text-[11px] text-slate-500">Rest (sec)</span><input type="number" min="10" max="7200" step="5" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-rec></label>
-          <label><span class="block text-[11px] text-slate-500">Target %FTP</span><input type="number" min="0.3" max="1.8" step="0.01" placeholder="0.95" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-target></label>
-          <label class="flex items-end gap-2"><input type="checkbox" class="h-5 w-5" data-d-ou><span class="text-[11px] text-slate-500">Over/Under</span></label>
-          <label><span class="block text-[11px] text-slate-500">Under %FTP</span><input type="number" min="0.3" max="1.5" step="0.01" placeholder="0.95" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-under></label>
-          <label><span class="block text-[11px] text-slate-500">Over %FTP</span><input type="number" min="0.3" max="1.8" step="0.01" placeholder="1.05" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-over></label>
-          <label><span class="block text-[11px] text-slate-500">Warmup (sec)</span><input type="number" min="60" max="3600" step="30" placeholder="600" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-warm></label>
-          <label><span class="block text-[11px] text-slate-500">Cooldown (sec)</span><input type="number" min="60" max="3600" step="30" placeholder="600" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-cool></label>
-          <label><span class="block text-[11px] text-slate-500">Cadence (rpm)</span><input type="number" min="50" max="130" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-cad></label>
-          <label class="flex items-end gap-2"><input type="checkbox" class="h-5 w-5" data-d-erg checked><span class="text-[11px] text-slate-500">ERG</span></label>
+          <label class="field"><span class="lbl">FTP (W)</span><input type="number" min="50" max="600" step="1" class="inp dark" data-d-ftp></label>
+          <label class="field"><span class="lbl">Sets</span><input type="number" min="1" max="20" step="1" class="inp dark" data-d-sets></label>
+          <label class="field"><span class="lbl">Work (sec)</span><input type="number" min="15" max="7200" step="5" class="inp dark" data-d-work></label>
+          <label class="field"><span class="lbl">Rest (sec)</span><input type="number" min="10" max="7200" step="5" class="inp dark" data-d-rec></label>
+          <label class="field"><span class="lbl">Target %FTP</span><input type="number" min="0.3" max="1.8" step="0.01" placeholder="0.95" class="inp dark" data-d-target></label>
+          <label class="field"><span class="lbl">Over/Under</span><input type="checkbox" class="h-5 w-5 mt-2" data-d-ou></label>
+          <label class="field"><span class="lbl">Under %FTP</span><input type="number" min="0.3" max="1.5" step="0.01" placeholder="0.95" class="inp dark" data-d-under></label>
+          <label class="field"><span class="lbl">Over %FTP</span><input type="number" min="0.3" max="1.8" step="0.01" placeholder="1.05" class="inp dark" data-d-over></label>
+          <label class="field"><span class="lbl">Warmup (sec)</span><input type="number" min="60" max="3600" step="30" placeholder="600" class="inp dark" data-d-warm></label>
+          <label class="field"><span class="lbl">Cooldown (sec)</span><input type="number" min="60" max="3600" step="30" placeholder="600" class="inp dark" data-d-cool></label>
+          <label class="field"><span class="lbl">Cadence (rpm)</span><input type="number" min="50" max="130" step="1" class="inp dark" data-d-cad></label>
+          <label class="field"><span class="lbl">ERG</span><input type="checkbox" class="h-5 w-5 mt-2" data-d-erg checked></label>
         </div>
         <div class="mt-2 flex gap-2 justify-end">
-          <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-design-cancel>Close</button>
-          <button class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs" data-design-save>Save</button>
+          <button class="sm-btn" data-design-cancel>Close</button>
+          <button class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs" data-design-save>Save</button>
         </div>
       </div>
     </div>
   </template>
 
   <script>
-  // ---------- Error banner ----------
-  function showErr(msg){
-    var b=document.getElementById('errBanner');
-    b.textContent=String(msg||'Unknown error');
-    b.classList.remove('hidden');
-  }
+  // ---- Error banner
+  function showErr(msg){const b=document.getElementById('errBanner');b.textContent=String(msg||'Unknown error');b.classList.remove('hidden');console.error('[planner]', msg);}
   window.addEventListener('error', e=>showErr(e.message||e.error||e));
 
-  // ---------- Utilities ----------
-  var $=s=>document.querySelector(s);
-  var dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-  function fmtHMS(sec){sec=Math.max(0,Math.round(sec));var h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return h+'h '+String(m).padStart(2,'0')+'m';}
-  function parseHHMM(v){if(!v)return 0;var t=(v||'').split(':');var h=parseInt(t[0]||'0',10),m=parseInt(t[1]||'0',10);if(isNaN(h)||isNaN(m))return 0;return h*3600+m*60;}
-  function mondayOf(date){var d=new Date(date);var gd=d.getDay();var diff=(gd===0?-6:1-gd);d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return d;}
-  function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
-  function toISODate(d){return d.toISOString().slice(0,10);}
-  function hhmmFromSec(s){s=Math.max(0,Math.round(s));var h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
-  function numOrNull(x){var v=Number(x);return isFinite(v)?v:null;}
-  function defaultTargetPctByName(n){if(/sweet\s*spot/i.test(n||""))return 0.88;if(/threshold/i.test(n||""))return 0.95;if(/vo2/i.test(n||""))return 1.20;if(/anaerobic|sprint/i.test(n||""))return 1.5;return 0.9;}
-  function safeFilename(name){return (name||'file').replace(/[^\w\-.]+/g,'_').slice(0,120);}
-  function base64EncodeUTF8(str){return btoa(unescape(encodeURIComponent(str))); }
-  function encodePathPreserveSlashes(p){return p.split('/').map(encodeURIComponent).join('/');}
+  // ---- Utils
+  const $=s=>document.querySelector(s);
+  const dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const fmtHMS=sec=>{sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return `${h}h ${String(m).padStart(2,'0')}m`;};
+  const parseHHMM=v=>{if(!v)return 0;const [h,m]=(v||'').split(':').map(x=>parseInt(x||'0',10));return (isNaN(h)||isNaN(m))?0:h*3600+m*60;};
+  const mondayOf=date=>{const d=new Date(date);const gd=d.getDay();const diff=(gd===0?-6:1-gd);d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return d;};
+  const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+  const toISODate=d=>d.toISOString().slice(0,10);
+  const hhmmFromSec=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;};
+  const numOrNull=x=>{const v=Number(x);return Number.isFinite(v)?v:null;};
+  const defaultTargetPctByName=n=>/sweet\s*spot/i.test(n||'')?0.88:/threshold/i.test(n||'')?0.95:/vo2/i.test(n||'')?1.2:/anaerobic|sprint/i.test(n||'')?1.5:0.9;
+  const safeFilename=name=>(name||'file').replace(/[^\w\-.]+/g,'_').slice(0,120);
+  const base64EncodeUTF8=str=>btoa(unescape(encodeURIComponent(str)));
+  const encodePathPreserveSlashes=p=>p.split('/').map(encodeURIComponent).join('/');
 
-  // ---------- State ----------
-  var state={weekStart:null,tz:'America/Los_Angeles',athleteId:0,days:{}};
-  function storageKey(){return 'planner:'+state.weekStart;}
-  function save(){if(!state.weekStart)return;localStorage.setItem(storageKey(), JSON.stringify(state));}
-  function loadWeek(week){var raw=localStorage.getItem('planner:'+week);try{ return raw?JSON.parse(raw):null; }catch(e){ return null; }}
+  // ---- State
+  const state={weekStart:null,tz:'America/Los_Angeles',athleteId:0,days:{}};
+  const storageKey=()=>`planner:${state.weekStart}`;
+  const save=()=>{if(!state.weekStart)return; localStorage.setItem(storageKey(), JSON.stringify(state));};
+  const loadWeek=week=>{const raw=localStorage.getItem(`planner:${week}`); try{return raw?JSON.parse(raw):null}catch(_){return null}};
 
-  // ---------- Templates data ----------
-  var TEMPLATES={
-    "Base":{
-      "Build":{"Base-1 (endurance focus)":{
-        desc:"Mostly Z2 endurance with light tempo. Long ride Sat.",
-        days:{0:[{name:"Rest or 45' Recovery",type:"Ride",indoor:false,duration_sec:2700,tss:20,notes:"Optional spin"}],
-              1:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
-              2:[{name:"Tempo 2x20' @85%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:70}],
-              3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
-              4:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
-              5:[{name:"Long Endurance Z2 - 3h",type:"Ride",indoor:false,duration_sec:10800,tss:135}],
-              6:[{name:"Endurance Z2 - 2h",type:"Ride",indoor:false,duration_sec:7200,tss:90}]}}},
+  // ---- Templates
+  const TEMPLATES={
+    "Base":{"Build":{"Base-1 (endurance focus)":{
+      desc:"Mostly Z2 endurance with light tempo. Long ride Sat.",
+      days:{0:[{name:"Rest or 45' Recovery",type:"Ride",indoor:false,duration_sec:2700,tss:20,notes:"Optional spin"}],
+            1:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
+            2:[{name:"Tempo 2x20' @85%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:70}],
+            3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
+            4:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
+            5:[{name:"Long Endurance Z2 - 3h",type:"Ride",indoor:false,duration_sec:10800,tss:135}],
+            6:[{name:"Endurance Z2 - 2h",type:"Ride",indoor:false,duration_sec:7200,tss:90}]}}},
       "Recovery":{"Recovery-Base":{
         desc:"Reduced volume, no intensity.",
         days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
               3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:35}],
               4:[],5:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],6:[]}}}
     },
-    "Build":{
-      "Build":{"Threshold-1":{
-        desc:"Threshold focus: 3x12' and 4x8'.",
-        days:{0:[],1:[{name:"Threshold 3x12' @95%",type:"Virtual Ride",indoor:true,duration_sec:5400,tss:80}],
-              2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
-              3:[{name:"Threshold 4x8' @100%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:80}],
-              4:[],5:[{name:"Sweet Spot 3x20' @88%",type:"Ride",indoor:false,duration_sec:7200,tss:110}],
-              6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}}},
+    "Build":{"Build":{"Threshold-1":{
+      desc:"Threshold focus: 3x12' and 4x8'.",
+      days:{0:[],1:[{name:"Threshold 3x12' @95%",type:"Virtual Ride",indoor:true,duration_sec:5400,tss:80}],
+            2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
+            3:[{name:"Threshold 4x8' @100%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:80}],
+            4:[],5:[{name:"Sweet Spot 3x20' @88%",type:"Ride",indoor:false,duration_sec:7200,tss:110}],
+            6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}}},
       "Recovery":{"Recovery-Build":{
         desc:"Keep legs spinning; minimal intensity.",
         days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
               3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:35}],
               4:[],5:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:55}],6:[]}}}
     },
-    "Specialty":{
-      "Build":{"VO2/Anaerobic-1":{
-        desc:"VO2Max + Anaerobic focus.",
-        days:{0:[],1:[{name:"VO2Max 5x3' @120%",type:"Virtual Ride",indoor:true,duration_sec:4200,tss:75}],
-              2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
-              3:[{name:"VO2Max 6x2' @125%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:70}],
-              4:[],5:[{name:"Anaerobic 8x1' @150%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:65}],
-              6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}}},
+    "Specialty":{"Build":{"VO2/Anaerobic-1":{
+      desc:"VO2Max + Anaerobic focus.",
+      days:{0:[],1:[{name:"VO2Max 5x3' @120%",type:"Virtual Ride",indoor:true,duration_sec:4200,tss:75}],
+            2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
+            3:[{name:"VO2Max 6x2' @125%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:70}],
+            4:[],5:[{name:"Anaerobic 8x1' @150%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:65}],
+            6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}}},
       "Recovery":{"Recovery-Specialty":{
         desc:"Strip intensity, keep short endurance.",
         days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
@@ -338,116 +323,120 @@
 
   function updateTemplateList(){
     try{
-      var phase=$('#phase').value;
-      var focus=$('#focus').value;
-      var group=(TEMPLATES[phase] && TEMPLATES[phase][focus]) ? TEMPLATES[phase][focus] : {};
-      var sel=$('#templateKey'), desc=$('#templateDesc');
+      const phase=$('#phase').value, focus=$('#focus').value;
+      const group=(TEMPLATES[phase]&&TEMPLATES[phase][focus])?TEMPLATES[phase][focus]:{};
+      const sel=$('#templateKey'), desc=$('#templateDesc');
       sel.innerHTML='';
-      var keys=Object.keys(group);
-      for(var i=0;i<keys.length;i++){
-        var o=document.createElement('option'); o.value=keys[i]; o.textContent=keys[i]; sel.appendChild(o);
-      }
+      const keys=Object.keys(group);
       if(keys.length){
-        sel.value=keys[0];
-        desc.textContent=group[keys[0]].desc || '';
+        keys.forEach(k=>{const o=document.createElement('option'); o.value=k; o.textContent=k; sel.appendChild(o);});
+        sel.value=keys[0]; desc.textContent=group[keys[0]].desc||'';
       }else{
-        sel.innerHTML='<option value="">— no templates —</option>';
-        desc.textContent='No templates for this selection.';
+        sel.innerHTML='<option value="">— no templates —</option>'; desc.textContent='No templates for this selection.';
       }
     }catch(e){ showErr(e.message||e); }
   }
 
   function applyTemplate(){
-    var phase=$('#phase').value, focus=$('#focus').value, key=$('#templateKey').value;
-    var g=TEMPLATES[phase] && TEMPLATES[phase][focus] ? TEMPLATES[phase][focus] : null;
-    var tpl=g && g[key]; if(!tpl){ alert('No template for selection'); return; }
+    const phase=$('#phase').value, focus=$('#focus').value, key=$('#templateKey').value;
+    const g=TEMPLATES[phase]&&TEMPLATES[phase][focus]?TEMPLATES[phase][focus]:null;
+    const tpl=g&&g[key]; if(!tpl){ alert('No template for selection'); return; }
     if(!state.weekStart){ alert('Pick a week start first.'); return; }
-    var base=new Date(state.weekStart); state.days={};
-    Object.keys(tpl.days).forEach(function(idx){
-      var iso=toISODate(addDays(base,parseInt(idx,10)));
-      state.days[iso]=(tpl.days[idx]||[]).map(function(w){return Object.assign({}, w);});
+    const base=new Date(state.weekStart); state.days={};
+    Object.entries(tpl.days).forEach(([idx,lst])=>{
+      const iso=toISODate(addDays(base,parseInt(idx,10)));
+      state.days[iso]=(lst||[]).map(w=>({...w}));
     });
     save(); renderWeek();
   }
 
-  // ---------- GitHub helpers ----------
-  var GH_STORE_KEY='planner:ghcfg';
-  function ghLoad(){ try{ return JSON.parse(localStorage.getItem(GH_STORE_KEY)||'{}'); }catch(e){ return {}; } }
-  function ghSave(cfg){ localStorage.setItem(GH_STORE_KEY, JSON.stringify(cfg||{})); }
+  // ---- GitHub helpers (with public fallback)
+  const GH_STORE_KEY='planner:ghcfg';
+  const ghLoad=()=>{try{return JSON.parse(localStorage.getItem(GH_STORE_KEY)||'{}')}catch(_){return{}}};
+  const ghSave=cfg=>localStorage.setItem(GH_STORE_KEY, JSON.stringify(cfg||{}));
   function ghGetCfg(){
-    var saved=ghLoad();
+    const saved=ghLoad();
     return {
-      token: ($('#ghToken') && $('#ghToken').value) || saved.token || "",
-      owner: ($('#ghOwner') && $('#ghOwner').value) || saved.owner || "tomeese",
-      repo:  ($('#ghRepo') && $('#ghRepo').value)   || saved.repo  || "intervals-icu-bulk-uploader-planned-workouts",
-      branch:($('#ghBranch')&& $('#ghBranch').value)|| saved.branch|| "main",
-      prefix:($('#ghPrefix')&& $('#ghPrefix').value)|| saved.prefix|| "plans"
+      token: ($('#ghToken')&&$('#ghToken').value)||saved.token||"",
+      owner: ($('#ghOwner')&&$('#ghOwner').value)||saved.owner||"tomeese",
+      repo:  ($('#ghRepo') &&$('#ghRepo').value) ||saved.repo ||"intervals-icu-bulk-uploader-planned-workouts",
+      branch:(('#ghBranch')&&$('#ghBranch').value)||saved.branch||"main",
+      prefix:(('#ghPrefix')&&$('#ghPrefix').value)||saved.prefix||"plans"
     };
   }
-  function downloadText(fn,txt,mime){ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:mime||'text/plain'})); a.download=fn; a.click(); URL.revokeObjectURL(a.href); }
-
+  async function ghFetch(url, token, init){
+    const headers = Object.assign(
+      {Accept:"application/vnd.github+json"},
+      token ? {Authorization:`token ${token}`} : {}
+    );
+    const res = await fetch(url, Object.assign({headers}, init||{}));
+    // if token failed but repo is public, try again without it
+    if(!res.ok && (res.status===401 || res.status===403) && token){
+      const res2 = await fetch(url, Object.assign({headers:{Accept:"application/vnd.github+json"}}, init||{}));
+      return res2;
+    }
+    return res;
+  }
   async function githubPutFile(cfg, path, text, message){
-    var api='https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/contents/'+encodePathPreserveSlashes(path);
-    var headers={Authorization:'token '+cfg.token,Accept:'application/vnd.github+json','Content-Type':'application/json'};
-    // fetch existing sha
-    var getRes=await fetch(api+'?ref='+encodeURIComponent(cfg.branch),{headers:headers});
-    var sha=null;
-    if(getRes.status===200){ var j=await getRes.json(); sha=j.sha; }
-    else if(getRes.status!==404){ throw new Error('GET '+getRes.status+': '+(await getRes.text())); }
-    var body={message:message||('save '+path),content:base64EncodeUTF8(text),branch:cfg.branch,sha:sha,
+    const api=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(path)}`;
+    const getRes = await ghFetch(`${api}?ref=${encodeURIComponent(cfg.branch)}`, cfg.token);
+    let sha=null;
+    if(getRes.status===200){ sha=(await getRes.json()).sha; }
+    else if(getRes.status!==404){ throw new Error(`GET ${getRes.status}: ${await getRes.text()}`); }
+    const body={message:message||`save ${path}`,content:base64EncodeUTF8(text),branch:cfg.branch,sha,
       committer:{name:"planner-bot",email:"planner@users.noreply.github.com"},
       author:{name:"planner-bot",email:"planner@users.noreply.github.com"}};
-    var putRes=await fetch(api,{method:'PUT',headers:headers,body:JSON.stringify(body)});
-    var txt=await putRes.text(); if(!putRes.ok) throw new Error('PUT '+putRes.status+': '+txt.slice(0,400)); return JSON.parse(txt);
+    const putRes=await ghFetch(api, cfg.token, {method:"PUT",body:JSON.stringify(body)});
+    const txt=await putRes.text(); if(!putRes.ok) throw new Error(`PUT ${putRes.status}: ${txt.slice(0,400)}`); return JSON.parse(txt);
   }
-
   async function ghDispatchWorkflow(cfg, workflowFile, inputs){
-    var url='https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/actions/workflows/'+encodeURIComponent(workflowFile)+'/dispatches';
-    var res=await fetch(url,{method:'POST',headers:{Authorization:'token '+cfg.token,Accept:'application/vnd.github+json'},body:JSON.stringify({ref:cfg.branch,inputs:inputs||{}})});
-    if(!res.ok) throw new Error('dispatch '+res.status+': '+(await res.text()));
+    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/workflows/${encodeURIComponent(workflowFile)}/dispatches`;
+    const res=await ghFetch(url, cfg.token, {method:"POST",body:JSON.stringify({ref:cfg.branch,inputs:inputs||{}})});
+    if(!res.ok) throw new Error(`dispatch ${res.status}: ${await res.text()}`);
     return true;
   }
-
-  async function ghListPlans(cfg, prefix){
-    var url='https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/contents/'+encodePathPreserveSlashes(prefix);
-    var res=await fetch(url,{headers:{Authorization:'token '+cfg.token}});
-    if(!res.ok) throw new Error('list '+res.status+': '+(await res.text()));
-    var items=await res.json();
-    return (Array.isArray(items)?items:[]).filter(function(it){return it.type==='file' && /^plan-\d{4}-\d{2}-\d{2}\.json$/.test(it.name);})
-      .map(function(it){return {name:it.name,path:it.path};});
+  async function ghListPlans(cfg, prefix="plans"){
+    const p=(prefix||"plans").replace(/^\/+|\/+$/g,"");
+    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(p)}?ref=${encodeURIComponent(cfg.branch)}`;
+    const res=await ghFetch(url, cfg.token);
+    if(!res.ok){ throw new Error(`list ${res.status}: ${await res.text()}`); }
+    const items=await res.json();
+    return (Array.isArray(items)?items:[])
+      .filter(it=>it.type==="file" && /^plan-\d{4}-\d{2}-\d{2}\.json$/.test(it.name))
+      .map(it=>({name:it.name,path:it.path}));
   }
-  async function ghGetJsonFile(cfg,path){
-    var url='https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/contents/'+encodePathPreserveSlashes(path)+'?ref='+encodeURIComponent(cfg.branch);
-    var res=await fetch(url,{headers:{Authorization:'token '+cfg.token}});
-    if(!res.ok) throw new Error('get '+res.status+': '+(await res.text()));
-    var obj=await res.json(); var txt=atob((obj.content||'').replace(/\n/g,'')); return JSON.parse(txt);
+  async function ghGetJsonFile(cfg, path){
+    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(path)}?ref=${encodeURIComponent(cfg.branch)}`;
+    const res=await ghFetch(url, cfg.token);
+    if(!res.ok) throw new Error(`get ${res.status}: ${await res.text()}`);
+    const obj=await res.json(); const txt=atob((obj.content||"").replace(/\n/g,'')); return JSON.parse(txt);
   }
 
-  // ---------- Planner render ----------
+  // ---- Render / Rows
   function renderWeek(){
-    var grid=$('#daysGrid'); grid.innerHTML='';
+    const grid=$('#daysGrid'); grid.innerHTML='';
     if(!state.weekStart) return;
-    var base=new Date(state.weekStart);
-    for(var i=0;i<7;i++){
-      var d=addDays(base,i), iso=toISODate(d);
-      var card=document.importNode($('#dayCardTpl').content,true);
+    const base=new Date(state.weekStart);
+    for(let i=0;i<7;i++){
+      const d=addDays(base,i), iso=toISODate(d);
+      const card=document.importNode($('#dayCardTpl').content,true);
       card.querySelector('[data-day-name]').textContent=dayNames[i];
       card.querySelector('[data-day-date]').textContent=iso;
-      var rows=card.querySelector('[data-rows]');
-      (state.days[iso]||[]).forEach(function(w){ rows.appendChild(renderRow(iso,w)); });
-      card.querySelector('[data-add]').addEventListener('click',function(){
-        var w={name:'',type:'Ride',indoor:false,duration_sec:3600,tss:50,notes:''};
+      const rows=card.querySelector('[data-rows]');
+      (state.days[iso]||[]).forEach(w=>rows.appendChild(renderRow(iso,w)));
+      card.querySelector('[data-add]').addEventListener('click',()=>{
+        const w={name:'',type:'Ride',indoor:false,duration_sec:3600,tss:50,notes:''};
         (state.days[iso] ||= []).push(w);
         rows.appendChild(renderRow(iso,w)); totals(); save();
       });
-      card.querySelector('[data-clear]').addEventListener('click',function(){
+      card.querySelector('[data-clear]').addEventListener('click',()=>{
         state.days[iso]=[]; rows.innerHTML=''; totals(); save();
       });
-      card.querySelector('[data-copy-prev]').addEventListener('click',function(){
+      card.querySelector('[data-copy-prev]').addEventListener('click',()=>{
         if(i===0) return;
-        var prev=toISODate(addDays(base,i-1));
-        var cp=(state.days[prev]||[]).map(function(w){return Object.assign({},w);});
-        state.days[iso]=cp; rows.innerHTML=''; cp.forEach(function(w){rows.appendChild(renderRow(iso,w));}); totals(); save();
+        const prev=toISODate(addDays(base,i-1));
+        const cp=(state.days[prev]||[]).map(w=>({...w}));
+        state.days[iso]=cp; rows.innerHTML=''; cp.forEach(w=>rows.appendChild(renderRow(iso,w))); totals(); save();
       });
       grid.appendChild(card);
     }
@@ -455,204 +444,212 @@
   }
 
   function renderRow(iso,w){
-    var frag=document.importNode($('#rowTpl').content,true);
-    var el=frag.firstElementChild;
-    var $name=el.querySelector('[data-name]'), $type=el.querySelector('[data-type]'), $ind=el.querySelector('[data-indoor]');
-    var $dur=el.querySelector('[data-duration]'), $tss=el.querySelector('[data-tss]'), $notes=el.querySelector('[data-notes]');
-    var $zwo=el.querySelector('[data-zwo]'), $del=el.querySelector('[data-del]');
-    var $designBtn=el.querySelector('[data-design-btn]'), $panel=el.querySelector('[data-design-panel]');
-    var $d_ftp=el.querySelector('[data-d-ftp]'), $d_sets=el.querySelector('[data-d-sets]'), $d_work=el.querySelector('[data-d-work]');
-    var $d_rec=el.querySelector('[data-d-rec]'), $d_target=el.querySelector('[data-d-target]'), $d_ou=el.querySelector('[data-d-ou]');
-    var $d_under=el.querySelector('[data-d-under]'), $d_over=el.querySelector('[data-d-over]');
-    var $d_warm=el.querySelector('[data-d-warm]'), $d_cool=el.querySelector('[data-d-cool]'), $d_cad=el.querySelector('[data-d-cad]'), $d_erg=el.querySelector('[data-d-erg]');
+    const frag=document.importNode($('#rowTpl').content,true);
+    const el=frag.firstElementChild;
+    const $name=el.querySelector('[data-name]'), $type=el.querySelector('[data-type]'), $ind=el.querySelector('[data-indoor]');
+    const $dur=el.querySelector('[data-duration]'), $tss=el.querySelector('[data-tss]'), $notes=el.querySelector('[data-notes]');
+    const $designBtn=el.querySelector('[data-design-btn]'), $panel=el.querySelector('[data-design-panel]');
+    const $zwo=el.querySelector('[data-zwo]'), $del=el.querySelector('[data-del]');
+    const $d_ftp=el.querySelector('[data-d-ftp]'), $d_sets=el.querySelector('[data-d-sets]'), $d_work=el.querySelector('[data-d-work]');
+    const $d_rec=el.querySelector('[data-d-rec]'), $d_target=el.querySelector('[data-d-target]'), $d_ou=el.querySelector('[data-d-ou]');
+    const $d_under=el.querySelector('[data-d-under]'), $d_over=el.querySelector('[data-d-over]');
+    const $d_warm=el.querySelector('[data-d-warm]'), $d_cool=el.querySelector('[data-d-cool]'), $d_cad=el.querySelector('[data-d-cad]'), $d_erg=el.querySelector('[data-d-erg]');
 
     $name.value=w.name||''; $type.value=w.type||'Ride'; $ind.checked=!!w.indoor;
-    $dur.value=hhmmFromSec(w.duration_sec||0); $tss.value=isFinite(w.tss)?w.tss:0; $notes.value=w.notes||'';
-    $name.addEventListener('input',function(){w.name=$name.value; save();});
-    $type.addEventListener('change',function(){w.type=$type.value; save(); totals();});
-    $ind.addEventListener('change',function(){w.indoor=$ind.checked; save();});
-    $dur.addEventListener('change',function(){w.duration_sec=parseHHMM($dur.value); save(); totals();});
-    $tss.addEventListener('change',function(){w.tss=Math.max(0,parseFloat($tss.value||'0')); save(); totals();});
-    $notes.addEventListener('input',function(){w.notes=$notes.value; save();});
+    $dur.value=hhmmFromSec(w.duration_sec||0); $tss.value=Number.isFinite(w.tss)?w.tss:0; $notes.value=w.notes||'';
+    $name.addEventListener('input',()=>{w.name=$name.value; save();}); 
+    $type.addEventListener('change',()=>{w.type=$type.value; save(); totals();});
+    $ind.addEventListener('change',()=>{w.indoor=$ind.checked; save();});
+    $dur.addEventListener('change',()=>{w.duration_sec=parseHHMM($dur.value); save(); totals();});
+    $tss.addEventListener('change',()=>{w.tss=Math.max(0,parseFloat($tss.value||'0')); save(); totals();});
+    $notes.addEventListener('input',()=>{w.notes=$notes.value; save();});
 
-    var d=w.design||{};
-    $d_ftp.value=d.ftp_watts!=null?d.ftp_watts:''; $d_sets.value=d.sets!=null?d.sets:3; $d_work.value=d.work_sec!=null?d.work_sec:720; $d_rec.value=d.rec_sec!=null?d.rec_sec:300;
-    $d_target.value=(d.target_pct!=null?d.target_pct:defaultTargetPctByName(w.name||'')); $d_ou.checked=!!d.overunder;
-    $d_under.value=d.under_pct!=null?d.under_pct:''; $d_over.value=d.over_pct!=null?d.over_pct:'';
-    $d_warm.value=d.warmup_sec!=null?d.warmup_sec:600; $d_cool.value=d.cooldown_sec!=null?d.cooldown_sec:600; $d_cad.value=d.cadence!=null?d.cadence:''; $d_erg.checked=(d.erg==null?true:!!d.erg);
+    const d=w.design||{};
+    $d_ftp.value=d.ftp_watts??''; $d_sets.value=d.sets??3; $d_work.value=d.work_sec??720; $d_rec.value=d.rec_sec??300;
+    $d_target.value=d.target_pct ?? defaultTargetPctByName(w.name||''); $d_ou.checked=!!d.overunder;
+    $d_under.value=d.under_pct??''; $d_over.value=d.over_pct??'';
+    $d_warm.value=d.warmup_sec??600; $d_cool.value=d.cooldown_sec??600; $d_cad.value=d.cadence??''; $d_erg.checked=(d.erg??true);
 
-    var toggle=function(show){ $panel.classList.toggle('hidden', !show); };
-    $designBtn.addEventListener('click',function(){
-      if(!$ind.checked && !/endurance\s*z?2/i.test($name.value||"")){
-        if(confirm('Mark as Indoor to design ERG intervals?')){ $ind.checked=true; w.indoor=true; save(); }
-      }
-      toggle($panel.classList.contains('hidden'));
-    });
-    el.querySelector('[data-design-cancel]').addEventListener('click',function(){toggle(false);});
-    el.querySelector('[data-design-save]').addEventListener('click',function(){
-      var obj={kind:(/sweet\s*spot/i.test($name.value||""))?"sweetspot":(/threshold/i.test($name.value||""))?"threshold":(/vo2/i.test($name.value||""))?"vo2":(/anaerobic|sprint/i.test($name.value||""))?"anaerobic":"custom",
-        ftp_watts:numOrNull($d_ftp.value), sets:numOrNull($d_sets.value)||3, work_sec:numOrNull($d_work.value)||720, rec_sec:numOrNull($d_rec.value)||300,
-        target_pct:numOrNull($d_target.value)||defaultTargetPctByName($name.value||""), overunder:$d_ou.checked,
+    const toggle=show=>$panel.classList.toggle('hidden', !show);
+    $designBtn.addEventListener('click',()=>{ toggle($panel.classList.contains('hidden')); });
+    el.querySelector('[data-design-cancel]').addEventListener('click',()=>toggle(false));
+    el.querySelector('[data-design-save]').addEventListener('click',()=>{
+      const obj={
+        kind:(/sweet\s*spot/i.test($name.value||""))?"sweetspot":(/threshold/i.test($name.value||""))?"threshold":(/vo2/i.test($name.value||""))?"vo2":(/anaerobic|sprint/i.test($name.value||""))?"anaerobic":"custom",
+        ftp_watts:numOrNull($d_ftp.value), sets:numOrNull($d_sets.value)??3, work_sec:numOrNull($d_work.value)??720, rec_sec:numOrNull($d_rec.value)??300,
+        target_pct:numOrNull($d_target.value)??defaultTargetPctByName($name.value||""), overunder:$d_ou.checked,
         under_pct:numOrNull($d_under.value)||undefined, over_pct:numOrNull($d_over.value)||undefined,
-        warmup_sec:numOrNull($d_warm.value)||600, cooldown_sec:numOrNull($d_cool.value)||600, cadence:numOrNull($d_cad.value)||undefined, erg:!!$d_erg.checked};
-      Object.keys(obj).forEach(function(k){ if(obj[k]===null) delete obj[k]; });
+        warmup_sec:numOrNull($d_warm.value)||600, cooldown_sec:numOrNull($d_cool.value)||600, cadence:numOrNull($d_cad.value)||undefined, erg:!!$d_erg.checked
+      };
+      for(const k of Object.keys(obj)) if(obj[k]===null) delete obj[k];
       w.design=obj; save(); toggle(false);
     });
 
-    $zwo.addEventListener('click',function(){
+    $zwo.addEventListener('click',()=>{
       try{
-        if(!w.indoor){ if(!confirm('Not marked Indoor. Generate ZWO anyway?')) return; }
-        if(/endurance\s*z?2/i.test(w.name||"")){ alert('Skipping Z2 endurance for ZWO.'); return; }
-        var xml=makeZwoXml(w);
-        var safe=safeFilename(iso+' - '+(w.name||'Workout')).replace(/\.zwo$/i,'')+'.zwo';
-        var cfg=ghGetCfg();
-        if(cfg.token && confirm('Upload .zwo to your repo? (Cancel = download only)')){
-          var path='zwo/'+safe; githubPutFile(cfg,path,xml,'feat(zwo): '+safe).then(function(){ alert('Uploaded ✓ '+path); }).catch(function(e){ alert('Upload failed: '+(e.message||e)); });
-        }else{ downloadText(safe,xml,'application/xml'); }
-      }catch(e){ alert('ZWO generation failed: '+(e.message||e)); }
+        if(!w.indoor && !confirm("Not marked Indoor. Generate ZWO anyway?")) return;
+        if(/endurance\s*z?2/i.test(w.name||"")){ alert("Skipping Z2 endurance for ZWO."); return; }
+        const xml=makeZwoXml(w);
+        const safe=safeFilename(`${iso} - ${w.name||'Workout'}`).replace(/\.zwo$/i,'')+'.zwo';
+        const cfg=ghGetCfg();
+        if(cfg.token && confirm("Upload .zwo to your repo? (Cancel = download only)")){
+          const path=`zwo/${safe}`; githubPutFile(cfg,path,xml,`feat(zwo): ${safe}`).then(()=>alert(`Uploaded ✓ ${path}`)).catch(e=>alert(`Upload failed: ${e.message||e}`));
+        }else{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([xml],{type:'application/xml'})); a.download=safe; a.click(); URL.revokeObjectURL(a.href); }
+      }catch(e){ alert(`ZWO generation failed: ${e.message||e}`); }
     });
 
-    $del.addEventListener('click',function(){
-      var list=state.days[iso]||[]; var idx=list.indexOf(w); if(idx>=0){ list.splice(idx,1); el.remove(); totals(); save(); }
+    $del.addEventListener('click',()=>{
+      const list=state.days[iso]||[]; const idx=list.indexOf(w);
+      if(idx>=0){ list.splice(idx,1); el.remove(); totals(); save(); }
     });
 
     return frag;
   }
 
   function totals(){
-    var sec=0,tss=0, byType=new Map();
-    Object.values(state.days).forEach(function(list){
-      list.forEach(function(w){ sec+=(w.duration_sec||0); tss+=(w.tss||0); var k=w.type||'Ride'; var cur=byType.get(k)||{sec:0,tss:0}; cur.sec+=(w.duration_sec||0); cur.tss+=(w.tss||0); byType.set(k,cur); });
+    let sec=0,tss=0; const byType=new Map();
+    Object.values(state.days).forEach(list=>{
+      list.forEach(w=>{ sec+=(w.duration_sec||0); tss+=(w.tss||0);
+        const k=w.type||'Ride'; const cur=byType.get(k)||{sec:0,tss:0}; cur.sec+=(w.duration_sec||0); cur.tss+=(w.tss||0); byType.set(k,cur); });
     });
     $('#totPlannedTime').textContent=fmtHMS(sec);
     $('#totPlannedTss').textContent=Math.round(tss);
-    $('#totByType').innerHTML=byType.size?Array.from(byType.entries()).map(function(e){var k=e[0],v=e[1];return '<div><span class="font-medium">'+k+'</span>: '+fmtHMS(v.sec)+', TSS '+Math.round(v.tss)+'</div>';}).join(''):'—';
+    $('#totByType').innerHTML=byType.size?Array.from(byType.entries()).map(([k,v])=>`<div><span class="font-medium">${k}</span>: ${fmtHMS(v.sec)}, TSS ${Math.round(v.tss)}</div>`).join(''):'—';
   }
 
-  // ---------- Export / Import / Load ----------
+  // ---- Export / Import / Load
   function buildPayload(){
-    var out={version:1,tz:state.tz,athlete_id:Number(state.athleteId||0),week_start:state.weekStart,workouts:[]};
-    Object.keys(state.days).forEach(function(date){
-      (state.days[date]||[]).forEach(function(w){
-        var wo={date:date,name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||''};
+    const out={version:1,tz:state.tz,athlete_id:Number(state.athleteId||0),week_start:state.weekStart,workouts:[]};
+    Object.entries(state.days).forEach(([date,list])=>{
+      list.forEach(w=>{
+        const wo={date,name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||''};
         if(w.design && typeof w.design==='object' && Object.keys(w.design).length) wo.design=w.design;
         out.workouts.push(wo);
       });
     });
     return out;
   }
-  function exportJson(){ if(!state.weekStart){ alert('Choose a week start first.'); return; } downloadText('plan-'+state.weekStart+'.json', JSON.stringify(buildPayload(),null,2), 'application/json'); }
+  function exportJson(){ if(!state.weekStart){ alert('Choose a week start first.'); return; }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(buildPayload(),null,2)],{type:'application/json'})); a.download=`plan-${state.weekStart}.json`; a.click(); URL.revokeObjectURL(a.href); }
   async function importJson(file){
-    if(!file) return;
-    var text=await file.text(); var data; try{ data=JSON.parse(text); }catch(e){ alert('Invalid JSON'); return; }
+    if(!file) return; const text=await file.text(); let data;
+    try{ data=JSON.parse(text); }catch{ alert('Invalid JSON'); return; }
     if(!data || !data.week_start || !Array.isArray(data.workouts)){ alert('Missing fields'); return;}
+    applyPlanData(data);
+  }
+  function applyPlanData(data){
     state.weekStart=data.week_start; $('#weekStart').value=state.weekStart;
     state.tz=data.tz||state.tz; $('#tz').value=state.tz;
-    state.athleteId=(data.athlete_id!=null?data.athlete_id:state.athleteId); $('#athleteId').value=state.athleteId;
-    state.days={}; data.workouts.forEach(function(w){ (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined}); });
+    state.athleteId=(data.athlete_id ?? state.athleteId); $('#athleteId').value=state.athleteId;
+    state.days={}; data.workouts.forEach(w=>{ (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined}); });
     save(); renderWeek();
   }
   async function refreshPlanList(){
-    var msg=$('#loadPlanMsg');
+    const msg=$('#loadPlanMsg'); msg.textContent='Loading…';
     try{
-      var cfg=ghGetCfg(); if(!cfg.token){ msg.textContent='Add a GitHub token above first.'; return; }
-      var prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
-      var items=await ghListPlans(cfg,prefix); items.sort(function(a,b){return b.name.localeCompare(a.name);});
-      var sel=$('#loadPlanSelect'); sel.innerHTML='<option value="">— select plan —</option>';
-      items.forEach(function(it){ var o=document.createElement('option'); o.value=it.path; o.textContent=it.name.replace(/^plan-/,'').replace(/\.json$/,''); sel.appendChild(o); });
-      msg.textContent=items.length+' plan(s) found in '+prefix+'/';
-    }catch(e){ msg.textContent='Error: '+(e.message||e); }
+      const cfg=ghGetCfg(); const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
+      const items=await ghListPlans(cfg,prefix);
+      const sel=$('#loadPlanSelect'); sel.innerHTML='<option value="">— select plan —</option>';
+      items.sort((a,b)=>b.name.localeCompare(a.name)).forEach(it=>{
+        const o=document.createElement('option'); o.value=it.path; o.textContent=it.name.replace(/^plan-/,'').replace(/\.json$/,''); sel.appendChild(o);
+      });
+      msg.textContent=`${items.length} plan(s) in ${prefix}/`;
+    }catch(e){ msg.textContent=`Error: ${e.message||e}`; showErr(e.message||e); }
   }
   async function loadSelectedPlan(){
-    var path=$('#loadPlanSelect').value; if(!path){ alert('Pick a plan first.'); return; }
+    const path=$('#loadPlanSelect').value; if(!path){ alert('Pick a plan first.'); return; }
     try{
-      var cfg=ghGetCfg(); var data=await ghGetJsonFile(cfg,path);
-      state.weekStart=data.week_start; $('#weekStart').value=state.weekStart;
-      state.tz=data.tz||state.tz; $('#tz').value=state.tz;
-      state.athleteId=(data.athlete_id!=null?data.athlete_id:state.athleteId); $('#athleteId').value=state.athleteId;
-      state.days={}; data.workouts.forEach(function(w){ (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined}); });
-      save(); renderWeek();
-      var link=$('#openPlanLink'); var cfg2=ghGetCfg(); link.href='https://github.com/'+cfg2.owner+'/'+cfg2.repo+'/blob/'+encodeURIComponent(cfg2.branch)+'/'+path;
-      $('#loadPlanMsg').textContent='Loaded '+path;
-    }catch(e){ alert('Load failed: '+(e.message||e)); }
+      const cfg=ghGetCfg(); const data=await ghGetJsonFile(cfg,path); applyPlanData(data);
+      const link=$('#openPlanLink'); link.href=`https://github.com/${cfg.owner}/${cfg.repo}/blob/${encodeURIComponent(cfg.branch)}/${path}`;
+      $('#loadPlanMsg').textContent=`Loaded ${path}`;
+    }catch(e){ alert(`Load failed: ${e.message||e}`); }
   }
 
-  // ---------- Upload to Intervals (workflow dispatch) ----------
+  // ---- Upload to Intervals
   async function saveThenUpload(){
     if(!state.weekStart){ alert('Pick a week start first.'); return; }
-    var cfg=ghGetCfg(); if(!cfg.token){ alert('Add a GitHub token first (GitHub settings).'); return; }
-    var prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); var path=prefix+'/plan-'+state.weekStart+'.json';
-    await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), 'feat(planner): save '+path);
-    await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', { plan_path:path, tz:state.tz||'America/Los_Angeles', athlete_id:String(state.athleteId||0), default_start:'06:00', dry_run:'false' });
+    const cfg=ghGetCfg(); const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); const path=`${prefix}/plan-${state.weekStart}.json`;
+    await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), `feat(planner): save ${path}`);
+    await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', {plan_path:path, tz:state.tz||'America/Los_Angeles', athlete_id:String(state.athleteId||0), default_start:'06:00', dry_run:'false'});
     alert('Upload started ✓ (check Actions).');
   }
 
-  // ---------- Minimal local ZWO (unchanged from earlier) ----------
+  // ---- Minimal ZWO
   function makeZwoXml(w){
-    var name=w.name||'Workout';
+    const name=w.name||"Workout";
     if(/endurance\s*z?2/i.test(name)) throw new Error('Endurance Z2 not converted to ZWO.');
-    var d=w.design||{}; var warmSec=d.warmup_sec!=null?d.warmup_sec:600; var coolSec=d.cooldown_sec!=null?d.cooldown_sec:600;
-    var steps=[]; steps.push('<Warmup Duration="'+warmSec+'" PowerLow="0.5" PowerHigh="0.75"/>');
-    var sets=Math.max(1,parseInt(d.sets!=null?d.sets:3,10)); var work=Math.max(15,parseInt(d.work_sec!=null?d.work_sec:720,10)); var rec=Math.max(10,parseInt(d.rec_sec!=null?d.rec_sec:300,10));
-    var pct=(d.target_pct!=null?d.target_pct:defaultTargetPctByName(name));
-    if(d.erg===false){ for(var i=0;i<sets;i++){ steps.push('<FreeRide Duration="'+work+'" />'); if(rec>0 && i!==sets-1) steps.push('<SteadyState Duration="'+rec+'" Power="0.55"/>'); } }
-    else { steps.push('<IntervalsT Repeat="'+sets+'" OnDuration="'+work+'" OffDuration="'+rec+'" OnPower="'+pct+'" OffPower="0.55" Cadence="0"/>'); }
-    steps.push('<Cooldown Duration="'+coolSec+'" PowerLow="0.5" PowerHigh="0.75"/>');
-    var esc=function(s){return String(s).replace(/[<>&'"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;'}[c];});};
-    var body=steps.join('\n    ');
-    return '<?xml version="1.0" encoding="UTF-8"?>\n<workout_file>\n  <author>planner</author>\n  <name>'+esc(name)+'</name>\n  <description>Auto-generated from planner</description>\n  <sportType>bike</sportType>\n  <tags></tags>\n  <workout>\n    '+body+'\n  </workout>\n</workout_file>\n';
+    const d=w.design||{}; const warm=d.warmup_sec??600, cool=d.cooldown_sec??600;
+    const sets=Math.max(1,parseInt(d.sets??3,10)), work=Math.max(15,parseInt(d.work_sec??720,10)), rec=Math.max(10,parseInt(d.rec_sec??300,10));
+    const pct=(d.target_pct!=null?d.target_pct:defaultTargetPctByName(name));
+    const steps=[`<Warmup Duration="${warm}" PowerLow="0.5" PowerHigh="0.75"/>`,
+                 `<IntervalsT Repeat="${sets}" OnDuration="${work}" OffDuration="${rec}" OnPower="${pct}" OffPower="0.55" Cadence="0"/>`,
+                 `<Cooldown Duration="${cool}" PowerLow="0.5" PowerHigh="0.75"/>`];
+    const esc=s=>String(s).replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;'}[c]));
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<workout_file>
+  <author>planner</author>
+  <name>${esc(name)}</name>
+  <description>Auto-generated from planner</description>
+  <sportType>bike</sportType>
+  <tags></tags>
+  <workout>
+    ${steps.join('\n    ')}
+  </workout>
+</workout_file>`;
   }
 
-  // ---------- Events / Boot ----------
+  // ---- Events / Boot
   function setWeekStartFromInput(){
-    var raw=$('#weekStart').value; if(!raw) return;
-    var monday=mondayOf(raw); var iso=toISODate(monday); $('#weekStart').value=iso; state.weekStart=iso;
-    var prev=loadWeek(iso);
-    if(prev){ state.tz=prev.tz||state.tz; $('#tz').value=state.tz; state.athleteId=(prev.athleteId!=null?prev.athleteId:state.athleteId); $('#athleteId').value=state.athleteId; state.days=prev.days||{}; }
+    const raw=$('#weekStart').value; if(!raw) return;
+    const iso=toISODate(mondayOf(raw)); $('#weekStart').value=iso; state.weekStart=iso;
+    const prev=loadWeek(iso); if(prev){ state.tz=prev.tz||state.tz; $('#tz').value=state.tz; state.athleteId=(prev.athleteId??state.athleteId); $('#athleteId').value=state.athleteId; state.days=prev.days||{}; }
     else { state.days={}; }
     save(); renderWeek();
   }
 
   (function boot(){
     try{
-      // Wire basic handlers first
       $('#weekStart').addEventListener('change', setWeekStartFromInput);
-      $('#tz').addEventListener('change',function(){ state.tz=$('#tz').value; save(); });
-      $('#athleteId').addEventListener('change',function(){ state.athleteId=Number($('#athleteId').value||0); save(); });
-      $('#newWeekBtn').addEventListener('click',function(){ if(!$('#weekStart').value){ alert('Pick a Monday to start.'); return; } state.days={}; save(); renderWeek(); });
+      $('#tz').addEventListener('change',()=>{ state.tz=$('#tz').value; save(); });
+      $('#athleteId').addEventListener('change',()=>{ state.athleteId=Number($('#athleteId').value||0); save(); });
+      $('#newWeekBtn').addEventListener('click',()=>{ if(!$('#weekStart').value){ alert('Pick a Monday to start.'); return; } state.days={}; save(); renderWeek(); });
       $('#exportBtn').addEventListener('click', exportJson);
-      $('#importFile').addEventListener('change', function(e){ importJson(e.target.files[0]); });
-      $('#saveRepoBtn').addEventListener('click', async function(){
+      $('#importFile').addEventListener('change', e=>importJson(e.target.files[0]));
+      $('#saveRepoBtn').addEventListener('click', async ()=>{
         if(!state.weekStart){ alert('Pick a week start first.'); return; }
-        var cfg=ghGetCfg(); if(!cfg.token){ alert('Add a GitHub token first.'); return; }
-        var prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); var path=prefix+'/plan-'+state.weekStart+'.json';
-        await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), 'feat(planner): save '+path);
-        alert('Saved ✓ '+path);
+        const cfg=ghGetCfg(); const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); const path=`${prefix}/plan-${state.weekStart}.json`;
+        await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), `feat(planner): save ${path}`); alert(`Saved ✓ ${path}`);
       });
       $('#uploadIntervalsBtn').addEventListener('click', saveThenUpload);
-      $('#saveGhCfg').addEventListener('click', function(){
+      $('#saveGhCfg').addEventListener('click', ()=>{
         ghSave({token:$('#ghToken').value,owner:$('#ghOwner').value,repo:$('#ghRepo').value,branch:$('#ghBranch').value,prefix:$('#ghPrefix').value});
-        $('#saveGhMsg').textContent='Saved ✓';
-        // auto-refresh plan list if token present
-        try{ if(ghGetCfg().token){ refreshPlanList(); } }catch(e){}
+        $('#saveGhMsg').textContent='Saved ✓'; setTimeout(()=>$('#saveGhMsg').textContent='',2500);
       });
-      $('#clearGhCfg').addEventListener('click', function(){ localStorage.removeItem(GH_STORE_KEY); if($('#ghToken')) $('#ghToken').value=''; $('#saveGhMsg').textContent='Cleared'; });
+      $('#clearGhCfg').addEventListener('click', ()=>{ localStorage.removeItem(GH_STORE_KEY); if($('#ghToken')) $('#ghToken').value=''; $('#saveGhMsg').textContent='Cleared'; setTimeout(()=>$('#saveGhMsg').textContent='',2000); });
       $('#phase').addEventListener('change', updateTemplateList);
       $('#focus').addEventListener('change', updateTemplateList);
-      $('#templateKey').addEventListener('change', function(){
-        var phase=$('#phase').value, focus=$('#focus').value, key=$('#templateKey').value;
-        var g=TEMPLATES[phase] && TEMPLATES[phase][focus] ? TEMPLATES[phase][focus] : null;
-        $('#templateDesc').textContent=(g && g[key] && g[key].desc) ? g[key].desc : '';
+      $('#templateKey').addEventListener('change', ()=>{
+        const phase=$('#phase').value, focus=$('#focus').value, key=$('#templateKey').value;
+        const g=TEMPLATES[phase]&&TEMPLATES[phase][focus]?TEMPLATES[phase][focus]:null;
+        $('#templateDesc').textContent=(g&&g[key]&&g[key].desc)?g[key].desc:'';
       });
       $('#loadTemplateBtn').addEventListener('click', applyTemplate);
       $('#refreshPlansBtn').addEventListener('click', refreshPlanList);
       $('#loadPlanBtn').addEventListener('click', loadSelectedPlan);
+      $('#testGhBtn').addEventListener('click', async ()=>{
+        try{
+          const cfg=ghGetCfg(); const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`;
+          const res=await ghFetch(url, cfg.token);
+          const ok=res.ok; const js=await res.json();
+          $('#loadPlanMsg').textContent= ok ? `GitHub OK: default_branch=${js.default_branch}` : `GitHub ERROR ${res.status}`;
+        }catch(e){ $('#loadPlanMsg').textContent=`GitHub ERROR: ${e.message||e}`; }
+      });
 
-      // Boot: set current Monday, populate templates, maybe refresh plan list
-      var isoMonday=toISODate(mondayOf(new Date()));
-      $('#weekStart').value=isoMonday; setWeekStartFromInput();
+      // boot defaults
+      const isoMonday=toISODate(mondayOf(new Date())); $('#weekStart').value=isoMonday; setWeekStartFromInput();
       updateTemplateList();
-      try{ if(ghGetCfg().token){ refreshPlanList(); } }catch(e){}
+      // auto-list even if token missing (public fallback)
+      refreshPlanList();
     }catch(e){ showErr(e.message||e); }
   })();
   </script>
