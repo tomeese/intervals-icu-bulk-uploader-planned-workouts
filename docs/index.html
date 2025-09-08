@@ -808,6 +808,8 @@
     const dates = selectedUploadDates();
     if (dates.length === 0) { alert('Select at least one day.'); return; }
 
+    // build both full and filtered payloads
+    const full = buildPayload();
     const part = buildPayloadFiltered(dates);
     const n = part.workouts.length;
     const bullets = buildDaysBulletsHTML(dates);
@@ -827,14 +829,14 @@
     const cfg = ghGetCfg();
     const prefix = (cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
 
-    // Always keep a canonical full-week file up-to-date
+    // Keep full-week plan up to date
     const fullPath = `${prefix}/plan-${state.weekStart}.json`;
     await githubPutFile(cfg, fullPath, JSON.stringify(full,null,2), `feat(planner): save ${fullPath}`);
 
-    // For partial uploads, write a filtered copy under plans/partial/
+    // For partial uploads, write filtered copy under plans/partial/
     let dispatchPath = fullPath;
     if (dates.length !== 7) {
-      const short = dates.map(d=>d.slice(8,10)).join(''); // DDDD...
+      const short = dates.map(d=>d.slice(8,10)).join('');
       const partialDir = `${prefix}/partial`;
       const partialPath = `${partialDir}/plan-${state.weekStart}-d${short}.json`;
       await githubPutFile(cfg, partialPath, JSON.stringify(part,null,2), `feat(planner): save ${partialPath}`);
