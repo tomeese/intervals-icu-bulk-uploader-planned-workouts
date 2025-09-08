@@ -424,18 +424,44 @@
     return n;
   }
 
+  // REPLACE your existing buildPayloadFiltered with this:
   function buildPayloadFiltered(dates){
-    const all = buildPayload();
-    if (!dates || dates.length === 0) return { ...all, workouts: [] };
-    const set = new Set(dates);
-    return { ...all, workouts: all.workouts.filter(w => set.has(w.date)) };
+    const set = new Set(dates || []);
+    const out = {
+      version: 1,
+      tz: state.tz,
+      athlete_id: Number(state.athleteId || 0),
+      week_start: state.weekStart,
+      workouts: []
+    };
+    Object.entries(state.days).forEach(([iso, list])=>{
+      if(!set.has(iso)) return;
+      (list || []).forEach(w=>{
+        const wo = {
+          date: iso,
+          name: w.name || '',
+          type: w.type || 'Ride',
+          indoor: !!w.indoor,
+          duration_sec: Number(w.duration_sec || 0),
+          tss: Number(w.tss || 0),
+          notes: w.notes || ''
+        };
+        if (w.design && typeof w.design === 'object' && Object.keys(w.design).length) {
+          wo.design = w.design;
+        }
+        out.workouts.push(wo);
+      });
+    });
+    return out;
   }
+
 
   function updateUploadHint(){
     if(!state.weekStart){ $('#uploadHint').textContent = 'Pick a week on the Plan tab.'; return; }
     const dates = selectedUploadDates();
     const nDays = dates.length;
-    const nWos = countFilteredWorkouts(dates);
+    const nWos = buildPayloadFiltered(dates).workouts.length;
+
     $('#uploadHint').innerHTML = nDays
       ? `Selected <b>${nDays}</b> day(s), <b>${nWos}</b> workout(s): ${dates.join(', ')}`
       : `No days selected.`;
