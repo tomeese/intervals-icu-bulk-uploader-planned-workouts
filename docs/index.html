@@ -16,9 +16,40 @@
     .inp:focus{outline:none;box-shadow:var(--ring)}
     .sm-btn{padding:.5rem .75rem;border-radius:.55rem;border:1px solid rgb(203 213 225)}
     .row-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:.75rem}
-    .day-tabs button[aria-selected="true"]{background:rgb(15 23 42);color:white}
-    .day-tabs button{background:rgb(226 232 240)}
-    .dark .day-tabs button{background:rgb(30 41 59)}
+   /* Day tabs: selected vs inactive, with dark-mode contrast */
+    .day-tabs button[aria-selected="true"]{
+      background: rgb(15 23 42);      /* slate-900 */
+      color: #fff;
+      border-color: rgb(15 23 42);
+    }
+    .day-tabs button{
+      background: rgb(226 232 240);   /* slate-200 */
+      color: rgb(15 23 42);           /* slate-900 */
+    }
+    .day-tabs button:hover{ filter: brightness(0.95); }
+
+    /* Dark mode inactive tabs: readable text on dark bg */
+    .dark .day-tabs button{
+      background: rgb(30 41 59);      /* slate-800 */
+      color: rgb(203 213 225);        /* slate-300 */
+    }
+    .dark .day-tabs button:hover{
+      background: rgb(51 65 85);      /* slate-700 */
+    }
+    /* Top-level tabs (Plan / Load & Save / Upload / Settings) */
+    [role="tab"][aria-selected="true"]{
+      background: rgb(37 99 235);     /* blue-600 */
+      border-color: rgb(37 99 235);
+      color: #fff;
+    }
+    [role="tab"][aria-selected="false"]{
+      background: rgb(226 232 240);
+      color: rgb(15 23 42);
+    }
+    .dark [role="tab"][aria-selected="false"]{
+      background: rgb(30 41 59);
+      color: rgb(203 213 225);
+    }
     /* Toasts */
     #toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:.5rem;z-index:60}
     .toast{padding:.6rem .8rem;border-radius:.6rem;color:white}
