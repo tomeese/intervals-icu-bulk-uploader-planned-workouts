@@ -9,8 +9,6 @@
   <style>
     :root{--ring:0 0 0 2px rgba(37,99,235,.35)}
     .card{border-radius:.75rem}
-    /* Give each day the full width and let content expand naturally */
-    .scroll-area{max-height:none;overflow:visible}
     .field{display:flex;flex-direction:column;gap:.45rem}
     .lbl{font-size:.85rem;line-height:1.1rem;color:rgb(100 116 139)}
     .inp{width:100%;padding:.6rem .7rem;border-radius:.6rem;border:1px solid rgb(203 213 225)}
@@ -18,168 +16,218 @@
     .inp:focus{outline:none;box-shadow:var(--ring)}
     .sm-btn{padding:.5rem .75rem;border-radius:.55rem;border:1px solid rgb(203 213 225)}
     .row-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:.75rem}
-    /* Single-day per row across breakpoints */
-    #daysGrid{display:grid;grid-template-columns:1fr;gap:1rem}
+    .day-tabs button[aria-selected="true"]{background:rgb(15 23 42);color:white}
+    .day-tabs button{background:rgb(226 232 240)}
+    .dark .day-tabs button{background:rgb(30 41 59)}
+    /* Toasts */
+    #toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:.5rem;z-index:60}
+    .toast{padding:.6rem .8rem;border-radius:.6rem;color:white}
+    .toast-ok{background:#10b981}
+    .toast-warn{background:#f59e0b}
+    .toast-err{background:#ef4444}
+    /* Modal */
+    #modal{position:fixed;inset:0;z-index:50;display:none}
+    #modal.show{display:block}
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
   <!-- Error banner -->
   <div id="errBanner" class="hidden bg-rose-600 text-white text-sm px-4 py-2"></div>
 
+  <!-- Toasts -->
+  <div id="toasts"></div>
+
+  <!-- Modal -->
+  <div id="modal" class="bg-black/40">
+    <div class="max-w-lg mx-auto mt-28 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl">
+      <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
+        <div id="modalTitle" class="text-lg font-semibold">Confirm</div>
+      </div>
+      <div id="modalBody" class="px-4 py-3 text-sm"></div>
+      <div class="px-4 py-3 flex justify-end gap-2">
+        <button id="modalCancel" class="sm-btn">Cancel</button>
+        <button id="modalOk" class="sm-btn bg-rose-600 text-white border-rose-600">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <header class="bg-white/70 dark:bg-slate-900/60 backdrop-blur border-b border-slate-200 dark:border-slate-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between gap-4">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between gap-4">
       <h1 class="text-2xl font-semibold tracking-tight">Weekly Workout Planner</h1>
-      <div class="hidden sm:flex items-center gap-2 text-xs text-slate-500">
+      <div class="hidden md:flex items-center gap-2 text-xs text-slate-500">
         <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">1) Plan</span>→
-        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">2) Save / Upload</span>→
-        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">3) Day-of ZWO</span>
+        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">2) Save / Load</span>→
+        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">3) Upload</span>
       </div>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- LEFT: Planner -->
-    <section class="lg:col-span-2 space-y-6">
-      <!-- Week toolbar -->
-      <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <label class="field">
-            <span class="lbl">Week start (Monday)</span>
-            <input id="weekStart" type="date" class="inp dark"/>
-          </label>
-          <label class="field">
-            <span class="lbl">Time zone (IANA)</span>
-            <input id="tz" type="text" value="America/Los_Angeles" class="inp dark"/>
-          </label>
-          <label class="field">
-            <span class="lbl">Athlete ID</span>
-            <input id="athleteId" type="number" value="0" class="inp dark"/>
-          </label>
-          <div class="flex items-end">
-            <button id="newWeekBtn" class="w-full rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 font-medium">Clear week</button>
-          </div>
-        </div>
+  <!-- Tabs -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
+      <!-- Tab headers -->
+      <div class="px-3 pt-2">
+        <nav class="flex flex-wrap gap-2" role="tablist" aria-label="Planner tabs">
+          <button class="sm-btn" role="tab" data-tab="plan"      aria-selected="true">Plan</button>
+          <button class="sm-btn" role="tab" data-tab="loadsave"  aria-selected="false">Load & Save</button>
+          <button class="sm-btn" role="tab" data-tab="upload"    aria-selected="false">Intervals Upload</button>
+          <button class="sm-btn" role="tab" data-tab="settings"  aria-selected="false">Settings</button>
+        </nav>
       </div>
+      <div class="border-t border-slate-200 dark:border-slate-700"></div>
 
-      <!-- Phase & Template -->
-      <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-        <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-semibold">Macro-phase & templates</h2>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-          <label class="field">
-            <span class="lbl">Macro-phase</span>
-            <select id="phase" class="inp dark"><option>Base</option><option>Build</option><option>Specialty</option></select>
-          </label>
-          <label class="field">
-            <span class="lbl">Week focus</span>
-            <select id="focus" class="inp dark"><option>Build</option><option>Recovery</option></select>
-          </label>
-          <label class="field md:col-span-2">
-            <span class="lbl">Template</span>
-            <select id="templateKey" class="inp dark"><option value="">— choose phase & focus —</option></select>
-            <div id="templateDesc" class="mt-1 text-xs text-slate-500"></div>
-          </label>
-          <div class="flex items-end">
-            <button id="loadTemplateBtn" class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Load template</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Days (now one per row, full-width) -->
-      <section id="daysGrid" class="gap-4"></section>
-    </section>
-
-    <!-- RIGHT: Sidebar -->
-    <aside class="lg:col-span-1 space-y-6">
-      <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 sticky top-4">
-        <h2 class="text-lg font-semibold mb-3">Totals</h2>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div class="text-xs text-slate-500">Planned Time</div>
-            <div id="totPlannedTime" class="text-base font-semibold">0h 00m</div>
-          </div>
-          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div class="text-xs text-slate-500">Planned TSS</div>
-            <div id="totPlannedTss" class="text-base font-semibold">0</div>
-          </div>
-          <div class="col-span-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div class="text-xs text-slate-500 mb-1">By Type</div>
-            <div id="totByType" class="text-sm leading-6">—</div>
-          </div>
-        </div>
-
-        <div class="mt-5 space-y-2">
-          <button id="exportBtn" class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
-          <button id="saveRepoBtn" class="w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
-          <button id="uploadIntervalsBtn" class="w-full rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 font-medium">Upload to Intervals</button>
-
-          <label class="field mt-3">
-            <span class="lbl">Import JSON</span>
-            <input id="importFile" type="file" accept="application/json" class="text-sm"/>
-          </label>
-
-          <!-- Load from repo -->
-          <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <div class="flex items-center justify-between">
-              <h3 class="text-sm font-medium">Load Week Plan from repo</h3>
-              <div class="flex gap-2">
-                <button id="testGhBtn" class="sm-btn bg-slate-50 dark:bg-slate-900">Test GitHub</button>
-                <button id="refreshPlansBtn" class="sm-btn bg-slate-50 dark:bg-slate-900">Refresh</button>
-              </div>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-2">
-              <select id="loadPlanSelect" class="sm:col-span-3 inp dark"><option value="">— select plan —</option></select>
-              <button id="loadPlanBtn" class="rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 text-sm">Load</button>
-              <a id="openPlanLink" href="#" target="_blank" class="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 text-center">Open on GitHub</a>
-            </div>
-            <div id="loadPlanMsg" class="text-xs text-slate-500 mt-2"></div>
-          </div>
-
-          <!-- GitHub settings -->
-          <details class="mt-4" open>
-            <summary class="cursor-pointer text-sm font-medium">GitHub save settings</summary>
-            <div class="mt-3 text-xs text-slate-500">Stored only in this browser.</div>
-            <label class="field mt-2">
-              <span class="lbl">Personal Access Token (fine-grained)</span>
-              <input id="ghToken" type="password" placeholder="ghp_…" class="inp dark"/>
+      <!-- Tab: Plan -->
+      <section id="tab-plan" role="tabpanel" class="p-4 space-y-6">
+        <!-- Week toolbar -->
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+            <label class="field">
+              <span class="lbl">Week start (Monday)</span>
+              <input id="weekStart" type="date" class="inp dark"/>
             </label>
-            <div class="grid grid-cols-2 gap-2 mt-2">
-              <label class="field"><span class="lbl">Owner</span><input id="ghOwner" value="tomeese" class="inp dark"/></label>
-              <label class="field"><span class="lbl">Repo</span><input id="ghRepo" value="intervals-icu-bulk-uploader-planned-workouts" class="inp dark"/></label>
-              <label class="field"><span class="lbl">Branch</span><input id="ghBranch" value="main" class="inp dark"/></label>
-              <label class="field"><span class="lbl">Path prefix</span><input id="ghPrefix" value="plans" class="inp dark"/></label>
+            <label class="field">
+              <span class="lbl">Time zone (IANA)</span>
+              <input id="tz" type="text" value="America/Los_Angeles" class="inp dark"/>
+            </label>
+            <label class="field">
+              <span class="lbl">Athlete ID</span>
+              <input id="athleteId" type="number" value="0" class="inp dark"/>
+            </label>
+            <div class="flex items-end">
+              <button id="newWeekBtn" class="w-full rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 font-medium">Clear week</button>
             </div>
-            <div class="flex items-center gap-2 mt-3">
-              <button id="saveGhCfg" class="sm-btn bg-slate-50 dark:bg-slate-900">Save settings</button>
-              <span id="saveGhMsg" class="text-xs text-emerald-500"></span>
-              <button id="clearGhCfg" class="ml-auto sm-btn border-rose-300 dark:border-rose-700">Clear token</button>
-            </div>
-          </details>
+          </div>
         </div>
-      </div>
-    </aside>
+
+        <!-- Phase & Template -->
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <label class="field">
+              <span class="lbl">Macro-phase</span>
+              <select id="phase" class="inp dark"><option>Base</option><option>Build</option><option>Specialty</option></select>
+            </label>
+            <label class="field">
+              <span class="lbl">Week focus</span>
+              <select id="focus" class="inp dark"><option>Build</option><option>Recovery</option></select>
+            </label>
+            <label class="field md:col-span-2">
+              <span class="lbl">Template</span>
+              <select id="templateKey" class="inp dark"><option value="">— choose phase & focus —</option></select>
+              <div id="templateDesc" class="mt-1 text-xs text-slate-500"></div>
+            </label>
+            <div class="flex items-end">
+              <button id="loadTemplateBtn" class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Load template</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Day tabs -->
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
+          <div class="p-3 border-b border-slate-200 dark:border-slate-800 day-tabs flex gap-2 flex-wrap">
+            <button class="sm-btn" data-daytab="0" aria-selected="true">Mon</button>
+            <button class="sm-btn" data-daytab="1">Tue</button>
+            <button class="sm-btn" data-daytab="2">Wed</button>
+            <button class="sm-btn" data-daytab="3">Thu</button>
+            <button class="sm-btn" data-daytab="4">Fri</button>
+            <button class="sm-btn" data-daytab="5">Sat</button>
+            <button class="sm-btn" data-daytab="6">Sun</button>
+            <div class="ml-auto flex gap-2">
+              <button class="sm-btn" id="copyPrevDayBtn">Copy prev</button>
+              <button class="sm-btn" id="clearDayBtn">Clear day</button>
+              <button class="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm" id="addRowBtn">Add workout</button>
+            </div>
+          </div>
+          <div class="p-4" id="dayEditor"><!-- rows render here --></div>
+        </div>
+
+        <!-- Totals -->
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+          <h3 class="text-lg font-semibold mb-3">Totals</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <div class="text-xs text-slate-500">Planned Time</div>
+              <div id="totPlannedTime" class="text-base font-semibold">0h 00m</div>
+            </div>
+            <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <div class="text-xs text-slate-500">Planned TSS</div>
+              <div id="totPlannedTss" class="text-base font-semibold">0</div>
+            </div>
+            <div class="col-span-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <div class="text-xs text-slate-500 mb-1">By Type</div>
+              <div id="totByType" class="text-sm leading-6">—</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab: Load & Save -->
+      <section id="tab-loadsave" role="tabpanel" class="hidden p-4 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+            <h3 class="text-lg font-semibold mb-3">Save current plan to repo</h3>
+            <button id="saveRepoBtn" class="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
+          </div>
+          <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+            <h3 class="text-lg font-semibold mb-3">Export / Import</h3>
+            <div class="flex gap-2">
+              <button id="exportBtn" class="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
+              <label class="field">
+                <span class="lbl">Import JSON</span>
+                <input id="importFile" type="file" accept="application/json" class="text-sm"/>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold">Load a plan from repo</h3>
+            <div class="flex gap-2">
+              <button id="testGhBtn" class="sm-btn">Test GitHub</button>
+              <button id="refreshPlansBtn" class="sm-btn">Refresh</button>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-3">
+            <select id="loadPlanSelect" class="sm:col-span-3 inp dark"><option value="">— select plan —</option></select>
+            <button id="loadPlanBtn" class="rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 text-sm">Load</button>
+            <a id="openPlanLink" href="#" target="_blank" class="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 text-center">Open on GitHub</a>
+          </div>
+          <div id="loadPlanMsg" class="text-xs text-slate-500 mt-2"></div>
+        </div>
+      </section>
+
+      <!-- Tab: Intervals Upload -->
+      <section id="tab-upload" role="tabpanel" class="hidden p-4 space-y-4">
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+          <h3 class="text-lg font-semibold mb-2">Upload this week’s plan</h3>
+          <p class="text-sm text-slate-500 mb-3">Triggers the <code>upload-week-plan.yml</code> GitHub Action. You’ll confirm before sending.</p>
+          <button id="uploadIntervalsBtn" class="rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 font-medium">Upload to Intervals</button>
+          <div class="text-xs text-slate-500 mt-3" id="uploadHint"></div>
+        </div>
+      </section>
+
+      <!-- Tab: Settings -->
+      <section id="tab-settings" role="tabpanel" class="hidden p-4 space-y-4">
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+          <h3 class="text-lg font-semibold mb-3">GitHub settings</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label class="field"><span class="lbl">Personal Access Token (fine-grained)</span><input id="ghToken" type="password" placeholder="ghp_…" class="inp dark"/></label>
+            <label class="field"><span class="lbl">Owner</span><input id="ghOwner" value="tomeese" class="inp dark"/></label>
+            <label class="field"><span class="lbl">Repo</span><input id="ghRepo" value="intervals-icu-bulk-uploader-planned-workouts" class="inp dark"/></label>
+            <label class="field"><span class="lbl">Branch</span><input id="ghBranch" value="main" class="inp dark"/></label>
+            <label class="field"><span class="lbl">Path prefix</span><input id="ghPrefix" value="plans" class="inp dark"/></label>
+          </div>
+          <div class="flex items-center gap-2 mt-3">
+            <button id="saveGhCfg" class="sm-btn">Save settings</button>
+            <span id="saveGhMsg" class="text-xs text-emerald-500"></span>
+            <button id="clearGhCfg" class="ml-auto sm-btn border-rose-300 dark:border-rose-700">Clear token</button>
+          </div>
+        </div>
+      </section>
+    </div>
   </main>
 
-  <!-- Day card template -->
-  <template id="dayCardTpl">
-    <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
-      <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <div class="text-sm text-slate-500" data-day-name>Monday</div>
-          <div class="text-lg font-semibold" data-day-date>2025-01-01</div>
-        </div>
-        <div class="flex gap-2">
-          <button class="sm-btn" data-copy-prev>Copy prev</button>
-          <button class="sm-btn" data-clear>Clear</button>
-          <button class="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm" data-add>Add</button>
-        </div>
-      </div>
-      <div class="p-4 scroll-area" data-rows></div>
-    </div>
-  </template>
-
-  <!-- Workout row template (all JSON fields visible) -->
+  <!-- Workout row template -->
   <template id="rowTpl">
     <div class="py-4 border-b border-slate-100 dark:border-slate-900 last:border-0">
       <div class="row-grid">
@@ -200,7 +248,7 @@
 
         <label class="field col-span-3">
           <span class="lbl">Duration (HH:MM)</span>
-          <input type="text" inputmode="numeric" pattern="^\d{1,2}:[0-5]\d$" placeholder="HH:MM" class="inp dark" value="01:00" data-duration/>
+          <input type="text" inputmode="numeric" pattern="^\\d{1,2}:[0-5]\\d$" placeholder="HH:MM" class="inp dark" value="01:00" data-duration/>
         </label>
         <label class="field col-span-3">
           <span class="lbl">TSS</span>
@@ -218,7 +266,7 @@
         <button class="sm-btn border-rose-300 text-rose-600" data-del>Delete</button>
       </div>
 
-      <!-- DESIGN (optional JSON 'design' block) -->
+      <!-- DESIGN panel -->
       <div class="hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 mt-3" data-design-panel>
         <div class="text-xs text-slate-500 mb-2">Workout design (saved into JSON for ZWO)</div>
         <div class="row-grid">
@@ -248,13 +296,39 @@
   <script>
   // ---------- Error banner ----------
   function showErr(msg){const b=document.getElementById('errBanner');b.textContent=String(msg||'Unknown error');b.classList.remove('hidden');console.error('[planner]', msg);}
-  window.addEventListener('error', e=>showErr(e.message||e.error||e));
+  window.addEventListener('error', e=>showErr(e.message||e));
+
+  // ---------- Toasts ----------
+  function toast(msg, kind='ok', ms=2600){
+    const box=document.getElementById('toasts');
+    const div=document.createElement('div');
+    div.className='toast '+(kind==='ok'?'toast-ok':kind==='warn'?'toast-warn':'toast-err');
+    div.textContent=msg;
+    box.appendChild(div);
+    setTimeout(()=>{div.remove();}, ms);
+  }
+
+  // ---------- Modal confirm ----------
+  function confirmDialog({title,html}){
+    return new Promise(resolve=>{
+      const m=document.getElementById('modal');
+      document.getElementById('modalTitle').textContent=title||'Confirm';
+      document.getElementById('modalBody').innerHTML=html||'Are you sure?';
+      const onCancel=()=>{m.classList.remove('show'); cleanup(); resolve(false);};
+      const onOk=()=>{m.classList.remove('show'); cleanup(); resolve(true);};
+      function cleanup(){ok.removeEventListener('click',onOk); cancel.removeEventListener('click',onCancel);}
+      const ok=document.getElementById('modalOk'); const cancel=document.getElementById('modalCancel');
+      ok.addEventListener('click',onOk); cancel.addEventListener('click',onCancel);
+      m.classList.add('show');
+    });
+  }
 
   // ---------- Utilities ----------
   const $=s=>document.querySelector(s);
   const dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const fmtHMS=sec=>{sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return `${h}h ${String(m).padStart(2,'0')}m`;};
-  const parseHHMM=v=>{if(!v)return 0;const [h,m]=(v||'').split(':').map(x=>parseInt(x||'0',10));return (isNaN(h)||isNaN(m))?0:h*3600+m*60;};
+  const parseHHMM=v=>{const m=String(v||'').trim().match(/^(\d{1,2}):([0-5]\d)$/); if(!m) return 0; return parseInt(m[1],10)*3600+parseInt(m[2],10)*60;};
+  const normalizeHHMM=s=>{const m=String(s||'').trim().match(/^(\d{1,2}):([0-5]\d)$/); if(!m) return s; return `${m[1].padStart(2,'0')}:${m[2]}`;};
   const mondayOf=date=>{const d=new Date(date);const gd=d.getDay();const diff=(gd===0?-6:1-gd);d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return d;};
   const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
   const toISODate=d=>d.toISOString().slice(0,10);
@@ -266,7 +340,7 @@
   const encodePathPreserveSlashes=p=>p.split('/').map(encodeURIComponent).join('/');
 
   // ---------- State ----------
-  const state={weekStart:null,tz:'America/Los_Angeles',athleteId:0,days:{}};
+  const state={weekStart:null,tz:'America/Los_Angeles',athleteId:0,days:{}, selectedDay:0};
   const storageKey=()=>`planner:${state.weekStart}`;
   const save=()=>{if(!state.weekStart)return; localStorage.setItem(storageKey(), JSON.stringify(state));};
   const loadWeek=week=>{const raw=localStorage.getItem(`planner:${week}`); try{return raw?JSON.parse(raw):null}catch(_){return null}};
@@ -316,7 +390,19 @@
     }
   };
 
-  // ---------- GitHub helpers (hardened & with public fallback) ----------
+  // ---------- Tabs ----------
+  const tabs=['plan','loadsave','upload','settings'];
+  function setTab(id){
+    tabs.forEach(t=>{
+      const btn=document.querySelector(`[role="tab"][data-tab="${t}"]`);
+      const panel=document.getElementById(`tab-${t}`);
+      const sel=(t===id);
+      btn.setAttribute('aria-selected', String(sel));
+      panel.classList.toggle('hidden', !sel);
+    });
+  }
+
+  // ---------- GitHub helpers (hardened & public fallback) ----------
   const GH_STORE_KEY='planner:ghcfg';
   const ghLoad=()=>{try{return JSON.parse(localStorage.getItem(GH_STORE_KEY)||'{}')}catch(_){return{}}};
   const ghSaveCfg=cfg=>localStorage.setItem(GH_STORE_KEY, JSON.stringify(cfg||{}));
@@ -335,12 +421,9 @@
     const tok = cleanToken(token||'');
     const headers = Object.assign({Accept:"application/vnd.github+json"}, tok?{Authorization:'token '+tok}:{});
     const req = Object.assign({headers}, init||{});
-    try { 
-      return await fetch(url, req);
-    } catch (e) {
-      if (tok) { // try unauthenticated (public) as fallback
-        return await fetch(url, Object.assign({headers:{Accept:"application/vnd.github+json"}}, init||{}));
-      }
+    try { return await fetch(url, req); }
+    catch (e) {
+      if (tok) return await fetch(url, Object.assign({headers:{Accept:"application/vnd.github+json"}}, init||{}));
       throw e;
     }
   }
@@ -405,40 +488,34 @@
       const iso=toISODate(addDays(base,parseInt(idx,10)));
       state.days[iso]=(lst||[]).map(w=>({...w}));
     });
-    save(); renderWeek();
-  }
-
-  // ---------- Render ----------
-  function renderWeek(){
-    const grid=$('#daysGrid'); grid.innerHTML='';
-    if(!state.weekStart) return;
-    const base=new Date(state.weekStart);
-    for(let i=0;i<7;i++){
-      const d=addDays(base,i), iso=toISODate(d);
-      const card=document.importNode($('#dayCardTpl').content,true);
-      card.querySelector('[data-day-name]').textContent=dayNames[i];
-      card.querySelector('[data-day-date]').textContent=iso;
-      const rows=card.querySelector('[data-rows]');
-      (state.days[iso]||[]).forEach(w=>rows.appendChild(renderRow(iso,w)));
-      card.querySelector('[data-add]').addEventListener('click',()=>{
-        const w={name:'',type:'Ride',indoor:false,duration_sec:3600,tss:50,notes:''};
-        (state.days[iso] ||= []).push(w);
-        rows.appendChild(renderRow(iso,w)); totals(); save();
-      });
-      card.querySelector('[data-clear]').addEventListener('click',()=>{
-        state.days[iso]=[]; rows.innerHTML=''; totals(); save();
-      });
-      card.querySelector('[data-copy-prev]').addEventListener('click',()=>{
-        if(i===0) return;
-        const prev=toISODate(addDays(base,i-1));
-        const cp=(state.days[prev]||[]).map(w=>({...w}));
-        state.days[iso]=cp; rows.innerHTML=''; cp.forEach(w=>rows.appendChild(renderRow(iso,w))); totals(); save();
-      });
-      grid.appendChild(card);
-    }
+    save(); renderDayEditor();
     totals();
   }
 
+  // ---------- Day editor (tab) ----------
+  function currentIso(){ const base=new Date(state.weekStart); return toISODate(addDays(base,state.selectedDay)); }
+  function renderDayEditor(){
+    const container=$('#dayEditor'); container.innerHTML='';
+    if(!state.weekStart) return;
+    const iso=currentIso();
+    // header
+    const hdr=document.createElement('div');
+    hdr.className="mb-3 text-sm text-slate-500";
+    hdr.textContent=`${dayNames[state.selectedDay]} — ${iso}`;
+    container.appendChild(hdr);
+
+    // rows
+    const list=state.days[iso]||[];
+    list.forEach(w=>container.appendChild(renderRow(iso,w)));
+    if(list.length===0){
+      const empty=document.createElement('div');
+      empty.className="text-sm text-slate-500";
+      empty.textContent="No workouts yet. Click 'Add workout'.";
+      container.appendChild(empty);
+    }
+  }
+
+  // ---------- Render a workout row ----------
   function renderRow(iso,w){
     const frag=document.importNode($('#rowTpl').content,true);
     const el=frag.firstElementChild;
@@ -451,13 +528,13 @@
     const $d_under=el.querySelector('[data-d-under]'), $d_over=el.querySelector('[data-d-over]');
     const $d_warm=el.querySelector('[data-d-warm]'), $d_cool=el.querySelector('[data-d-cool]'), $d_cad=el.querySelector('[data-d-cad]'), $d_erg=el.querySelector('[data-d-erg]');
 
+    // bind
     $name.value=w.name||''; $type.value=w.type||'Ride'; $ind.checked=!!w.indoor;
     $dur.value=hhmmFromSec(w.duration_sec||0); $tss.value=Number.isFinite(w.tss)?w.tss:0; $notes.value=w.notes||'';
     $name.addEventListener('input',()=>{w.name=$name.value; save();}); 
     $type.addEventListener('change',()=>{w.type=$type.value; save(); totals();});
     $ind.addEventListener('change',()=>{w.indoor=$ind.checked; save();});
-    $dur.addEventListener('change',()=>{w.duration_sec=parseHHMM($dur.value); save(); totals();});
-    $dur.addEventListener('blur', ()=>{ $dur.value = normalizeHHMM($dur.value); });
+    $dur.addEventListener('change',()=>{w.duration_sec=parseHHMM($dur.value); $dur.value=normalizeHHMM($dur.value); save(); totals();});
     $tss.addEventListener('change',()=>{w.tss=Math.max(0,parseFloat($tss.value||'0')); save(); totals();});
     $notes.addEventListener('input',()=>{w.notes=$notes.value; save();});
 
@@ -490,7 +567,7 @@
         const safe=safeFilename(`${iso} - ${w.name||'Workout'}`).replace(/\.zwo$/i,'')+'.zwo';
         const cfg=ghGetCfg();
         if(cfg.token && confirm("Upload .zwo to your repo? (Cancel = download only)")){
-          const path=`zwo/${safe}`; githubPutFile(cfg,path,xml,`feat(zwo): ${safe}`).then(()=>alert(`Uploaded ✓ ${path}`)).catch(e=>alert(`Upload failed: ${e.message||e}`));
+          const path=`zwo/${safe}`; githubPutFile(cfg,path,xml,`feat(zwo): ${safe}`).then(()=>toast(`Uploaded ${path}`,'ok')).catch(e=>toast(`Upload failed: ${e.message||e}`,'err'));
         }else{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([xml],{type:'application/xml'})); a.download=safe; a.click(); URL.revokeObjectURL(a.href); }
       }catch(e){ alert(`ZWO generation failed: ${e.message||e}`); }
     });
@@ -503,6 +580,7 @@
     return frag;
   }
 
+  // ---------- Totals ----------
   function totals(){
     let sec=0,tss=0; const byType=new Map();
     Object.values(state.days).forEach(list=>{
@@ -539,37 +617,61 @@
     state.tz=data.tz||state.tz; $('#tz').value=state.tz;
     state.athleteId=(data.athlete_id ?? state.athleteId); $('#athleteId').value=state.athleteId;
     state.days={}; data.workouts.forEach(w=>{ (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined}); });
-    save(); renderWeek();
+    save(); renderDayEditor(); totals();
   }
+
   async function refreshPlanList(){
-    const msg=$('#loadPlanMsg'); msg.textContent='Loading…';
+    const msg=$('#loadPlanMsg'); if(msg) msg.textContent='Loading…';
     try{
       const cfg=ghGetCfg(); cfg.token=cleanToken(cfg.token||'');
       const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
       const items=await ghListPlans(cfg,prefix);
-      const sel=$('#loadPlanSelect'); sel.innerHTML='<option value="">— select plan —</option>';
+      const sel=$('#loadPlanSelect'); if(!sel) return;
+      sel.innerHTML='<option value="">— select plan —</option>';
       items.sort((a,b)=>b.name.localeCompare(a.name)).forEach(it=>{
         const o=document.createElement('option'); o.value=it.path; o.textContent=it.name.replace(/^plan-/,'').replace(/\.json$/,''); sel.appendChild(o);
       });
-      msg.textContent=`${items.length} plan(s) in ${prefix}/`;
-    }catch(e){ msg.textContent=`Error: ${e.message||e}`; showErr(e.message||e); }
+      if(msg) msg.textContent=`${items.length} plan(s) in ${prefix}/`;
+    }catch(e){ if(msg) msg.textContent=`Error: ${e.message||e}`; showErr(e.message||e); }
   }
   async function loadSelectedPlan(){
     const path=$('#loadPlanSelect').value; if(!path){ alert('Pick a plan first.'); return; }
     try{
       const cfg=ghGetCfg(); const data=await ghGetJsonFile(cfg,path); applyPlanData(data);
-      const link=$('#openPlanLink'); link.href=`https://github.com/${cfg.owner}/${cfg.repo}/blob/${encodeURIComponent(cfg.branch)}/${path}`;
-      $('#loadPlanMsg').textContent=`Loaded ${path}`;
+      const link=$('#openPlanLink'); if(link) link.href=`https://github.com/${cfg.owner}/${cfg.repo}/blob/${encodeURIComponent(cfg.branch)}/${path}`;
+      const msg=$('#loadPlanMsg'); if(msg) msg.textContent=`Loaded ${path}`;
+      toast('Plan loaded','ok');
+      setTab('plan');
     }catch(e){ alert(`Load failed: ${e.message||e}`); }
   }
 
-  // ---------- Upload to Intervals ----------
+  // ---------- Upload to Intervals (with confirm) ----------
   async function saveThenUpload(){
     if(!state.weekStart){ alert('Pick a week start first.'); return; }
+    const payload=buildPayload();
+    const n=payload.workouts.length;
+    const html=`<div class="space-y-2">
+      <div>Week: <b>${payload.week_start}</b></div>
+      <div>Time zone: <code>${payload.tz}</code></div>
+      <div>Athlete ID: <code>${payload.athlete_id}</code></div>
+      <div class="text-rose-600 font-medium">This will dispatch a GitHub Action to upload <b>${n}</b> workout(s) to Intervals. Continue?</div>
+    </div>`;
+    const ok=await confirmDialog({title:'Upload to Intervals', html});
+    if(!ok) return;
+
+    // Save plan to repo first (idempotent)
     const cfg=ghGetCfg(); const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); const path=`${prefix}/plan-${state.weekStart}.json`;
-    await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), `feat(planner): save ${path}`);
-    await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', {plan_path:path, tz:state.tz||'America/Los_Angeles', athlete_id:String(state.athleteId||0), default_start:'06:00', dry_run:'false'});
-    alert('Upload started ✓ (check Actions).');
+    await githubPutFile(cfg, path, JSON.stringify(payload,null,2), `feat(planner): save ${path}`);
+
+    // Dispatch action
+    await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', {
+      plan_path:path, tz:payload.tz||'America/Los_Angeles', athlete_id:String(payload.athlete_id||0), default_start:'06:00', dry_run:'false'
+    });
+
+    const runsUrl=`https://github.com/${cfg.owner}/${cfg.repo}/actions/workflows/upload-week-plan.yml`;
+    toast(`Upload dispatched for ${n} workout(s).`, 'ok', 3500);
+    const hint=$('#uploadHint');
+    if(hint) hint.innerHTML=`Dispatched ✓ — <a class="underline" target="_blank" href="${runsUrl}">view workflow runs</a>.`;
   }
 
   // ---------- Minimal ZWO ----------
@@ -596,42 +698,61 @@
 </workout_file>`;
   }
 
-  function normalizeHHMM(s){
-  const m = String(s||'').trim().match(/^(\d{1,2}):([0-5]\d)$/);
-  if(!m) return s;
-  const h = m[1].padStart(2,'0');
-  const mm = m[2];
-  return `${h}:${mm}`;
-}
-
-  // ---------- Events / Boot ----------
+  // ---------- Boot ----------
   function setWeekStartFromInput(){
     const raw=$('#weekStart').value; if(!raw) return;
     const iso=toISODate(mondayOf(raw)); $('#weekStart').value=iso; state.weekStart=iso;
-    const prev=loadWeek(iso); if(prev){ state.tz=prev.tz||state.tz; $('#tz').value=state.tz; state.athleteId=(prev.athleteId??state.athleteId); $('#athleteId').value=state.athleteId; state.days=prev.days||{}; }
-    else { state.days={}; }
-    save(); renderWeek();
+    const prev=loadWeek(iso); if(prev){ state.tz=prev.tz||state.tz; $('#tz').value=state.tz; state.athleteId=(prev.athleteId??state.athleteId); $('#athleteId').value=state.athleteId; state.days=prev.days||{}; state.selectedDay=prev.selectedDay||0; }
+    else { state.days={}; state.selectedDay=0; }
+    save(); renderDayEditor(); totals();
+    // Update day tab selection
+    document.querySelectorAll('[data-daytab]').forEach(btn=>btn.setAttribute('aria-selected', btn.getAttribute('data-daytab')==state.selectedDay?'true':'false'));
   }
 
   (function boot(){
     try{
+      // Tab wiring
+      document.querySelectorAll('[role="tab"]').forEach(btn=>{
+        btn.addEventListener('click', ()=> setTab(btn.getAttribute('data-tab')));
+      });
+      setTab('plan');
+
+      // Day tab events
+      document.querySelectorAll('[data-daytab]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const idx=parseInt(btn.getAttribute('data-daytab'),10);
+          state.selectedDay=idx; document.querySelectorAll('[data-daytab]').forEach(b=>b.setAttribute('aria-selected','false'));
+          btn.setAttribute('aria-selected','true');
+          renderDayEditor();
+        });
+      });
+      $('#addRowBtn').addEventListener('click', ()=>{
+        if(!state.weekStart){ alert('Pick a week start first.'); return; }
+        const iso=currentIso();
+        const w={name:'',type:'Ride',indoor:false,duration_sec:3600,tss:50,notes:''};
+        (state.days[iso] ||= []).push(w);
+        renderDayEditor(); totals(); save();
+      });
+      $('#clearDayBtn').addEventListener('click', ()=>{
+        if(!state.weekStart) return;
+        const iso=currentIso(); state.days[iso]=[]; renderDayEditor(); totals(); save();
+      });
+      $('#copyPrevDayBtn').addEventListener('click', ()=>{
+        if(!state.weekStart || state.selectedDay===0) return;
+        const base=new Date(state.weekStart);
+        const prevIso=toISODate(addDays(base, state.selectedDay-1));
+        const iso=currentIso();
+        state.days[iso]=(state.days[prevIso]||[]).map(w=>({...w}));
+        renderDayEditor(); totals(); save();
+      });
+
+      // Week controls
       $('#weekStart').addEventListener('change', setWeekStartFromInput);
       $('#tz').addEventListener('change',()=>{ state.tz=$('#tz').value; save(); });
       $('#athleteId').addEventListener('change',()=>{ state.athleteId=Number($('#athleteId').value||0); save(); });
-      $('#newWeekBtn').addEventListener('click',()=>{ if(!$('#weekStart').value){ alert('Pick a Monday to start.'); return; } state.days={}; save(); renderWeek(); });
-      $('#exportBtn').addEventListener('click', exportJson);
-      $('#importFile').addEventListener('change', e=>importJson(e.target.files[0]));
-      $('#saveRepoBtn').addEventListener('click', async ()=>{
-        if(!state.weekStart){ alert('Pick a week start first.'); return; }
-        const cfg=ghGetCfg(); const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); const path=`${prefix}/plan-${state.weekStart}.json`;
-        await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), `feat(planner): save ${path}`); alert(`Saved ✓ ${path}`);
-      });
-      $('#uploadIntervalsBtn').addEventListener('click', saveThenUpload);
-      $('#saveGhCfg').addEventListener('click', ()=>{
-        const cfg={token:cleanToken($('#ghToken').value),owner:$('#ghOwner').value,repo:$('#ghRepo').value,branch:$('#ghBranch').value,prefix:$('#ghPrefix').value};
-        ghSaveCfg(cfg); $('#ghToken').value=cfg.token; $('#saveGhMsg').textContent='Saved ✓'; setTimeout(()=>$('#saveGhMsg').textContent='',2500);
-      });
-      $('#clearGhCfg').addEventListener('click', ()=>{ localStorage.removeItem(GH_STORE_KEY); if($('#ghToken')) $('#ghToken').value=''; $('#saveGhMsg').textContent='Cleared'; setTimeout(()=>$('#saveGhMsg').textContent='',2000); });
+      $('#newWeekBtn').addEventListener('click',()=>{ if(!$('#weekStart').value){ alert('Pick a Monday to start.'); return; } state.days={}; save(); renderDayEditor(); totals(); });
+
+      // Template controls
       $('#phase').addEventListener('change', updateTemplateList);
       $('#focus').addEventListener('change', updateTemplateList);
       $('#templateKey').addEventListener('change', ()=>{
@@ -640,6 +761,19 @@
         $('#templateDesc').textContent=(g&&g[key]&&g[key].desc)?g[key].desc:'';
       });
       $('#loadTemplateBtn').addEventListener('click', applyTemplate);
+
+      // Load & Save tab
+      $('#exportBtn').addEventListener('click', exportJson);
+      $('#importFile').addEventListener('change', e=>importJson(e.target.files[0]));
+      $('#saveRepoBtn').addEventListener('click', async ()=>{
+        if(!state.weekStart){ alert('Pick a week start first.'); return; }
+        const cfg=ghGetCfg(); const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); const path=`${prefix}/plan-${state.weekStart}.json`;
+        const n=buildPayload().workouts.length;
+        const ok=await confirmDialog({title:'Save to repo', html:`Save <b>${path}</b> with <b>${n}</b> workout(s)?`});
+        if(!ok) return;
+        await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), `feat(planner): save ${path}`);
+        toast(`Saved ${path}`,'ok');
+      });
       $('#refreshPlansBtn').addEventListener('click', refreshPlanList);
       $('#loadPlanBtn').addEventListener('click', loadSelectedPlan);
       $('#testGhBtn').addEventListener('click', async ()=>{
@@ -648,13 +782,25 @@
           const res=await ghFetch(url, cfg.token);
           const ok=res.ok; const js=await res.json();
           $('#loadPlanMsg').textContent= ok ? `GitHub OK: default_branch=${js.default_branch}` : `GitHub ERROR ${res.status}`;
-        }catch(e){ $('#loadPlanMsg').textContent=`GitHub ERROR: ${e.message||e}`; }
+          toast(ok?'GitHub OK':'GitHub error','ok');
+        }catch(e){ $('#loadPlanMsg').textContent=`GitHub ERROR: ${e.message||e}`; toast('GitHub error','err'); }
       });
 
-      // boot defaults
+      // Upload tab
+      $('#uploadIntervalsBtn').addEventListener('click', saveThenUpload);
+
+      // Settings tab
+      $('#saveGhCfg').addEventListener('click', ()=>{
+        const cfg={token:cleanToken($('#ghToken').value),owner:$('#ghOwner').value,repo:$('#ghRepo').value,branch:$('#ghBranch').value,prefix:$('#ghPrefix').value};
+        ghSaveCfg(cfg); $('#ghToken').value=cfg.token; $('#saveGhMsg').textContent='Saved ✓'; setTimeout(()=>$('#saveGhMsg').textContent='',2500);
+        toast('GitHub settings saved','ok');
+      });
+      $('#clearGhCfg').addEventListener('click', ()=>{ localStorage.removeItem(GH_STORE_KEY); if($('#ghToken')) $('#ghToken').value=''; $('#saveGhMsg').textContent='Cleared'; setTimeout(()=>$('#saveGhMsg').textContent='',2000); toast('GitHub token cleared','warn'); });
+
+      // Boot defaults
       const isoMonday=toISODate(mondayOf(new Date())); $('#weekStart').value=isoMonday; setWeekStartFromInput();
       updateTemplateList();
-      refreshPlanList(); // will fall back to unauthenticated if public
+      refreshPlanList(); // public fallback works if repo is public
     }catch(e){ showErr(e.message||e); }
   })();
   </script>
