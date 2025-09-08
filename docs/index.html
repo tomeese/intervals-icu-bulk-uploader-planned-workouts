@@ -407,6 +407,29 @@
   const base64EncodeUTF8=str=>btoa(unescape(encodeURIComponent(str)));
   const encodePathPreserveSlashes=p=>p.split('/').map(encodeURIComponent).join('/');
 
+  // Escapes plain text for safe HTML insertion
+  function escHtml(s){ return String(s ?? '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+
+  // Short day-of-week from ISO date (UTC to avoid TZ rollovers)
+  function dowShortFromISO(iso){
+    // Force UTC midnight so local TZ doesn't shift the date
+    const d = new Date(iso + 'T00:00:00Z');
+    return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()];
+  }
+
+  // Build the bullet list HTML for the confirm dialog
+  function buildDaysBulletsHTML(dates){
+    const items = dates.map(iso=>{
+      const list  = state.days[iso] || [];
+      const names = list.length
+        ? list.map(w => escHtml(w.name || 'Untitled')).join(' · ')
+        : '<span class="text-slate-400">(no workouts)</span>';
+      const label = `${dowShortFromISO(iso)} — ${iso}`;
+      return `<li><b>${label}</b>: ${names}</li>`;
+    }).join('');
+    return `<ul class="list-disc pl-6 space-y-1">${items}</ul>`;
+  }
+
   function uploadDayCheckboxEls(){ return Array.from(document.querySelectorAll('[data-upday]')); }
   function setUploadDaysAll(val){ uploadDayCheckboxEls().forEach(cb => cb.checked = !!val); }
 
@@ -785,16 +808,18 @@
     const dates = selectedUploadDates();
     if (dates.length === 0) { alert('Select at least one day.'); return; }
 
-    const full = buildPayload();                 // full plan
-    const part = buildPayloadFiltered(dates);    // filtered plan
+    const part = buildPayloadFiltered(dates);
     const n = part.workouts.length;
+    const bullets = buildDaysBulletsHTML(dates);
 
     const html = `<div class="space-y-2">
       <div>Week: <b>${full.week_start}</b></div>
-      <div>Time zone: <code>${full.tz}</code></div>
+      <div>Time zone: <code>${escHtml(full.tz)}</code></div>
       <div>Athlete ID: <code>${full.athlete_id}</code></div>
-      <div>Days: ${dates.join(', ')}</div>
-      <div class="text-rose-600 font-medium">This will upload <b>${n}</b> workout(s) for the selected day(s). Continue?</div>
+      <div class="mt-2">${bullets}</div>
+      <div class="text-rose-600 font-medium">
+        This will upload <b>${n}</b> workout(s) for the selected day(s). Continue?
+      </div>
     </div>`;
     const ok = await confirmDialog({title:'Upload to Intervals', html});
     if(!ok) return;
