@@ -1,88 +1,101 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Weekly Workout Planner</title>
+  <meta name="color-scheme" content="light dark"/>
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="color-scheme" content="light dark" />
   <style>
-    .number-input { width: 6rem; }
-    .time-input { width: 7.5rem; }
-    .scroll-area { max-height: 18rem; overflow: auto; }
+    .scroll-area{max-height:18rem;overflow:auto}
+    .number-input{width:6rem}
+    .time-input{width:7.5rem}
+    .card{border-radius:0.75rem}
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-  <header class="px-4 sm:px-6 lg:px-8 py-6 border-b border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 backdrop-blur">
-    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
-      <h1 class="text-xl sm:text-2xl font-semibold tracking-tight">Weekly Workout Planner</h1>
-      <nav class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-        Local-first · Exports JSON · Saves to GitHub · ZWO generator
-      </nav>
+  <!-- Header -->
+  <header class="bg-white/70 dark:bg-slate-900/60 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-semibold tracking-tight">Weekly Workout Planner</h1>
+      <div class="hidden sm:flex items-center gap-2 text-xs text-slate-500">
+        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">1) Plan</span>
+        <span>→</span>
+        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">2) Save / Upload</span>
+        <span>→</span>
+        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">3) Day-of ZWO</span>
+      </div>
     </div>
   </header>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <!-- Global controls -->
-    <section class="mb-6">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <label class="block">
-          <span class="block text-sm font-medium mb-1">Week start (Monday)</span>
-          <input id="weekStart" type="date" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2" />
-        </label>
-        <label class="block">
-          <span class="block text-sm font-medium mb-1">Time zone (IANA)</span>
-          <input id="tz" type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2" value="America/Los_Angeles" />
-        </label>
-        <label class="block">
-          <span class="block text-sm font-medium mb-1">Athlete ID</span>
-          <input id="athleteId" type="number" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2" value="0" />
-        </label>
-        <div class="flex items-end gap-2">
-          <button id="newWeekBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">New / Clear week</button>
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- LEFT COLUMN: Planner -->
+    <section class="lg:col-span-2 space-y-6">
+
+      <!-- Week toolbar -->
+      <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <label class="block">
+            <span class="block text-sm font-medium mb-1">Week start (Monday)</span>
+            <input id="weekStart" type="date" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"/>
+          </label>
+          <label class="block">
+            <span class="block text-sm font-medium mb-1">Time zone (IANA)</span>
+            <input id="tz" type="text" value="America/Los_Angeles" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"/>
+          </label>
+          <label class="block">
+            <span class="block text-sm font-medium mb-1">Athlete ID</span>
+            <input id="athleteId" type="number" value="0" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2"/>
+          </label>
+          <div class="flex items-end gap-2">
+            <button id="newWeekBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 font-medium">Clear week</button>
+          </div>
         </div>
       </div>
-      <div class="mt-3 text-xs text-slate-500">Tip: auto-saves per week in your browser. Export or “Save to repo” to share.</div>
-    </section>
 
-    <!-- Phase & Template loader -->
-    <section class="mb-6 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
-      <h2 class="text-lg font-semibold mb-3">Macro-phase & templates</h2>
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-        <label>
-          <span class="block text-sm text-slate-500 mb-1">Macro-phase</span>
-          <select id="phase" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
-            <option>Base</option>
-            <option>Build</option>
-            <option>Specialty</option>
-          </select>
-        </label>
-        <label>
-          <span class="block text-sm text-slate-500 mb-1">Week focus</span>
-          <select id="focus" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
-            <option>Build</option>
-            <option>Recovery</option>
-          </select>
-        </label>
-        <label class="md:col-span-2">
-          <span class="block text-sm text-slate-500 mb-1">Template</span>
-          <select id="templateKey" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"></select>
-          <div id="templateDesc" class="mt-1 text-xs text-slate-500"></div>
-        </label>
-        <div class="flex items-end gap-2">
-          <button id="loadTemplateBtn" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium w-full">Load template</button>
+      <!-- Phase & Template -->
+      <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-semibold">Macro-phase & templates</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <label>
+            <span class="block text-sm text-slate-500 mb-1">Macro-phase</span>
+            <select id="phase" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
+              <option>Base</option>
+              <option>Build</option>
+              <option>Specialty</option>
+            </select>
+          </label>
+          <label>
+            <span class="block text-sm text-slate-500 mb-1">Week focus</span>
+            <select id="focus" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
+              <option>Build</option>
+              <option>Recovery</option>
+            </select>
+          </label>
+          <label class="md:col-span-2">
+            <span class="block text-sm text-slate-500 mb-1">Template</span>
+            <select id="templateKey" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"></select>
+            <div id="templateDesc" class="mt-1 text-xs text-slate-500"></div>
+          </label>
+          <div class="flex items-end gap-2">
+            <button id="loadTemplateBtn" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium w-full">Load template</button>
+          </div>
         </div>
       </div>
+
+      <!-- Days grid -->
+      <section id="daysGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></section>
+
     </section>
 
-    <!-- Days grid -->
-    <section id="daysGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></section>
-
-    <!-- Totals & Actions -->
-    <section class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div class="lg:col-span-2 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
+    <!-- RIGHT COLUMN: Sticky sidebar -->
+    <aside class="lg:col-span-1 space-y-6">
+      <!-- Totals -->
+      <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 sticky top-4">
         <h2 class="text-lg font-semibold mb-3">Totals</h2>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div class="grid grid-cols-2 gap-3">
           <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
             <div class="text-xs text-slate-500">Planned Time</div>
             <div id="totPlannedTime" class="text-base font-semibold">0h 00m</div>
@@ -91,95 +104,79 @@
             <div class="text-xs text-slate-500">Planned TSS</div>
             <div id="totPlannedTss" class="text-base font-semibold">0</div>
           </div>
-          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div class="text-xs text-slate-500">By Type</div>
+          <div class="col-span-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="text-xs text-slate-500 mb-1">By Type</div>
             <div id="totByType" class="text-sm leading-6">—</div>
           </div>
         </div>
-      </div>
 
-      <div class="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
-        <h2 class="text-lg font-semibold mb-3">Export / Import</h2>
-        <div class="flex flex-col gap-2">
-          <button id="exportBtn" class="inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
-          <button id="saveRepoBtn" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>          
-          <button id="uploadIntervalsBtn" class="inline-flex items-center justify-center rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 font-medium">Upload to Intervals</button>
-<label class="block">
+        <!-- Actions -->
+        <div class="mt-5 space-y-2">
+          <button id="exportBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
+          <button id="saveRepoBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
+          <button id="uploadIntervalsBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 font-medium">Upload to Intervals</button>
+
+          <label class="block mt-3">
             <span class="block text-sm font-medium mb-1">Import JSON</span>
-            <input id="importFile" type="file" accept="application/json" class="w-full text-sm" />
+            <input id="importFile" type="file" accept="application/json" class="w-full text-sm"/>
           </label>
-        </div>
-        <!-- Load from repo -->
-<div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-  <div class="flex items-center justify-between">
-    <h3 class="text-sm font-medium">Load Week Plan from repo</h3>
-    <button id="refreshPlansBtn"
-      class="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm">
-      Refresh list
-    </button>
-  </div>
 
-  <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-2">
-    <select id="loadPlanSelect" class="sm:col-span-3 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
-      <option value="">— select plan —</option>
-    </select>
-
-    <button id="loadPlanBtn"
-      class="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 text-sm">
-      Load selected
-    </button>
-
-    <a id="openPlanLink" href="#" target="_blank"
-       class="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 text-center">
-      Open on GitHub
-    </a>
-  </div>
-
-  <div id="loadPlanMsg" class="text-xs text-slate-500 mt-2"></div>
-</div>
-
-
-        <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-          <div class="text-xs text-slate-500 mb-2">GitHub save settings (stored only in this browser)</div>
-          <label class="block mb-2">
-            <span class="block text-xs text-slate-500">Personal Access Token (fine-grained)</span>
-            <input id="ghToken" type="password" placeholder="ghp_…" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" />
-          </label>
-          <div class="grid grid-cols-2 gap-2">
-            <label>
-              <span class="block text-xs text-slate-500">Owner</span>
-              <input id="ghOwner" value="tomeese" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" />
-            </label>
-            <label>
-              <span class="block text-xs text-slate-500">Repo</span>
-              <input id="ghRepo" value="intervals-icu-bulk-uploader-planned-workouts" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" />
-            </label>
-            <label>
-              <span class="block text-xs text-slate-500">Branch</span>
-              <input id="ghBranch" value="main" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" />
-            </label>
-            <label>
-              <span class="block text-xs text-slate-500">Path prefix</span>
-              <input id="ghPrefix" value="plans" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" />
-            </label>
+          <!-- Load from repo -->
+          <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-medium">Load Week Plan from repo</h3>
+              <button id="refreshPlansBtn" class="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm">Refresh list</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-2">
+              <select id="loadPlanSelect" class="sm:col-span-3 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
+                <option value="">— select plan —</option>
+              </select>
+              <button id="loadPlanBtn" class="rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 text-sm">Load selected</button>
+              <a id="openPlanLink" href="#" target="_blank" class="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 text-center">Open on GitHub</a>
+            </div>
+            <div id="loadPlanMsg" class="text-xs text-slate-500 mt-2"></div>
           </div>
-          <div class="flex items-center gap-2 mt-2">
-            <button id="saveGhCfg" class="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm">Save settings</button>
-            <button id="clearGhCfg" class="inline-flex items-center justify-center rounded-lg border border-rose-300 dark:border-rose-700 px-3 py-1.5 text-sm">Clear token</button>
-            <span class="text-xs text-slate-500">Token lives in <code>localStorage</code> on this device.</span>
-          </div>
+
+          <!-- GitHub settings (collapsible) -->
+          <details class="mt-4">
+            <summary class="cursor-pointer text-sm font-medium">GitHub save settings</summary>
+            <div class="mt-3 space-y-2 text-xs text-slate-500">Stored only in this browser.</div>
+            <label class="block mb-2">
+              <span class="block text-xs text-slate-500">Personal Access Token (fine-grained)</span>
+              <input id="ghToken" type="password" placeholder="ghp_…" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"/>
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <label>
+                <span class="block text-xs text-slate-500">Owner</span>
+                <input id="ghOwner" value="tomeese" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"/>
+              </label>
+              <label>
+                <span class="block text-xs text-slate-500">Repo</span>
+                <input id="ghRepo" value="intervals-icu-bulk-uploader-planned-workouts" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"/>
+              </label>
+              <label>
+                <span class="block text-xs text-slate-500">Branch</span>
+                <input id="ghBranch" value="main" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"/>
+              </label>
+              <label>
+                <span class="block text-xs text-slate-500">Path prefix</span>
+                <input id="ghPrefix" value="plans" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"/>
+              </label>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+              <button id="saveGhCfg" class="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm">Save settings</button>
+              <button id="clearGhCfg" class="inline-flex items-center justify-center rounded-lg border border-rose-300 dark:border-rose-700 px-3 py-1.5 text-sm">Clear token</button>
+              <span class="text-xs text-slate-500">Token lives in <code>localStorage</code> on this device.</span>
+            </div>
+          </details>
         </div>
       </div>
-    </section>
-
-    <footer class="mt-10 pb-8 text-xs text-slate-500">
-      Built to pair with <code>icu-*-summary</code> &amp; <code>icu-make-zwo</code>. Data stays in your browser unless you export or save to GitHub.
-    </footer>
+    </aside>
   </main>
 
   <!-- Day card template -->
   <template id="dayCardTpl">
-    <div class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
+    <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
       <div class="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800">
         <div>
           <div class="text-sm text-slate-500" data-day-name>Monday</div>
@@ -195,12 +192,12 @@
     </div>
   </template>
 
-  <!-- Workout row template (includes Design panel) -->
+  <!-- Workout row template -->
   <template id="rowTpl">
-    <div class="grid grid-cols-1 sm:grid-cols-8 gap-2 items-start py-2 border-b border-slate-100 dark:border-slate-900 last:border-0">
+    <div class="grid grid-cols-1 sm:grid-cols-9 gap-2 items-start py-2 border-b border-slate-100 dark:border-slate-900 last:border-0">
       <label class="sm:col-span-2">
         <span class="block text-xs text-slate-500">Name</span>
-        <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Endurance Z2 - 2h" data-name />
+        <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Endurance Z2 - 2h" data-name/>
       </label>
       <label>
         <span class="block text-xs text-slate-500">Type</span>
@@ -212,28 +209,29 @@
       </label>
       <label>
         <span class="block text-xs text-slate-500">Indoor</span>
-        <input type="checkbox" class="h-5 w-5 align-middle" data-indoor />
+        <input type="checkbox" class="h-5 w-5 align-middle" data-indoor/>
       </label>
       <label>
-        <span class="block text-xs text-slate-500">Duration (hh:mm)</span>
-        <input type="time" step="60" class="time-input rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" value="01:00" data-duration />
+        <span class="block text-xs text-slate-500">Duration</span>
+        <input type="time" step="60" class="time-input rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" value="01:00" data-duration/>
       </label>
       <label>
         <span class="block text-xs text-slate-500">TSS</span>
-        <input type="number" min="0" step="1" class="number-input rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" value="50" data-tss />
+        <input type="number" min="0" step="1" class="number-input rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" value="50" data-tss/>
       </label>
       <label class="sm:col-span-2">
         <span class="block text-xs text-slate-500">Notes</span>
-        <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Optional" data-notes />
+        <input type="text" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5" placeholder="Optional" data-notes/>
       </label>
       <div class="flex items-center justify-end gap-2">
         <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-design-btn>Design</button>
         <button class="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-xs" data-zwo>ZWO</button>
+        <button class="px-2.5 py-1.5 rounded-lg border border-rose-300 text-xs text-rose-500" data-del>Del</button>
       </div>
 
       <!-- DESIGN PANEL -->
-      <div class="sm:col-span-8 col-span-1 hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 mt-2" data-design-panel>
-        <div class="text-xs text-slate-500 mb-2">Workout design (saved to plan JSON for ZWO generation)</div>
+      <div class="sm:col-span-9 col-span-1 hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 mt-2" data-design-panel>
+        <div class="text-xs text-slate-500 mb-2">Workout design (saved into plan JSON for ZWO generation)</div>
         <div class="grid grid-cols-2 md:grid-cols-6 gap-2">
           <label><span class="block text-[11px] text-slate-500">FTP (W)</span><input type="number" min="50" max="600" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-ftp></label>
           <label><span class="block text-[11px] text-slate-500">Sets</span><input type="number" min="1" max="20" step="1" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5" data-d-sets></label>
@@ -257,499 +255,371 @@
   </template>
 
   <script>
-  // --- Utilities ---
-  const $ = sel => document.querySelector(sel);
-  function fmtHMS(sec) { sec = Math.max(0, Math.round(sec)); const h = Math.floor(sec / 3600); const m = Math.floor((sec % 3600) / 60); return `${h}h ${String(m).padStart(2,'0')}m`; }
-  function parseHHMM(str) { if (!str) return 0; const [h,m] = (str||"").split(":").map(x => parseInt(x||"0",10)); if (Number.isNaN(h) || Number.isNaN(m)) return 0; return h*3600 + m*60; }
-  function mondayOf(date) { const d = new Date(date); const day = d.getDay(); const diff = (day === 0 ? -6 : 1 - day); d.setDate(d.getDate() + diff); d.setHours(0,0,0,0); return d; }
-  function addDays(date, n){ const d=new Date(date); d.setDate(d.getDate()+n); return d; }
-  function toISODate(d){ return d.toISOString().slice(0,10); }
-  function hhmmFromSec(s){ s = Math.max(0, Math.round(s)); const h = Math.floor(s/3600); const m = Math.floor((s%3600)/60); return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
-  function numOrNull(x){ const v = Number(x); return Number.isFinite(v) ? v : null; }
-  function defaultTargetPctByName(name){
-    if (/sweet\s*spot/i.test(name||"")) return 0.88;
-    if (/threshold/i.test(name||"")) return 0.95;
-    if (/vo2/i.test(name||"")) return 1.20;
-    if (/anaerobic|sprint/i.test(name||"")) return 1.50;
-    return 0.90;
-  }
+  // =============== Utilities ===============
+  const $ = s => document.querySelector(s);
   const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  function fmtHMS(sec){ sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return `${h}h ${String(m).padStart(2,'0')}m`; }
+  function parseHHMM(v){ if(!v) return 0; const [h,m]=(v||'').split(':').map(x=>parseInt(x||'0',10)); if(Number.isNaN(h)||Number.isNaN(m)) return 0; return h*3600+m*60; }
+  function mondayOf(date){ const d=new Date(date); const gd=d.getDay(); const diff=(gd===0?-6:1-gd); d.setDate(d.getDate()+diff); d.setHours(0,0,0,0); return d; }
+  function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+  function toISODate(d){ return d.toISOString().slice(0,10); }
+  function hhmmFromSec(s){ s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}
+  function numOrNull(x){ const v=Number(x); return Number.isFinite(v)?v:null; }
+  function defaultTargetPctByName(n){ if(/sweet\s*spot/i.test(n||""))return 0.88; if(/threshold/i.test(n||""))return 0.95; if(/vo2/i.test(n||""))return 1.20; if(/anaerobic|sprint/i.test(n||""))return 1.5; return 0.9; }
+  function safeFilename(name){ return (name||'file').replace(/[^\w\-.]+/g,'_').slice(0,120); }
+  function base64EncodeUTF8(str){ return btoa(unescape(encodeURIComponent(str))); }
+  function encodePathPreserveSlashes(p){ return p.split('/').map(encodeURIComponent).join('/'); }
 
-  // --- State ---
-  const state = { weekStart: null, tz: 'America/Los_Angeles', athleteId: 0, days: {} };
+  // =============== State ===============
+  const state = { weekStart:null, tz:'America/Los_Angeles', athleteId:0, days:{} };
   function storageKey(){ return `planner:${state.weekStart}`; }
-  function save(){ if (!state.weekStart) return; localStorage.setItem(storageKey(), JSON.stringify(state)); }
-  function load(weekStart){ const raw = localStorage.getItem(`planner:${weekStart}`); if (!raw) return null; try { return JSON.parse(raw); } catch { return null; } }
+  function save(){ if(!state.weekStart) return; localStorage.setItem(storageKey(), JSON.stringify(state)); }
+  function load(week){ const raw=localStorage.getItem(`planner:${week}`); try{ return raw?JSON.parse(raw):null }catch{return null}
 
-  // --- Templates ---
+  }
+
+  // =============== Templates data ===============
   const TEMPLATES = {
     "Base": {
-      "Build": {
-        "Base-1 (endurance focus)": { desc: "Mostly Z2 endurance with light tempo. Long ride Sat.", days: {
-          0: [{name:"Rest or 45' Recovery", type:"Ride", indoor:false, duration_sec:2700, tss:20, notes:"Optional spin"}],
-          1: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}],
-          2: [{name:"Tempo 2x20' @85%", type:"Virtual Ride", indoor:true, duration_sec:4800, tss:70}],
-          3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:40}],
-          4: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}],
-          5: [{name:"Long Endurance Z2 - 3h", type:"Ride", indoor:false, duration_sec:10800, tss:135}],
-          6: [{name:"Endurance Z2 - 2h", type:"Ride", indoor:false, duration_sec:7200, tss:90}]
-        }}
-      },
-      "Recovery": {
-        "Recovery-Base": { desc: "Reduced volume, no intensity.", days: {
-          0: [], 1: [{name:"Recovery Spin - 45m", type:"Virtual Ride", indoor:true, duration_sec:2700, tss:20}], 2: [],
-          3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}],
-          4: [], 5: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}], 6: []
-        }}
-      }
+      "Build": {"Base-1 (endurance focus)":{
+        desc:"Mostly Z2 endurance with light tempo. Long ride Sat.",
+        days:{
+          0:[{name:"Rest or 45' Recovery",type:"Ride",indoor:false,duration_sec:2700,tss:20,notes:"Optional spin"}],
+          1:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
+          2:[{name:"Tempo 2x20' @85%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:70}],
+          3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
+          4:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
+          5:[{name:"Long Endurance Z2 - 3h",type:"Ride",indoor:false,duration_sec:10800,tss:135}],
+          6:[{name:"Endurance Z2 - 2h",type:"Ride",indoor:false,duration_sec:7200,tss:90}]
+        }}},
+      "Recovery":{"Recovery-Base":{
+        desc:"Reduced volume, no intensity.",
+        days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
+              3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:35}],
+              4:[],5:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],6:[]}}}
     },
-    "Build": {
-      "Build": {
-        "Threshold-1": { desc: "Threshold focus: 3x12' and 4x8'.", days: {
-          0: [],
-          1: [{name:"Threshold 3x12' @95%", type:"Virtual Ride", indoor:true, duration_sec:5400, tss:80}],
-          2: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:40}],
-          3: [{name:"Threshold 4x8' @100%", type:"Virtual Ride", indoor:true, duration_sec:4800, tss:80}],
-          4: [],
-          5: [{name:"Sweet Spot 3x20' @88%", type:"Ride", indoor:false, duration_sec:7200, tss:110}],
-          6: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}]
-        }}
-      },
-      "Recovery": {
-        "Recovery-Build": { desc: "Keep legs spinning; minimal intensity.", days: {
-          0: [], 1: [{name:"Recovery Spin - 45m", type:"Virtual Ride", indoor:true, duration_sec:2700, tss:20}], 2: [],
-          3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}],
-          4: [], 5: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:55}], 6: []
-        }}
-      }
+    "Build":{
+      "Build":{"Threshold-1":{
+        desc:"Threshold focus: 3x12' and 4x8'.",
+        days:{
+          0:[],1:[{name:"Threshold 3x12' @95%",type:"Virtual Ride",indoor:true,duration_sec:5400,tss:80}],
+          2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
+          3:[{name:"Threshold 4x8' @100%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:80}],
+          4:[],5:[{name:"Sweet Spot 3x20' @88%",type:"Ride",indoor:false,duration_sec:7200,tss:110}],
+          6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}} },
+      "Recovery":{"Recovery-Build":{
+        desc:"Keep legs spinning; minimal intensity.",
+        days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
+              3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:35}],
+              4:[],5:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:55}],6:[]}}}
     },
-    "Specialty": {
-      "Build": {
-        "VO2/Anaerobic-1": { desc: "VO2Max + Anaerobic focus.", days: {
-          0: [],
-          1: [{name:"VO2Max 5x3' @120%", type:"Virtual Ride", indoor:true, duration_sec:4200, tss:75}],
-          2: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:40}],
-          3: [{name:"VO2Max 6x2' @125%", type:"Virtual Ride", indoor:true, duration_sec:3600, tss:70}],
-          4: [],
-          5: [{name:"Anaerobic 8x1' @150%", type:"Virtual Ride", indoor:true, duration_sec:3600, tss:65}],
-          6: [{name:"Endurance Z2 - 90m", type:"Ride", indoor:false, duration_sec:5400, tss:60}]
-        }}
-      },
-      "Recovery": {
-        "Recovery-Specialty": { desc: "Strip intensity, keep short endurance.", days: {
-          0: [], 1: [{name:"Recovery Spin - 45m", type:"Virtual Ride", indoor:true, duration_sec:2700, tss:20}], 2: [],
-          3: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}],
-          4: [], 5: [{name:"Endurance Z2 - 60m", type:"Ride", indoor:false, duration_sec:3600, tss:35}], 6: []
-        }}
-      }
+    "Specialty":{
+      "Build":{"VO2/Anaerobic-1":{
+        desc:"VO2Max + Anaerobic focus.",
+        days:{
+          0:[],1:[{name:"VO2Max 5x3' @120%",type:"Virtual Ride",indoor:true,duration_sec:4200,tss:75}],
+          2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
+          3:[{name:"VO2Max 6x2' @125%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:70}],
+          4:[],5:[{name:"Anaerobic 8x1' @150%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:65}],
+          6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}} ,
+      "Recovery":{"Recovery-Specialty":{
+        desc:"Strip intensity, keep short endurance.",
+        days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
+              3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:35}],
+              4:[],5:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:35}],6:[]}}}
     }
   };
+
   function updateTemplateList(){
-    const phase = $('#phase').value, focus = $('#focus').value;
-    const sel = $('#templateKey'), desc = $('#templateDesc');
-    const group = (TEMPLATES[phase] || {})[focus] || {};
-    sel.innerHTML = '';
-    for (const key of Object.keys(group)) {
-      const opt = document.createElement('option'); opt.value = key; opt.textContent = key; sel.appendChild(opt);
-    }
-    const first = sel.value || Object.keys(group)[0] || '';
-    desc.textContent = first ? group[first].desc || '' : 'No templates found for this phase/focus.';
+    const phase=$('#phase').value, focus=$('#focus').value;
+    const group=(TEMPLATES[phase]||{})[focus]||{};
+    const sel=$('#templateKey'), desc=$('#templateDesc');
+    sel.innerHTML='';
+    Object.keys(group).forEach(k=>{
+      const o=document.createElement('option'); o.value=k; o.textContent=k; sel.appendChild(o);
+    });
+    const key=sel.value||Object.keys(group)[0]||'';
+    desc.textContent=key ? group[key].desc||'' : 'No templates for this selection.';
   }
+
   function applyTemplate(){
-    const phase = $('#phase').value, focus = $('#focus').value, key = $('#templateKey').value;
-    const tpl = (((TEMPLATES[phase]||{})[focus]||{})[key]);
-    if (!tpl) { alert('No template for selection'); return; }
-    if (!state.weekStart) { alert('Pick a week start first.'); return; }
-    const base = new Date(state.weekStart);
-    state.days = {};
-    for (const [dIdxStr, list] of Object.entries(tpl.days)){
-      const dIdx = parseInt(dIdxStr,10);
-      const iso = toISODate(addDays(base, dIdx));
-      state.days[iso] = (list || []).map(w => ({...w}));
+    const phase=$('#phase').value, focus=$('#focus').value, key=$('#templateKey').value;
+    const tpl=(((TEMPLATES[phase]||{})[focus]||{})[key]);
+    if(!tpl){ alert('No template for selection'); return; }
+    if(!state.weekStart){ alert('Pick a week start first.'); return; }
+    const base=new Date(state.weekStart);
+    state.days={};
+    for(const [idx,lst] of Object.entries(tpl.days)){
+      const iso=toISODate(addDays(base,parseInt(idx,10)));
+      state.days[iso]=(lst||[]).map(w=>({...w}));
     }
     save(); renderWeek();
   }
 
-  // Use your existing ghGetCfg, ghListPlans, ghGetJsonFile.
+  // =============== GitHub helpers ===============
+  const GH_STORE_KEY="planner:ghcfg";
+  function ghLoad(){ try{return JSON.parse(localStorage.getItem(GH_STORE_KEY)||"{}")}catch{return{}} }
+  function ghSave(cfg){ localStorage.setItem(GH_STORE_KEY, JSON.stringify(cfg||{})); }
+  function ghGetCfg(){ const cfg=ghLoad(); return {
+    token: $('#ghToken')?.value || cfg.token || "",
+    owner: $('#ghOwner')?.value || cfg.owner || "tomeese",
+    repo:  $('#ghRepo')?.value  || cfg.repo  || "intervals-icu-bulk-uploader-planned-workouts",
+    branch: $('#ghBranch')?.value || cfg.branch || "main",
+    prefix: $('#ghPrefix')?.value || cfg.prefix || "plans"
+  }; }
+  function downloadText(fn,txt,mime){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:mime||'text/plain'})); a.download=fn; a.click(); URL.revokeObjectURL(a.href); }
 
-  // Apply a plan JSON object to the editor state
-  function applyPlanData(data){
-    if (!data || !data.week_start || !Array.isArray(data.workouts)) {
-      throw new Error('Invalid plan JSON: missing week_start or workouts[]');
-    }
-    state.weekStart = data.week_start; document.getElementById('weekStart').value = state.weekStart;
-    state.tz = data.tz || state.tz;    document.getElementById('tz').value = state.tz;
-    state.athleteId = (data.athlete_id ?? state.athleteId);
-    document.getElementById('athleteId').value = state.athleteId;
-
-    state.days = {};
-    for (const w of data.workouts){
-      (state.days[w.date] ||= []).push({
-        name: w.name || '',
-        type: w.type || 'Ride',
-        indoor: !!w.indoor,
-        duration_sec: Number(w.duration_sec || 0),
-        tss: Number(w.tss || 0),
-        notes: w.notes || '',
-        design: (w.design && typeof w.design === 'object') ? w.design : undefined
-      });
-    }
-    save(); renderWeek();
+  async function githubPutFile(cfg, path, text, message){
+    const api=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(path)}`;
+    const headers={Authorization:`token ${cfg.token}`,Accept:"application/vnd.github+json","Content-Type":"application/json"};
+    // fetch existing sha
+    let sha; const getRes=await fetch(`${api}?ref=${encodeURIComponent(cfg.branch)}`,{headers});
+    if(getRes.status===200) sha=(await getRes.json()).sha;
+    else if(getRes.status!==404) throw new Error(`GET ${getRes.status}: ${await getRes.text()}`);
+    const body={message:message||`save ${path}`,content:base64EncodeUTF8(text),branch:cfg.branch,sha,
+      committer:{name:"planner-bot",email:"planner@users.noreply.github.com"},
+      author:{name:"planner-bot",email:"planner@users.noreply.github.com"}};
+    const putRes=await fetch(api,{method:"PUT",headers,body:JSON.stringify(body)});
+    const txt=await putRes.text(); if(!putRes.ok) throw new Error(`PUT ${putRes.status}: ${txt.slice(0,400)}`); return JSON.parse(txt);
   }
 
-  async function refreshPlanList(){
-    const msg = document.getElementById('loadPlanMsg');
-    try {
-      const cfg = ghGetCfg();
-      if (!cfg.token) { msg.textContent = 'Add a GitHub token above first.'; return; }
-      const prefix = (cfg.prefix || 'plans').replace(/^\/+|\/+$/g,'');
-      const items = await ghListPlans(cfg, prefix);
-
-      // Newest first by filename (plan-YYYY-MM-DD.json sorts lexicographically)
-      items.sort((a,b) => b.name.localeCompare(a.name));
-
-      const sel = document.getElementById('loadPlanSelect');
-      sel.innerHTML = '<option value="">— select plan —</option>';
-      for (const it of items) {
-        const label = it.name.replace(/^plan-/, '').replace(/\.json$/,''); // YYYY-MM-DD
-        const opt = document.createElement('option');
-        opt.value = it.path;          // e.g., plans/plan-2025-09-01.json
-        opt.textContent = label;      // show date
-        sel.appendChild(opt);
-      }
-      msg.textContent = `${items.length} plan(s) found in ${prefix}/`;
-    } catch (e) {
-      document.getElementById('loadPlanMsg').textContent = `Error: ${e.message || e}`;
-    }
+  async function ghDispatchWorkflow(cfg, workflowFile, inputs){
+    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/workflows/${encodeURIComponent(workflowFile)}/dispatches`;
+    const res=await fetch(url,{method:"POST",headers:{Authorization:`token ${cfg.token}`,Accept:"application/vnd.github+json"},
+      body:JSON.stringify({ref:cfg.branch,inputs:inputs||{}})});
+    if(!res.ok) throw new Error(`dispatch ${res.status}: ${await res.text()}`);
+    return true;
   }
 
-  async function loadSelectedPlan(){
-    const sel = document.getElementById('loadPlanSelect');
-    const path = sel.value;
-    if (!path) { alert('Pick a plan first.'); return; }
-    try {
-      const cfg = ghGetCfg();
-      const data = await ghGetJsonFile(cfg, path);
-      applyPlanData(data);
-
-      // Update "Open on GitHub" link
-      const link = document.getElementById('openPlanLink');
-      link.href = `https://github.com/${cfg.owner}/${cfg.repo}/blob/${encodeURIComponent(cfg.branch)}/${path}`;
-      document.getElementById('loadPlanMsg').textContent = `Loaded ${path}`;
-    } catch (e) {
-      alert(`Load failed: ${e.message || e}`);
-    }
+  async function ghListPlans(cfg, prefix="plans"){
+    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(prefix)}`;
+    const res=await fetch(url,{headers:{Authorization:`token ${cfg.token}`}});
+    if(!res.ok) throw new Error(`list ${res.status}: ${await res.text()}`);
+    const items=await res.json();
+    return (Array.isArray(items)?items:[]).filter(it=>it.type==="file" && /^plan-\d{4}-\d{2}-\d{2}\.json$/.test(it.name))
+      .map(it=>({name:it.name,path:it.path}));
+  }
+  async function ghGetJsonFile(cfg,path){
+    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(path)}?ref=${encodeURIComponent(cfg.branch)}`;
+    const res=await fetch(url,{headers:{Authorization:`token ${cfg.token}`}});
+    if(!res.ok) throw new Error(`get ${res.status}: ${await res.text()}`);
+    const obj=await res.json(); const txt=atob((obj.content||"").replace(/\n/g,'')); return JSON.parse(txt);
   }
 
-  // Hook up buttons
-  document.getElementById('refreshPlansBtn').addEventListener('click', refreshPlanList);
-  document.getElementById('loadPlanBtn').addEventListener('click', loadSelectedPlan);
-
-  // Auto-refresh if a token is present
-  (function(){
-    try { if (ghGetCfg().token) refreshPlanList(); } catch {}
-  })();
-
-
-  // --- Rendering week & rows ---
+  // =============== Planner render ===============
   function renderWeek(){
-    const grid = document.getElementById('daysGrid');
-    grid.innerHTML = '';
-    if (!state.weekStart) return;
-    const weekDate = new Date(state.weekStart);
-    for (let i=0;i<7;i++){
-      const d = addDays(weekDate,i);
-      const iso = toISODate(d);
-      const card = document.importNode(document.getElementById('dayCardTpl').content, true);
-      card.querySelector('[data-day-name]').textContent = dayNames[i];
-      card.querySelector('[data-day-date]').textContent = iso;
-      const rows = card.querySelector('[data-rows]');
-      const list = state.days[iso] || [];
-      list.forEach(w => rows.appendChild(renderRow(iso, w)));
-      card.querySelector('[data-add]').addEventListener('click', () => {
-        const w = { name:'', type:'Ride', indoor:false, duration_sec:3600, tss:50, notes:'' };
+    const grid=$('#daysGrid'); grid.innerHTML='';
+    if(!state.weekStart) return;
+    const base=new Date(state.weekStart);
+    for(let i=0;i<7;i++){
+      const d=addDays(base,i), iso=toISODate(d);
+      const card=document.importNode($('#dayCardTpl').content,true);
+      card.querySelector('[data-day-name]').textContent=dayNames[i];
+      card.querySelector('[data-day-date]').textContent=iso;
+      const rows=card.querySelector('[data-rows]');
+      (state.days[iso]||[]).forEach(w=>rows.appendChild(renderRow(iso,w)));
+      card.querySelector('[data-add]').addEventListener('click',()=>{
+        const w={name:'',type:'Ride',indoor:false,duration_sec:3600,tss:50,notes:''};
         (state.days[iso] ||= []).push(w);
-        rows.appendChild(renderRow(iso, w));
+        rows.appendChild(renderRow(iso,w));
         totals(); save();
       });
-      card.querySelector('[data-clear]').addEventListener('click', () => {
-        state.days[iso] = [];
-        rows.innerHTML = '';
-        totals(); save();
+      card.querySelector('[data-clear]').addEventListener('click',()=>{
+        state.days[iso]=[]; rows.innerHTML=''; totals(); save();
       });
-      card.querySelector('[data-copy-prev]').addEventListener('click', () => {
-        if (i === 0) return;
-        const prevIso = toISODate(addDays(weekDate,i-1));
-        const from = (state.days[prevIso] || []).map(w => ({...w}));
-        state.days[iso] = from;
-        rows.innerHTML = '';
-        from.forEach(w => rows.appendChild(renderRow(iso, w)));
-        totals(); save();
+      card.querySelector('[data-copy-prev]').addEventListener('click',()=>{
+        if(i===0) return;
+        const prev=toISODate(addDays(base,i-1));
+        const cp=(state.days[prev]||[]).map(w=>({...w}));
+        state.days[iso]=cp; rows.innerHTML=''; cp.forEach(w=>rows.appendChild(renderRow(iso,w))); totals(); save();
       });
       grid.appendChild(card);
     }
     totals();
   }
 
-  function renderRow(iso, w){
-    const frag = document.importNode(document.getElementById('rowTpl').content, true);
-    const el = frag.firstElementChild || frag.querySelector('div');
-    const $name = el.querySelector('[data-name]');
-    const $type = el.querySelector('[data-type]');
-    const $indoor = el.querySelector('[data-indoor]');
-    const $dur = el.querySelector('[data-duration]');
-    const $tss = el.querySelector('[data-tss]');
-    const $notes = el.querySelector('[data-notes]');
-    const $zwo = el.querySelector('[data-zwo]');
-    const $designBtn = el.querySelector('[data-design-btn]');
-    const $panel = el.querySelector('[data-design-panel]');
-    const $d_ftp = el.querySelector('[data-d-ftp]');
-    const $d_sets = el.querySelector('[data-d-sets]');
-    const $d_work = el.querySelector('[data-d-work]');
-    const $d_rec = el.querySelector('[data-d-rec]');
-    const $d_target = el.querySelector('[data-d-target]');
-    const $d_ou = el.querySelector('[data-d-ou]');
-    const $d_under = el.querySelector('[data-d-under]');
-    const $d_over = el.querySelector('[data-d-over]');
-    const $d_warm = el.querySelector('[data-d-warm]');
-    const $d_cool = el.querySelector('[data-d-cool]');
-    const $d_cad = el.querySelector('[data-d-cad]');
-    const $d_erg = el.querySelector('[data-d-erg]');
+  function renderRow(iso,w){
+    const frag=document.importNode($('#rowTpl').content,true);
+    const el=frag.firstElementChild;
+    const $name=el.querySelector('[data-name]'), $type=el.querySelector('[data-type]'), $ind=el.querySelector('[data-indoor]');
+    const $dur=el.querySelector('[data-duration]'), $tss=el.querySelector('[data-tss]'), $notes=el.querySelector('[data-notes]');
+    const $zwo=el.querySelector('[data-zwo]'), $del=el.querySelector('[data-del]');
+    const $designBtn=el.querySelector('[data-design-btn]'), $panel=el.querySelector('[data-design-panel]');
+    const $d_ftp=el.querySelector('[data-d-ftp]'), $d_sets=el.querySelector('[data-d-sets]'), $d_work=el.querySelector('[data-d-work]');
+    const $d_rec=el.querySelector('[data-d-rec]'), $d_target=el.querySelector('[data-d-target]'), $d_ou=el.querySelector('[data-d-ou]');
+    const $d_under=el.querySelector('[data-d-under]'), $d_over=el.querySelector('[data-d-over]');
+    const $d_warm=el.querySelector('[data-d-warm]'), $d_cool=el.querySelector('[data-d-cool]'), $d_cad=el.querySelector('[data-d-cad]'), $d_erg=el.querySelector('[data-d-erg]');
 
-    $name.value = w.name || '';
-    $type.value = w.type || 'Ride';
-    $indoor.checked = !!w.indoor;
-    $dur.value = hhmmFromSec(w.duration_sec || 0);
-    $tss.value = Number.isFinite(w.tss) ? w.tss : 0;
-    $notes.value = w.notes || '';
+    $name.value=w.name||''; $type.value=w.type||'Ride'; $ind.checked=!!w.indoor;
+    $dur.value=hhmmFromSec(w.duration_sec||0); $tss.value=Number.isFinite(w.tss)?w.tss:0; $notes.value=w.notes||'';
+    $name.addEventListener('input',()=>{w.name=$name.value; save();});
+    $type.addEventListener('change',()=>{w.type=$type.value; save(); totals();});
+    $ind.addEventListener('change',()=>{w.indoor=$ind.checked; save();});
+    $dur.addEventListener('change',()=>{w.duration_sec=parseHHMM($dur.value); save(); totals();});
+    $tss.addEventListener('change',()=>{w.tss=Math.max(0,parseFloat($tss.value||'0')); save(); totals();});
+    $notes.addEventListener('input',()=>{w.notes=$notes.value; save();});
 
-    $name.addEventListener('input', () => { w.name = $name.value; save(); });
-    $type.addEventListener('change', () => { w.type = $type.value; save(); totals(); });
-    $indoor.addEventListener('change', () => { w.indoor = $indoor.checked; save(); });
-    $dur.addEventListener('change', () => { w.duration_sec = parseHHMM($dur.value); save(); totals(); });
-    $tss.addEventListener('change', () => { w.tss = Math.max(0, parseFloat($tss.value||'0')); save(); totals(); });
-    $notes.addEventListener('input', () => { w.notes = $notes.value; save(); });
+    // Prefill design
+    const d=w.design||{};
+    $d_ftp.value=d.ftp_watts??''; $d_sets.value=d.sets??3; $d_work.value=d.work_sec??720; $d_rec.value=d.rec_sec??300;
+    $d_target.value=d.target_pct ?? defaultTargetPctByName(w.name||'');
+    $d_ou.checked=!!d.overunder; $d_under.value=d.under_pct??''; $d_over.value=d.over_pct??'';
+    $d_warm.value=d.warmup_sec??600; $d_cool.value=d.cooldown_sec??600; $d_cad.value=d.cadence??''; $d_erg.checked=(d.erg??true);
 
-    // Prefill design fields from existing or sensible defaults
-    const d = w.design || {};
-    $d_ftp.value = d.ftp_watts ?? '';
-    $d_sets.value = d.sets ?? 3;
-    $d_work.value = d.work_sec ?? 720;
-    $d_rec.value = d.rec_sec ?? 300;
-    $d_target.value = d.target_pct ?? defaultTargetPctByName(w.name||'');
-    $d_ou.checked = !!d.overunder;
-    $d_under.value = d.under_pct ?? '';
-    $d_over.value = d.over_pct ?? '';
-    $d_warm.value = d.warmup_sec ?? 600;
-    $d_cool.value = d.cooldown_sec ?? 600;
-    $d_cad.value = d.cadence ?? '';
-    $d_erg.checked = (d.erg ?? true);
-
-    function togglePanel(show){ $panel.classList.toggle('hidden', !show); }
-    $designBtn.addEventListener('click', () => {
-      if (!$indoor.checked && !/endurance\s*z?2/i.test($name.value||"")) {
-        if (confirm("Mark as Indoor to design ERG intervals?")) { $indoor.checked = true; w.indoor = true; save(); }
+    const toggle=show => $panel.classList.toggle('hidden', !show);
+    $designBtn.addEventListener('click',()=>{
+      if(!$ind.checked && !/endurance\s*z?2/i.test($name.value||"")){
+        if(confirm("Mark as Indoor to design ERG intervals?")){ $ind.checked=true; w.indoor=true; save(); }
       }
-      togglePanel($panel.classList.contains('hidden'));
+      toggle($panel.classList.contains('hidden'));
     });
-    el.querySelector('[data-design-cancel]').addEventListener('click', () => togglePanel(false));
-    el.querySelector('[data-design-save]').addEventListener('click', () => {
-      const obj = {
-        kind: (/sweet\s*spot/i.test($name.value||"")) ? "sweetspot" :
-              (/threshold/i.test($name.value||"")) ? "threshold" :
-              (/vo2/i.test($name.value||"")) ? "vo2" :
-              (/anaerobic|sprint/i.test($name.value||"")) ? "anaerobic" : "custom",
-        ftp_watts: numOrNull($d_ftp.value),
-        sets: numOrNull($d_sets.value) ?? 3,
-        work_sec: numOrNull($d_work.value) ?? 720,
-        rec_sec: numOrNull($d_rec.value) ?? 300,
-        target_pct: numOrNull($d_target.value) ?? defaultTargetPctByName($name.value||""),
-        overunder: $d_ou.checked,
-        under_pct: numOrNull($d_under.value) || undefined,
-        over_pct: numOrNull($d_over.value) || undefined,
-        warmup_sec: numOrNull($d_warm.value) ?? 600,
-        cooldown_sec: numOrNull($d_cool.value) ?? 600,
-        cadence: numOrNull($d_cad.value) || undefined,
-        erg: !!$d_erg.checked
+    el.querySelector('[data-design-cancel]').addEventListener('click',()=>toggle(false));
+    el.querySelector('[data-design-save]').addEventListener('click',()=>{
+      const obj={
+        kind:(/sweet\s*spot/i.test($name.value||""))?"sweetspot":(/threshold/i.test($name.value||""))?"threshold":(/vo2/i.test($name.value||""))?"vo2":(/anaerobic|sprint/i.test($name.value||""))?"anaerobic":"custom",
+        ftp_watts:numOrNull($d_ftp.value),
+        sets:numOrNull($d_sets.value)??3,
+        work_sec:numOrNull($d_work.value)??720,
+        rec_sec:numOrNull($d_rec.value)??300,
+        target_pct:numOrNull($d_target.value)??defaultTargetPctByName($name.value||""),
+        overunder:$d_ou.checked,
+        under_pct:numOrNull($d_under.value)||undefined,
+        over_pct:numOrNull($d_over.value)||undefined,
+        warmup_sec:numOrNull($d_warm.value)??600,
+        cooldown_sec:numOrNull($d_cool.value)??600,
+        cadence:numOrNull($d_cad.value)||undefined,
+        erg:!!$d_erg.checked
       };
-      for (const k of Object.keys(obj)) if (obj[k] === null || obj[k] === undefined) delete obj[k];
-      w.design = obj;
-      save();
-      togglePanel(false);
+      for(const k of Object.keys(obj)) if(obj[k]===null || obj[k]===undefined) delete obj[k];
+      w.design=obj; save(); toggle(false);
     });
 
-    $zwo.addEventListener('click', async () => {
-      try {
-        if (!w.indoor) { if (!confirm("This workout isn't marked Indoor. Generate ZWO anyway?")) return; }
-        if (/endurance\s*z?2/i.test(w.name||"")) { alert("Skipping Z2 endurance for ZWO (non-ERG recommended)."); return; }
-        const xml = makeZwoXml(w);
-        const safe = safeFilename(`${iso} - ${w.name||'Workout'}`).replace(/\.zwo$/i,'') + '.zwo';
-        const cfg = ghGetCfg();
-        if (cfg.token && confirm("Upload .zwo to your repo? (Cancel = download only)")) {
-          const path = `zwo/${safe}`;
-          await githubPutFile(cfg, path, xml, `feat(zwo): ${safe}`);
+    $zwo.addEventListener('click',async()=>{
+      try{
+        if(!w.indoor){ if(!confirm("This workout isn’t marked Indoor. Generate ZWO anyway?")) return; }
+        if(/endurance\s*z?2/i.test(w.name||"")){ alert("Skipping Z2 endurance for ZWO (non-ERG recommended)."); return; }
+        const xml=makeZwoXml(w);
+        const safe=safeFilename(`${iso} - ${w.name||'Workout'}`).replace(/\.zwo$/i,'')+'.zwo';
+        const cfg=ghGetCfg();
+        if(cfg.token && confirm("Upload .zwo to your repo? (Cancel = download only)")){
+          const path=`zwo/${safe}`;
+          await githubPutFile(cfg,path,xml,`feat(zwo): ${safe}`);
           alert(`Uploaded ✓ ${path}`);
-        } else {
-          downloadText(safe, xml, 'application/xml');
+        }else{
+          downloadText(safe,xml,'application/xml');
         }
-      } catch (e) {
-        alert(`ZWO generation failed: ${e.message || e}`);
-      }
+      }catch(e){ alert(`ZWO generation failed: ${e.message||e}`); }
+    });
+
+    $del.addEventListener('click',()=>{
+      const list=state.days[iso]||[];
+      const idx=list.indexOf(w);
+      if(idx>=0){ list.splice(idx,1); el.remove(); totals(); save(); }
     });
 
     return frag;
   }
 
-  // --- Totals ---
   function totals(){
-    let sec = 0, tss = 0;
-    const byType = new Map();
-    for (const list of Object.values(state.days)){
-      for (const w of list){
-        sec += (w.duration_sec||0);
-        tss += (w.tss||0);
-        const k = (w.type||'Ride');
-        const cur = byType.get(k) || {sec:0,tss:0};
-        cur.sec += (w.duration_sec||0); cur.tss += (w.tss||0);
-        byType.set(k, cur);
+    let sec=0,tss=0; const byType=new Map();
+    for(const list of Object.values(state.days)){
+      for(const w of list){
+        sec+=(w.duration_sec||0); tss+=(w.tss||0);
+        const k=w.type||'Ride'; const cur=byType.get(k)||{sec:0,tss:0}; cur.sec+=(w.duration_sec||0); cur.tss+=(w.tss||0); byType.set(k,cur);
       }
     }
-    $('#totPlannedTime').textContent = fmtHMS(sec);
-    $('#totPlannedTss').textContent = Math.round(tss);
-    if (byType.size === 0) { $('#totByType').textContent = '—'; return; }
-    $('#totByType').innerHTML = Array.from(byType.entries())
-      .map(([k,v]) => `<div><span class="font-medium">${k}</span>: ${fmtHMS(v.sec)}, TSS ${Math.round(v.tss)}</div>`)
-      .join('');
+    $('#totPlannedTime').textContent=fmtHMS(sec);
+    $('#totPlannedTss').textContent=Math.round(tss);
+    $('#totByType').innerHTML=byType.size?Array.from(byType.entries()).map(([k,v])=>`<div><span class="font-medium">${k}</span>: ${fmtHMS(v.sec)}, TSS ${Math.round(v.tss)}</div>`).join(''):'—';
   }
 
-  // --- Export / Import ---
+  // =============== Export / Import / Load ===============
   function buildPayload(){
-    const out = { version: 1, tz: state.tz, athlete_id: Number(state.athleteId||0), week_start: state.weekStart, workouts: [] };
-    for (const [date, list] of Object.entries(state.days)){
-      for (const w of list){
-        const wo = {
-          date, name: w.name||'', type: w.type||'Ride', indoor: !!w.indoor,
-          duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||''
-        };
-        if (w.design && typeof w.design === 'object' && Object.keys(w.design).length) wo.design = w.design;
+    const out={version:1,tz:state.tz,athlete_id:Number(state.athleteId||0),week_start:state.weekStart,workouts:[]};
+    for(const [date,list] of Object.entries(state.days)){
+      for(const w of list){
+        const wo={date,name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||''};
+        if(w.design && typeof w.design==='object' && Object.keys(w.design).length) wo.design=w.design;
         out.workouts.push(wo);
       }
-    }
-    return out;
+    } return out;
   }
-  function exportJson(){
-    if (!state.weekStart) { alert('Choose a week start first.'); return; }
-    const blob = new Blob([JSON.stringify(buildPayload(), null, 2)], {type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `plan-${state.weekStart}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
+  function exportJson(){ if(!state.weekStart){ alert('Choose a week start first.'); return; } downloadText(`plan-${state.weekStart}.json`, JSON.stringify(buildPayload(),null,2), 'application/json'); }
   async function importJson(file){
-    if (!file) return;
-    const text = await file.text();
-    let data; try { data = JSON.parse(text); } catch(e){ alert('Invalid JSON'); return; }
-    if (!data || !data.week_start || !Array.isArray(data.workouts)) { alert('Missing fields'); return; }
-    state.weekStart = data.week_start; $('#weekStart').value = state.weekStart;
-    state.tz = data.tz || state.tz; $('#tz').value = state.tz;
-    state.athleteId = data.athlete_id ?? state.athleteId; $('#athleteId').value = state.athleteId;
-    state.days = {};
-    for (const w of data.workouts){
-      (state.days[w.date] ||= []).push({
-        name: w.name||'', type: w.type||'Ride', indoor: !!w.indoor,
-        duration_sec: Number(w.duration_sec||0), tss: Number(w.tss||0), notes: w.notes||'',
-        design: (w.design && typeof w.design==='object') ? w.design : undefined
-      });
+    if(!file) return;
+    const text=await file.text(); let data; try{ data=JSON.parse(text); }catch{ alert('Invalid JSON'); return; }
+    if(!data || !data.week_start || !Array.isArray(data.workouts)){ alert('Missing fields'); return;}
+    state.weekStart=data.week_start; $('#weekStart').value=state.weekStart;
+    state.tz=data.tz||state.tz; $('#tz').value=state.tz;
+    state.athleteId=data.athlete_id ?? state.athleteId; $('#athleteId').value=state.athleteId;
+    state.days={};
+    for(const w of data.workouts){
+      (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined});
+    }
+    save(); renderWeek();
+  }
+  async function refreshPlanList(){
+    const msg=$('#loadPlanMsg');
+    try{
+      const cfg=ghGetCfg(); if(!cfg.token){ msg.textContent='Add a GitHub token above first.'; return; }
+      const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
+      const items=await ghListPlans(cfg,prefix); items.sort((a,b)=>b.name.localeCompare(a.name));
+      const sel=$('#loadPlanSelect'); sel.innerHTML='<option value="">— select plan —</option>';
+      for(const it of items){ const o=document.createElement('option'); o.value=it.path; o.textContent=it.name.replace(/^plan-/,'').replace(/\.json$/,''); sel.appendChild(o); }
+      msg.textContent=`${items.length} plan(s) found in ${prefix}/`;
+    }catch(e){ msg.textContent=`Error: ${e.message||e}`; }
+  }
+  async function loadSelectedPlan(){
+    const path=$('#loadPlanSelect').value; if(!path){ alert('Pick a plan first.'); return; }
+    try{
+      const cfg=ghGetCfg(); const data=await ghGetJsonFile(cfg,path); applyPlanData(data);
+      const link=$('#openPlanLink'); link.href=`https://github.com/${cfg.owner}/${cfg.repo}/blob/${encodeURIComponent(cfg.branch)}/${path}`;
+      $('#loadPlanMsg').textContent=`Loaded ${path}`;
+    }catch(e){ alert(`Load failed: ${e.message||e}`); }
+  }
+  function applyPlanData(data){
+    state.weekStart=data.week_start; $('#weekStart').value=state.weekStart;
+    state.tz=data.tz||state.tz; $('#tz').value=state.tz;
+    state.athleteId=(data.athlete_id ?? state.athleteId); $('#athleteId').value=state.athleteId;
+    state.days={};
+    for(const w of data.workouts){
+      (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined});
     }
     save(); renderWeek();
   }
 
-  // --- GitHub client (Pages-safe) ---
-  const GH_STORE_KEY = "planner:ghcfg";
-  function ghLoad(){ try { return JSON.parse(localStorage.getItem(GH_STORE_KEY)||"{}"); } catch { return {}; } }
-  function ghSave(cfg){ localStorage.setItem(GH_STORE_KEY, JSON.stringify(cfg || {})); }
-  function ghGetCfg(){
-    const cfg = ghLoad();
-    return {
-      token: $('#ghToken').value || cfg.token || "",
-      owner: $('#ghOwner').value || cfg.owner || "tomeese",
-      repo:  $('#ghRepo').value  || cfg.repo  || "intervals-icu-bulk-uploader-planned-workouts",
-      branch: $('#ghBranch').value || cfg.branch || "main",
-      prefix: $('#ghPrefix').value || cfg.prefix || "plans",
-    };
-  }
-  function encodePathPreserveSlashes(p){ return p.split('/').map(encodeURIComponent).join('/'); }
-  function base64EncodeUTF8(str){ return btoa(unescape(encodeURIComponent(str))); }
-  function downloadText(filename, text, mime){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:mime||'text/plain'})); a.download=filename; a.click(); URL.revokeObjectURL(a.href); }
-  function safeFilename(name){ return (name||'file').replace(/[^\w\-.]+/g,'_').slice(0,120); }
-
-  async function githubPutFile(cfg, path, text, message){
-    const api = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(path)}`;
-    const headers = { "Authorization": `token ${cfg.token}`, "Accept": "application/vnd.github+json", "Content-Type": "application/json" };
-    // get SHA if exists
-    let sha;
-    const getRes = await fetch(`${api}?ref=${encodeURIComponent(cfg.branch)}`, { headers });
-    if (getRes.status === 200) sha = (await getRes.json()).sha;
-    else if (getRes.status !== 404) throw new Error(`GET ${getRes.status}: ${await getRes.text()}`);
-    const body = { message: message || `save ${path}`, content: base64EncodeUTF8(text), branch: cfg.branch, sha,
-      committer: { name: "planner-bot", email: "planner@users.noreply.github.com" },
-      author: { name: "planner-bot", email: "planner@users.noreply.github.com" }
-    };
-    const putRes = await fetch(api, { method:"PUT", headers, body: JSON.stringify(body) });
-    const txt = await putRes.text();
-    if (!putRes.ok) throw new Error(`PUT ${putRes.status}: ${txt.slice(0,400)}`);
-    return JSON.parse(txt);
+  // =============== Upload to Intervals (workflow dispatch) ===============
+  async function saveThenUpload(){
+    if(!state.weekStart){ alert('Pick a week start first.'); return; }
+    const cfg=ghGetCfg(); if(!cfg.token){ alert('Add a GitHub token first (GitHub settings).'); return; }
+    // ensure plan file exists in repo first
+    const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
+    const path=`${prefix}/plan-${state.weekStart}.json`;
+    await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), `feat(planner): save ${path}`);
+    await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', {
+      plan_path: path,
+      tz: state.tz || 'America/Los_Angeles',
+      athlete_id: String(state.athleteId || 0),
+      default_start: '06:00',
+      dry_run: 'false'
+    });
+    alert('Upload started ✅ (check Actions for progress)');
   }
 
-  async function saveToRepo(){
-    if (!state.weekStart) { alert('Pick a week start first.'); return; }
-    const cfg = ghGetCfg();
-    if (!cfg.token) { alert("Add a GitHub fine-grained token first."); return; }
-    const prefix = (cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
-    const path = `${prefix}/plan-${state.weekStart}.json`;
-    await githubPutFile(cfg, path, JSON.stringify(buildPayload(), null, 2), `feat(planner): save ${path}`);
-    alert(`Saved ✓ ${path}`);
-  }
-
-  // --- ZWO generator (local preview). Uses design if present; simplifies OU locally.
+  // =============== ZWO XML local generator ===============
   function makeZwoXml(w){
-    const name = w.name || "Workout";
-    if (/endurance\s*z?2/i.test(name)) throw new Error('Endurance Z2 not converted to ZWO (ride free / non-ERG).');
-
-    const d = w.design || {};
-    const warmSec = d.warmup_sec ?? 600;
-    const coolSec = d.cooldown_sec ?? 600;
-
-    // Build steps
-    const steps = [];
-    steps.push(`<Warmup Duration="${warmSec}" PowerLow="0.5" PowerHigh="0.75"/>`);
-
-    const sets = Math.max(1, parseInt(d.sets ?? 3, 10));
-    const work = Math.max(15, parseInt(d.work_sec ?? 720, 10));
-    const rec  = Math.max(10, parseInt(d.rec_sec  ?? 300, 10));
-    const pct  = Number.isFinite(d.target_pct) ? d.target_pct : defaultTargetPctByName(name);
-    const cad  = (d.cadence && Number.isFinite(d.cadence)) ? ` Cadence="${Math.round(d.cadence)}"` : '';
-
-    if (d.overunder) {
-      // Local simplification: use steady target; Action will create real OU.
-      steps.push(`<!-- NOTE: Over/Under simplified locally; Action will generate OU blocks -->`);
-    }
-
-    if (d.erg === false) {
-      // Free-ride main block(s)
-      for (let i=0;i<sets;i++){
-        steps.push(`<FreeRide Duration="${work}" />`);
-        if (rec > 0 && (i !== sets-1)) steps.push(`<SteadyState Duration="${rec}" Power="0.55"${cad}/>`);
-      }
-    } else {
-      // ERG intervals
-      steps.push(`<IntervalsT Repeat="${sets}" OnDuration="${work}" OffDuration="${rec}" OnPower="${pct}" OffPower="0.55"${cad}/>`);
-    }
-
+    const name=w.name||"Workout";
+    if(/endurance\s*z?2/i.test(name)) throw new Error('Endurance Z2 not converted to ZWO (ride free / non-ERG).');
+    const d=w.design||{}; const warmSec=d.warmup_sec??600; const coolSec=d.cooldown_sec??600;
+    const steps=[]; steps.push(`<Warmup Duration="${warmSec}" PowerLow="0.5" PowerHigh="0.75"/>`);
+    const sets=Math.max(1,parseInt(d.sets??3,10)); const work=Math.max(15,parseInt(d.work_sec??720,10)); const rec=Math.max(10,parseInt(d.rec_sec??300,10));
+    const pct=Number.isFinite(d.target_pct)?d.target_pct:defaultTargetPctByName(name); const cad=(d.cadence&&Number.isFinite(d.cadence))?` Cadence="${Math.round(d.cadence)}"`:'';
+    if(d.overunder){ steps.push(`<!-- NOTE: Over/Under simplified locally; Action will generate OU blocks -->`); }
+    if(d.erg===false){ for(let i=0;i<sets;i++){ steps.push(`<FreeRide Duration="${work}" />`); if(rec>0 && i!==sets-1) steps.push(`<SteadyState Duration="${rec}" Power="0.55"${cad}/>`); } }
+    else { steps.push(`<IntervalsT Repeat="${sets}" OnDuration="${work}" OffDuration="${rec}" OnPower="${pct}" OffPower="0.55"${cad}/>`); }
     steps.push(`<Cooldown Duration="${coolSec}" PowerLow="0.5" PowerHigh="0.75"/>`);
-
     const esc=s=>String(s).replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;'}[c]));
+    const body = steps.join('\n    ');
     return `<?xml version="1.0" encoding="UTF-8"?>
 <workout_file>
   <author>planner</author>
@@ -758,123 +628,50 @@
   <sportType>bike</sportType>
   <tags></tags>
   <workout>
-    ${steps.join('\n    ')}
+    ${body}
   </workout>
 </workout_file>`;
   }
 
-  // --- Init / events ---
+  // =============== Events / Boot ===============
   function setWeekStartFromInput(){
-    const raw = $('#weekStart').value;
-    if (!raw) return;
-    const monday = mondayOf(raw);
-    const iso = toISODate(monday);
-    $('#weekStart').value = iso;
-    state.weekStart = iso;
-    const prev = load(iso);
-    if (prev) {
-      state.tz = prev.tz || state.tz; $('#tz').value = state.tz;
-      state.athleteId = prev.athleteId ?? state.athleteId; $('#athleteId').value = state.athleteId;
-      state.days = prev.days || {};
-    } else {
-      state.days = {};
-    }
+    const raw=$('#weekStart').value; if(!raw) return;
+    const monday=mondayOf(raw); const iso=toISODate(monday); $('#weekStart').value=iso; state.weekStart=iso;
+    const prev=load(iso);
+    if(prev){ state.tz=prev.tz||state.tz; $('#tz').value=state.tz; state.athleteId=prev.athleteId ?? state.athleteId; $('#athleteId').value=state.athleteId; state.days=prev.days||{}; }
+    else { state.days={}; }
     save(); renderWeek();
   }
 
-  document.getElementById('uploadIntervalsBtn').addEventListener('click', async () => {
-    try {
-      if (!state.weekStart) { alert('Pick a week start first.'); return; }
-      // ensure the plan JSON exists in repo
-      const cfg = ghGetCfg();
-      await githubPutFile(cfg, `${(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'')}/plan-${state.weekStart}.json`,
-                          JSON.stringify(buildPayload(), null, 2),
-                          `feat(planner): save plan-${state.weekStart}.json`);
-      // dispatch the uploader workflow
-      await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', {
-        plan_path: `${cfg.prefix || 'plans'}/plan-${state.weekStart}.json`,
-        tz: state.tz || 'America/Los_Angeles',
-        athlete_id: String(state.athleteId || 0),
-        default_start: '06:00',      // you can surface this as a UI field later
-        dry_run: 'false'             // flip to 'true' to preview in logs only
-      });
-      alert('Upload started ✅ (watch Actions for progress)');
-    } catch (e) {
-      alert(`Upload failed: ${e.message || e}`);
-    }
-  });
-
+  // hook up
   $('#weekStart').addEventListener('change', setWeekStartFromInput);
-  $('#tz').addEventListener('change', () => { state.tz = $('#tz').value; save(); });
-  $('#athleteId').addEventListener('change', () => { state.athleteId = Number($('#athleteId').value||0); save(); });
-  $('#newWeekBtn').addEventListener('click', () => {
-    if (!$('#weekStart').value) { alert('Pick a Monday to start.'); return; }
-    state.days = {}; save(); renderWeek();
-  });
+  $('#tz').addEventListener('change',()=>{ state.tz=$('#tz').value; save(); });
+  $('#athleteId').addEventListener('change',()=>{ state.athleteId=Number($('#athleteId').value||0); save(); });
+  $('#newWeekBtn').addEventListener('click',()=>{ if(!$('#weekStart').value){ alert('Pick a Monday to start.'); return; } state.days={}; save(); renderWeek(); });
   $('#exportBtn').addEventListener('click', exportJson);
-  $('#importFile').addEventListener('change', (e) => importJson(e.target.files[0]));
-  $('#saveRepoBtn').addEventListener('click', saveToRepo);
-  $('#saveGhCfg').addEventListener('click', () => {
-    ghSave({
-      token: $('#ghToken').value,
-      owner: $('#ghOwner').value,
-      repo:  $('#ghRepo').value,
-      branch: $('#ghBranch').value,
-      prefix: $('#ghPrefix').value
-    });
-    alert('GitHub settings saved locally.');
+  $('#importFile').addEventListener('change', e=>importJson(e.target.files[0]));
+  $('#saveRepoBtn').addEventListener('click', async ()=>{
+    if(!state.weekStart){ alert('Pick a week start first.'); return; }
+    const cfg=ghGetCfg(); if(!cfg.token){ alert('Add a GitHub token first (GitHub settings).'); return; }
+    const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); const path=`${prefix}/plan-${state.weekStart}.json`;
+    await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), `feat(planner): save ${path}`); alert(`Saved ✓ ${path}`);
   });
-  $('#clearGhCfg').addEventListener('click', () => {
-    localStorage.removeItem(GH_STORE_KEY);
-    $('#ghToken').value = '';
-    alert('Cleared token from this browser.');
-  });
-
+  $('#uploadIntervalsBtn').addEventListener('click', saveThenUpload);
+  $('#saveGhCfg').addEventListener('click', ()=>{ ghSave({token:$('#ghToken').value,owner:$('#ghOwner').value,repo:$('#ghRepo').value,branch:$('#ghBranch').value,prefix:$('#ghPrefix').value}); alert('GitHub settings saved locally.'); });
+  $('#clearGhCfg').addEventListener('click', ()=>{ localStorage.removeItem(GH_STORE_KEY); if($('#ghToken')) $('#ghToken').value=''; alert('Cleared token from this browser.'); });
   $('#phase').addEventListener('change', updateTemplateList);
   $('#focus').addEventListener('change', updateTemplateList);
   $('#templateKey').addEventListener('change', updateTemplateList);
   $('#loadTemplateBtn').addEventListener('click', applyTemplate);
+  $('#refreshPlansBtn').addEventListener('click', refreshPlanList);
+  $('#loadPlanBtn').addEventListener('click', loadSelectedPlan);
 
-  // default week = Monday of today
+  // boot defaults
   (function boot(){
-    const now = new Date();
-    const isoMonday = toISODate(mondayOf(now));
-    $('#weekStart').value = isoMonday;
-    setWeekStartFromInput();
-    updateTemplateList();
+    const isoMonday=toISODate(mondayOf(new Date()));
+    $('#weekStart').value=isoMonday; setWeekStartFromInput(); updateTemplateList();
+    try{ if(ghGetCfg().token) refreshPlanList(); }catch{}
   })();
-
-  // --- Dispatch a workflow on GitHub (needs token with actions:write) ---
-async function ghDispatchWorkflow(cfg, workflowFile, inputs){
-  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/workflows/${encodeURIComponent(workflowFile)}/dispatches`;
-  const body = { ref: cfg.branch, inputs: inputs || {} };
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Authorization": `token ${cfg.token}`, "Accept": "application/vnd.github+json" },
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error(`dispatch ${res.status}: ${await res.text()}`);
-  return true;
-}
-
-// Load plan list from repo (to enable “Load Week Plan”)
-async function ghListPlans(cfg, prefix="plans"){
-  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(prefix)}`;
-  const res = await fetch(url, { headers: { "Authorization": `token ${cfg.token}` }});
-  if (!res.ok) throw new Error(`list ${res.status}: ${await res.text()}`);
-  const items = await res.json();
-  return items.filter(it => it.type === "file" && /^plan-\d{4}-\d{2}-\d{2}\.json$/.test(it.name))
-              .map(it => ({ name: it.name, path: it.path }));
-}
-
-async function ghGetJsonFile(cfg, path){
-  const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(cfg.branch)}`;
-  const res = await fetch(url, { headers: { "Authorization": `token ${cfg.token}` }});
-  if (!res.ok) throw new Error(`get ${res.status}: ${await res.text()}`);
-  const obj = await res.json();
-  const txt = atob(obj.content.replace(/\n/g,''));
-  return JSON.parse(txt);
-}
   </script>
 </body>
 </html>
