@@ -1,0 +1,43 @@
+{
+  "date": "2025-09-07",
+  "summary": {
+    "actual_time_sec": 5471,
+    "actual_time_hms": "1h 31m",
+    "actual_tss": 95.0,
+    "planned_time_sec": 5400,
+    "planned_time_hms": "1h 30m",
+    "planned_tss": 115.0,
+    "delta_time_sec": 71,
+    "delta_time_hms": "0h 01m",
+    "delta_tss": -20.0,
+    "by_type_actual": {
+      "virtual ride": {
+        "time_sec": 5471,
+        "time_hms": "1h 31m",
+        "tss": 95.0
+      }
+    },
+    "by_type_planned": {
+      "ride": {
+        "time_sec": 5400,
+        "time_hms": "1h 30m",
+        "tss": 115.0
+      }
+    }
+  },
+  "advice": {
+    "tsb": -9.3,
+    "ctl": 84.2,
+    "atl": 93.5,
+    "ramp": 3.0,
+    "recommendation": "Stick to plan.",
+    "tomorrow_planned_tss": 0,
+    "tomorrow_suggested_tss": 0.0,
+    "adjust_pct": 0.0
+  },
+  "sessions": [],
+  "alerts": {
+    "flags": [],
+    "subject_tag": ""
+  }
+}
