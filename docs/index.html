@@ -14,6 +14,10 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+
+  <!-- Runtime error banner -->
+  <div id="errBanner" class="hidden bg-rose-600 text-white text-sm px-4 py-2"></div>
+
   <!-- Header -->
   <header class="bg-white/70 dark:bg-slate-900/60 backdrop-blur border-b border-slate-200 dark:border-slate-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between gap-4">
@@ -29,7 +33,7 @@
   </header>
 
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- LEFT COLUMN: Planner -->
+    <!-- LEFT: Planner -->
     <section class="lg:col-span-2 space-y-6">
 
       <!-- Week toolbar -->
@@ -76,7 +80,9 @@
           </label>
           <label class="md:col-span-2">
             <span class="block text-sm text-slate-500 mb-1">Template</span>
-            <select id="templateKey" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5"></select>
+            <select id="templateKey" class="w-full rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5">
+              <option value="">— choose phase & focus —</option>
+            </select>
             <div id="templateDesc" class="mt-1 text-xs text-slate-500"></div>
           </label>
           <div class="flex items-end gap-2">
@@ -90,9 +96,8 @@
 
     </section>
 
-    <!-- RIGHT COLUMN: Sticky sidebar -->
+    <!-- RIGHT: Sidebar -->
     <aside class="lg:col-span-1 space-y-6">
-      <!-- Totals -->
       <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 sticky top-4">
         <h2 class="text-lg font-semibold mb-3">Totals</h2>
         <div class="grid grid-cols-2 gap-3">
@@ -110,7 +115,6 @@
           </div>
         </div>
 
-        <!-- Actions -->
         <div class="mt-5 space-y-2">
           <button id="exportBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
           <button id="saveRepoBtn" class="w-full inline-flex items-center justify-center rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
@@ -137,8 +141,8 @@
             <div id="loadPlanMsg" class="text-xs text-slate-500 mt-2"></div>
           </div>
 
-          <!-- GitHub settings (collapsible) -->
-          <details class="mt-4">
+          <!-- GitHub settings -->
+          <details class="mt-4" open>
             <summary class="cursor-pointer text-sm font-medium">GitHub save settings</summary>
             <div class="mt-3 space-y-2 text-xs text-slate-500">Stored only in this browser.</div>
             <label class="block mb-2">
@@ -165,8 +169,8 @@
             </div>
             <div class="flex items-center gap-2 mt-2">
               <button id="saveGhCfg" class="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-sm">Save settings</button>
-              <button id="clearGhCfg" class="inline-flex items-center justify-center rounded-lg border border-rose-300 dark:border-rose-700 px-3 py-1.5 text-sm">Clear token</button>
-              <span class="text-xs text-slate-500">Token lives in <code>localStorage</code> on this device.</span>
+              <span id="saveGhMsg" class="text-xs text-emerald-500"></span>
+              <button id="clearGhCfg" class="ml-auto inline-flex items-center justify-center rounded-lg border border-rose-300 dark:border-rose-700 px-3 py-1.5 text-sm">Clear token</button>
             </div>
           </details>
         </div>
@@ -255,43 +259,47 @@
   </template>
 
   <script>
-  // =============== Utilities ===============
-  const $ = s => document.querySelector(s);
-  const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-  function fmtHMS(sec){ sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return `${h}h ${String(m).padStart(2,'0')}m`; }
-  function parseHHMM(v){ if(!v) return 0; const [h,m]=(v||'').split(':').map(x=>parseInt(x||'0',10)); if(Number.isNaN(h)||Number.isNaN(m)) return 0; return h*3600+m*60; }
-  function mondayOf(date){ const d=new Date(date); const gd=d.getDay(); const diff=(gd===0?-6:1-gd); d.setDate(d.getDate()+diff); d.setHours(0,0,0,0); return d; }
-  function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
-  function toISODate(d){ return d.toISOString().slice(0,10); }
-  function hhmmFromSec(s){ s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;}
-  function numOrNull(x){ const v=Number(x); return Number.isFinite(v)?v:null; }
-  function defaultTargetPctByName(n){ if(/sweet\s*spot/i.test(n||""))return 0.88; if(/threshold/i.test(n||""))return 0.95; if(/vo2/i.test(n||""))return 1.20; if(/anaerobic|sprint/i.test(n||""))return 1.5; return 0.9; }
-  function safeFilename(name){ return (name||'file').replace(/[^\w\-.]+/g,'_').slice(0,120); }
-  function base64EncodeUTF8(str){ return btoa(unescape(encodeURIComponent(str))); }
-  function encodePathPreserveSlashes(p){ return p.split('/').map(encodeURIComponent).join('/'); }
-
-  // =============== State ===============
-  const state = { weekStart:null, tz:'America/Los_Angeles', athleteId:0, days:{} };
-  function storageKey(){ return `planner:${state.weekStart}`; }
-  function save(){ if(!state.weekStart) return; localStorage.setItem(storageKey(), JSON.stringify(state)); }
-  function load(week){ const raw=localStorage.getItem(`planner:${week}`); try{ return raw?JSON.parse(raw):null }catch{return null}
-
+  // ---------- Error banner ----------
+  function showErr(msg){
+    var b=document.getElementById('errBanner');
+    b.textContent=String(msg||'Unknown error');
+    b.classList.remove('hidden');
   }
+  window.addEventListener('error', e=>showErr(e.message||e.error||e));
 
-  // =============== Templates data ===============
-  const TEMPLATES = {
-    "Base": {
-      "Build": {"Base-1 (endurance focus)":{
+  // ---------- Utilities ----------
+  var $=s=>document.querySelector(s);
+  var dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  function fmtHMS(sec){sec=Math.max(0,Math.round(sec));var h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return h+'h '+String(m).padStart(2,'0')+'m';}
+  function parseHHMM(v){if(!v)return 0;var t=(v||'').split(':');var h=parseInt(t[0]||'0',10),m=parseInt(t[1]||'0',10);if(isNaN(h)||isNaN(m))return 0;return h*3600+m*60;}
+  function mondayOf(date){var d=new Date(date);var gd=d.getDay();var diff=(gd===0?-6:1-gd);d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return d;}
+  function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
+  function toISODate(d){return d.toISOString().slice(0,10);}
+  function hhmmFromSec(s){s=Math.max(0,Math.round(s));var h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');}
+  function numOrNull(x){var v=Number(x);return isFinite(v)?v:null;}
+  function defaultTargetPctByName(n){if(/sweet\s*spot/i.test(n||""))return 0.88;if(/threshold/i.test(n||""))return 0.95;if(/vo2/i.test(n||""))return 1.20;if(/anaerobic|sprint/i.test(n||""))return 1.5;return 0.9;}
+  function safeFilename(name){return (name||'file').replace(/[^\w\-.]+/g,'_').slice(0,120);}
+  function base64EncodeUTF8(str){return btoa(unescape(encodeURIComponent(str))); }
+  function encodePathPreserveSlashes(p){return p.split('/').map(encodeURIComponent).join('/');}
+
+  // ---------- State ----------
+  var state={weekStart:null,tz:'America/Los_Angeles',athleteId:0,days:{}};
+  function storageKey(){return 'planner:'+state.weekStart;}
+  function save(){if(!state.weekStart)return;localStorage.setItem(storageKey(), JSON.stringify(state));}
+  function loadWeek(week){var raw=localStorage.getItem('planner:'+week);try{ return raw?JSON.parse(raw):null; }catch(e){ return null; }}
+
+  // ---------- Templates data ----------
+  var TEMPLATES={
+    "Base":{
+      "Build":{"Base-1 (endurance focus)":{
         desc:"Mostly Z2 endurance with light tempo. Long ride Sat.",
-        days:{
-          0:[{name:"Rest or 45' Recovery",type:"Ride",indoor:false,duration_sec:2700,tss:20,notes:"Optional spin"}],
-          1:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
-          2:[{name:"Tempo 2x20' @85%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:70}],
-          3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
-          4:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
-          5:[{name:"Long Endurance Z2 - 3h",type:"Ride",indoor:false,duration_sec:10800,tss:135}],
-          6:[{name:"Endurance Z2 - 2h",type:"Ride",indoor:false,duration_sec:7200,tss:90}]
-        }}},
+        days:{0:[{name:"Rest or 45' Recovery",type:"Ride",indoor:false,duration_sec:2700,tss:20,notes:"Optional spin"}],
+              1:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
+              2:[{name:"Tempo 2x20' @85%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:70}],
+              3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
+              4:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
+              5:[{name:"Long Endurance Z2 - 3h",type:"Ride",indoor:false,duration_sec:10800,tss:135}],
+              6:[{name:"Endurance Z2 - 2h",type:"Ride",indoor:false,duration_sec:7200,tss:90}]}}},
       "Recovery":{"Recovery-Base":{
         desc:"Reduced volume, no intensity.",
         days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
@@ -301,12 +309,11 @@
     "Build":{
       "Build":{"Threshold-1":{
         desc:"Threshold focus: 3x12' and 4x8'.",
-        days:{
-          0:[],1:[{name:"Threshold 3x12' @95%",type:"Virtual Ride",indoor:true,duration_sec:5400,tss:80}],
-          2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
-          3:[{name:"Threshold 4x8' @100%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:80}],
-          4:[],5:[{name:"Sweet Spot 3x20' @88%",type:"Ride",indoor:false,duration_sec:7200,tss:110}],
-          6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}} },
+        days:{0:[],1:[{name:"Threshold 3x12' @95%",type:"Virtual Ride",indoor:true,duration_sec:5400,tss:80}],
+              2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
+              3:[{name:"Threshold 4x8' @100%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:80}],
+              4:[],5:[{name:"Sweet Spot 3x20' @88%",type:"Ride",indoor:false,duration_sec:7200,tss:110}],
+              6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}}},
       "Recovery":{"Recovery-Build":{
         desc:"Keep legs spinning; minimal intensity.",
         days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
@@ -316,12 +323,11 @@
     "Specialty":{
       "Build":{"VO2/Anaerobic-1":{
         desc:"VO2Max + Anaerobic focus.",
-        days:{
-          0:[],1:[{name:"VO2Max 5x3' @120%",type:"Virtual Ride",indoor:true,duration_sec:4200,tss:75}],
-          2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
-          3:[{name:"VO2Max 6x2' @125%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:70}],
-          4:[],5:[{name:"Anaerobic 8x1' @150%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:65}],
-          6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}} ,
+        days:{0:[],1:[{name:"VO2Max 5x3' @120%",type:"Virtual Ride",indoor:true,duration_sec:4200,tss:75}],
+              2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
+              3:[{name:"VO2Max 6x2' @125%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:70}],
+              4:[],5:[{name:"Anaerobic 8x1' @150%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:65}],
+              6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}}},
       "Recovery":{"Recovery-Specialty":{
         desc:"Strip intensity, keep short endurance.",
         days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
@@ -331,107 +337,117 @@
   };
 
   function updateTemplateList(){
-    const phase=$('#phase').value, focus=$('#focus').value;
-    const group=(TEMPLATES[phase]||{})[focus]||{};
-    const sel=$('#templateKey'), desc=$('#templateDesc');
-    sel.innerHTML='';
-    Object.keys(group).forEach(k=>{
-      const o=document.createElement('option'); o.value=k; o.textContent=k; sel.appendChild(o);
-    });
-    const key=sel.value||Object.keys(group)[0]||'';
-    desc.textContent=key ? group[key].desc||'' : 'No templates for this selection.';
+    try{
+      var phase=$('#phase').value;
+      var focus=$('#focus').value;
+      var group=(TEMPLATES[phase] && TEMPLATES[phase][focus]) ? TEMPLATES[phase][focus] : {};
+      var sel=$('#templateKey'), desc=$('#templateDesc');
+      sel.innerHTML='';
+      var keys=Object.keys(group);
+      for(var i=0;i<keys.length;i++){
+        var o=document.createElement('option'); o.value=keys[i]; o.textContent=keys[i]; sel.appendChild(o);
+      }
+      if(keys.length){
+        sel.value=keys[0];
+        desc.textContent=group[keys[0]].desc || '';
+      }else{
+        sel.innerHTML='<option value="">— no templates —</option>';
+        desc.textContent='No templates for this selection.';
+      }
+    }catch(e){ showErr(e.message||e); }
   }
 
   function applyTemplate(){
-    const phase=$('#phase').value, focus=$('#focus').value, key=$('#templateKey').value;
-    const tpl=(((TEMPLATES[phase]||{})[focus]||{})[key]);
-    if(!tpl){ alert('No template for selection'); return; }
+    var phase=$('#phase').value, focus=$('#focus').value, key=$('#templateKey').value;
+    var g=TEMPLATES[phase] && TEMPLATES[phase][focus] ? TEMPLATES[phase][focus] : null;
+    var tpl=g && g[key]; if(!tpl){ alert('No template for selection'); return; }
     if(!state.weekStart){ alert('Pick a week start first.'); return; }
-    const base=new Date(state.weekStart);
-    state.days={};
-    for(const [idx,lst] of Object.entries(tpl.days)){
-      const iso=toISODate(addDays(base,parseInt(idx,10)));
-      state.days[iso]=(lst||[]).map(w=>({...w}));
-    }
+    var base=new Date(state.weekStart); state.days={};
+    Object.keys(tpl.days).forEach(function(idx){
+      var iso=toISODate(addDays(base,parseInt(idx,10)));
+      state.days[iso]=(tpl.days[idx]||[]).map(function(w){return Object.assign({}, w);});
+    });
     save(); renderWeek();
   }
 
-  // =============== GitHub helpers ===============
-  const GH_STORE_KEY="planner:ghcfg";
-  function ghLoad(){ try{return JSON.parse(localStorage.getItem(GH_STORE_KEY)||"{}")}catch{return{}} }
+  // ---------- GitHub helpers ----------
+  var GH_STORE_KEY='planner:ghcfg';
+  function ghLoad(){ try{ return JSON.parse(localStorage.getItem(GH_STORE_KEY)||'{}'); }catch(e){ return {}; } }
   function ghSave(cfg){ localStorage.setItem(GH_STORE_KEY, JSON.stringify(cfg||{})); }
-  function ghGetCfg(){ const cfg=ghLoad(); return {
-    token: $('#ghToken')?.value || cfg.token || "",
-    owner: $('#ghOwner')?.value || cfg.owner || "tomeese",
-    repo:  $('#ghRepo')?.value  || cfg.repo  || "intervals-icu-bulk-uploader-planned-workouts",
-    branch: $('#ghBranch')?.value || cfg.branch || "main",
-    prefix: $('#ghPrefix')?.value || cfg.prefix || "plans"
-  }; }
-  function downloadText(fn,txt,mime){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:mime||'text/plain'})); a.download=fn; a.click(); URL.revokeObjectURL(a.href); }
+  function ghGetCfg(){
+    var saved=ghLoad();
+    return {
+      token: ($('#ghToken') && $('#ghToken').value) || saved.token || "",
+      owner: ($('#ghOwner') && $('#ghOwner').value) || saved.owner || "tomeese",
+      repo:  ($('#ghRepo') && $('#ghRepo').value)   || saved.repo  || "intervals-icu-bulk-uploader-planned-workouts",
+      branch:($('#ghBranch')&& $('#ghBranch').value)|| saved.branch|| "main",
+      prefix:($('#ghPrefix')&& $('#ghPrefix').value)|| saved.prefix|| "plans"
+    };
+  }
+  function downloadText(fn,txt,mime){ var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:mime||'text/plain'})); a.download=fn; a.click(); URL.revokeObjectURL(a.href); }
 
   async function githubPutFile(cfg, path, text, message){
-    const api=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(path)}`;
-    const headers={Authorization:`token ${cfg.token}`,Accept:"application/vnd.github+json","Content-Type":"application/json"};
+    var api='https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/contents/'+encodePathPreserveSlashes(path);
+    var headers={Authorization:'token '+cfg.token,Accept:'application/vnd.github+json','Content-Type':'application/json'};
     // fetch existing sha
-    let sha; const getRes=await fetch(`${api}?ref=${encodeURIComponent(cfg.branch)}`,{headers});
-    if(getRes.status===200) sha=(await getRes.json()).sha;
-    else if(getRes.status!==404) throw new Error(`GET ${getRes.status}: ${await getRes.text()}`);
-    const body={message:message||`save ${path}`,content:base64EncodeUTF8(text),branch:cfg.branch,sha,
+    var getRes=await fetch(api+'?ref='+encodeURIComponent(cfg.branch),{headers:headers});
+    var sha=null;
+    if(getRes.status===200){ var j=await getRes.json(); sha=j.sha; }
+    else if(getRes.status!==404){ throw new Error('GET '+getRes.status+': '+(await getRes.text())); }
+    var body={message:message||('save '+path),content:base64EncodeUTF8(text),branch:cfg.branch,sha:sha,
       committer:{name:"planner-bot",email:"planner@users.noreply.github.com"},
       author:{name:"planner-bot",email:"planner@users.noreply.github.com"}};
-    const putRes=await fetch(api,{method:"PUT",headers,body:JSON.stringify(body)});
-    const txt=await putRes.text(); if(!putRes.ok) throw new Error(`PUT ${putRes.status}: ${txt.slice(0,400)}`); return JSON.parse(txt);
+    var putRes=await fetch(api,{method:'PUT',headers:headers,body:JSON.stringify(body)});
+    var txt=await putRes.text(); if(!putRes.ok) throw new Error('PUT '+putRes.status+': '+txt.slice(0,400)); return JSON.parse(txt);
   }
 
   async function ghDispatchWorkflow(cfg, workflowFile, inputs){
-    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/workflows/${encodeURIComponent(workflowFile)}/dispatches`;
-    const res=await fetch(url,{method:"POST",headers:{Authorization:`token ${cfg.token}`,Accept:"application/vnd.github+json"},
-      body:JSON.stringify({ref:cfg.branch,inputs:inputs||{}})});
-    if(!res.ok) throw new Error(`dispatch ${res.status}: ${await res.text()}`);
+    var url='https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/actions/workflows/'+encodeURIComponent(workflowFile)+'/dispatches';
+    var res=await fetch(url,{method:'POST',headers:{Authorization:'token '+cfg.token,Accept:'application/vnd.github+json'},body:JSON.stringify({ref:cfg.branch,inputs:inputs||{}})});
+    if(!res.ok) throw new Error('dispatch '+res.status+': '+(await res.text()));
     return true;
   }
 
-  async function ghListPlans(cfg, prefix="plans"){
-    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(prefix)}`;
-    const res=await fetch(url,{headers:{Authorization:`token ${cfg.token}`}});
-    if(!res.ok) throw new Error(`list ${res.status}: ${await res.text()}`);
-    const items=await res.json();
-    return (Array.isArray(items)?items:[]).filter(it=>it.type==="file" && /^plan-\d{4}-\d{2}-\d{2}\.json$/.test(it.name))
-      .map(it=>({name:it.name,path:it.path}));
+  async function ghListPlans(cfg, prefix){
+    var url='https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/contents/'+encodePathPreserveSlashes(prefix);
+    var res=await fetch(url,{headers:{Authorization:'token '+cfg.token}});
+    if(!res.ok) throw new Error('list '+res.status+': '+(await res.text()));
+    var items=await res.json();
+    return (Array.isArray(items)?items:[]).filter(function(it){return it.type==='file' && /^plan-\d{4}-\d{2}-\d{2}\.json$/.test(it.name);})
+      .map(function(it){return {name:it.name,path:it.path};});
   }
   async function ghGetJsonFile(cfg,path){
-    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(path)}?ref=${encodeURIComponent(cfg.branch)}`;
-    const res=await fetch(url,{headers:{Authorization:`token ${cfg.token}`}});
-    if(!res.ok) throw new Error(`get ${res.status}: ${await res.text()}`);
-    const obj=await res.json(); const txt=atob((obj.content||"").replace(/\n/g,'')); return JSON.parse(txt);
+    var url='https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/contents/'+encodePathPreserveSlashes(path)+'?ref='+encodeURIComponent(cfg.branch);
+    var res=await fetch(url,{headers:{Authorization:'token '+cfg.token}});
+    if(!res.ok) throw new Error('get '+res.status+': '+(await res.text()));
+    var obj=await res.json(); var txt=atob((obj.content||'').replace(/\n/g,'')); return JSON.parse(txt);
   }
 
-  // =============== Planner render ===============
+  // ---------- Planner render ----------
   function renderWeek(){
-    const grid=$('#daysGrid'); grid.innerHTML='';
+    var grid=$('#daysGrid'); grid.innerHTML='';
     if(!state.weekStart) return;
-    const base=new Date(state.weekStart);
-    for(let i=0;i<7;i++){
-      const d=addDays(base,i), iso=toISODate(d);
-      const card=document.importNode($('#dayCardTpl').content,true);
+    var base=new Date(state.weekStart);
+    for(var i=0;i<7;i++){
+      var d=addDays(base,i), iso=toISODate(d);
+      var card=document.importNode($('#dayCardTpl').content,true);
       card.querySelector('[data-day-name]').textContent=dayNames[i];
       card.querySelector('[data-day-date]').textContent=iso;
-      const rows=card.querySelector('[data-rows]');
-      (state.days[iso]||[]).forEach(w=>rows.appendChild(renderRow(iso,w)));
-      card.querySelector('[data-add]').addEventListener('click',()=>{
-        const w={name:'',type:'Ride',indoor:false,duration_sec:3600,tss:50,notes:''};
+      var rows=card.querySelector('[data-rows]');
+      (state.days[iso]||[]).forEach(function(w){ rows.appendChild(renderRow(iso,w)); });
+      card.querySelector('[data-add]').addEventListener('click',function(){
+        var w={name:'',type:'Ride',indoor:false,duration_sec:3600,tss:50,notes:''};
         (state.days[iso] ||= []).push(w);
-        rows.appendChild(renderRow(iso,w));
-        totals(); save();
+        rows.appendChild(renderRow(iso,w)); totals(); save();
       });
-      card.querySelector('[data-clear]').addEventListener('click',()=>{
+      card.querySelector('[data-clear]').addEventListener('click',function(){
         state.days[iso]=[]; rows.innerHTML=''; totals(); save();
       });
-      card.querySelector('[data-copy-prev]').addEventListener('click',()=>{
+      card.querySelector('[data-copy-prev]').addEventListener('click',function(){
         if(i===0) return;
-        const prev=toISODate(addDays(base,i-1));
-        const cp=(state.days[prev]||[]).map(w=>({...w}));
-        state.days[iso]=cp; rows.innerHTML=''; cp.forEach(w=>rows.appendChild(renderRow(iso,w))); totals(); save();
+        var prev=toISODate(addDays(base,i-1));
+        var cp=(state.days[prev]||[]).map(function(w){return Object.assign({},w);});
+        state.days[iso]=cp; rows.innerHTML=''; cp.forEach(function(w){rows.appendChild(renderRow(iso,w));}); totals(); save();
       });
       grid.appendChild(card);
     }
@@ -439,238 +455,205 @@
   }
 
   function renderRow(iso,w){
-    const frag=document.importNode($('#rowTpl').content,true);
-    const el=frag.firstElementChild;
-    const $name=el.querySelector('[data-name]'), $type=el.querySelector('[data-type]'), $ind=el.querySelector('[data-indoor]');
-    const $dur=el.querySelector('[data-duration]'), $tss=el.querySelector('[data-tss]'), $notes=el.querySelector('[data-notes]');
-    const $zwo=el.querySelector('[data-zwo]'), $del=el.querySelector('[data-del]');
-    const $designBtn=el.querySelector('[data-design-btn]'), $panel=el.querySelector('[data-design-panel]');
-    const $d_ftp=el.querySelector('[data-d-ftp]'), $d_sets=el.querySelector('[data-d-sets]'), $d_work=el.querySelector('[data-d-work]');
-    const $d_rec=el.querySelector('[data-d-rec]'), $d_target=el.querySelector('[data-d-target]'), $d_ou=el.querySelector('[data-d-ou]');
-    const $d_under=el.querySelector('[data-d-under]'), $d_over=el.querySelector('[data-d-over]');
-    const $d_warm=el.querySelector('[data-d-warm]'), $d_cool=el.querySelector('[data-d-cool]'), $d_cad=el.querySelector('[data-d-cad]'), $d_erg=el.querySelector('[data-d-erg]');
+    var frag=document.importNode($('#rowTpl').content,true);
+    var el=frag.firstElementChild;
+    var $name=el.querySelector('[data-name]'), $type=el.querySelector('[data-type]'), $ind=el.querySelector('[data-indoor]');
+    var $dur=el.querySelector('[data-duration]'), $tss=el.querySelector('[data-tss]'), $notes=el.querySelector('[data-notes]');
+    var $zwo=el.querySelector('[data-zwo]'), $del=el.querySelector('[data-del]');
+    var $designBtn=el.querySelector('[data-design-btn]'), $panel=el.querySelector('[data-design-panel]');
+    var $d_ftp=el.querySelector('[data-d-ftp]'), $d_sets=el.querySelector('[data-d-sets]'), $d_work=el.querySelector('[data-d-work]');
+    var $d_rec=el.querySelector('[data-d-rec]'), $d_target=el.querySelector('[data-d-target]'), $d_ou=el.querySelector('[data-d-ou]');
+    var $d_under=el.querySelector('[data-d-under]'), $d_over=el.querySelector('[data-d-over]');
+    var $d_warm=el.querySelector('[data-d-warm]'), $d_cool=el.querySelector('[data-d-cool]'), $d_cad=el.querySelector('[data-d-cad]'), $d_erg=el.querySelector('[data-d-erg]');
 
     $name.value=w.name||''; $type.value=w.type||'Ride'; $ind.checked=!!w.indoor;
-    $dur.value=hhmmFromSec(w.duration_sec||0); $tss.value=Number.isFinite(w.tss)?w.tss:0; $notes.value=w.notes||'';
-    $name.addEventListener('input',()=>{w.name=$name.value; save();});
-    $type.addEventListener('change',()=>{w.type=$type.value; save(); totals();});
-    $ind.addEventListener('change',()=>{w.indoor=$ind.checked; save();});
-    $dur.addEventListener('change',()=>{w.duration_sec=parseHHMM($dur.value); save(); totals();});
-    $tss.addEventListener('change',()=>{w.tss=Math.max(0,parseFloat($tss.value||'0')); save(); totals();});
-    $notes.addEventListener('input',()=>{w.notes=$notes.value; save();});
+    $dur.value=hhmmFromSec(w.duration_sec||0); $tss.value=isFinite(w.tss)?w.tss:0; $notes.value=w.notes||'';
+    $name.addEventListener('input',function(){w.name=$name.value; save();});
+    $type.addEventListener('change',function(){w.type=$type.value; save(); totals();});
+    $ind.addEventListener('change',function(){w.indoor=$ind.checked; save();});
+    $dur.addEventListener('change',function(){w.duration_sec=parseHHMM($dur.value); save(); totals();});
+    $tss.addEventListener('change',function(){w.tss=Math.max(0,parseFloat($tss.value||'0')); save(); totals();});
+    $notes.addEventListener('input',function(){w.notes=$notes.value; save();});
 
-    // Prefill design
-    const d=w.design||{};
-    $d_ftp.value=d.ftp_watts??''; $d_sets.value=d.sets??3; $d_work.value=d.work_sec??720; $d_rec.value=d.rec_sec??300;
-    $d_target.value=d.target_pct ?? defaultTargetPctByName(w.name||'');
-    $d_ou.checked=!!d.overunder; $d_under.value=d.under_pct??''; $d_over.value=d.over_pct??'';
-    $d_warm.value=d.warmup_sec??600; $d_cool.value=d.cooldown_sec??600; $d_cad.value=d.cadence??''; $d_erg.checked=(d.erg??true);
+    var d=w.design||{};
+    $d_ftp.value=d.ftp_watts!=null?d.ftp_watts:''; $d_sets.value=d.sets!=null?d.sets:3; $d_work.value=d.work_sec!=null?d.work_sec:720; $d_rec.value=d.rec_sec!=null?d.rec_sec:300;
+    $d_target.value=(d.target_pct!=null?d.target_pct:defaultTargetPctByName(w.name||'')); $d_ou.checked=!!d.overunder;
+    $d_under.value=d.under_pct!=null?d.under_pct:''; $d_over.value=d.over_pct!=null?d.over_pct:'';
+    $d_warm.value=d.warmup_sec!=null?d.warmup_sec:600; $d_cool.value=d.cooldown_sec!=null?d.cooldown_sec:600; $d_cad.value=d.cadence!=null?d.cadence:''; $d_erg.checked=(d.erg==null?true:!!d.erg);
 
-    const toggle=show => $panel.classList.toggle('hidden', !show);
-    $designBtn.addEventListener('click',()=>{
+    var toggle=function(show){ $panel.classList.toggle('hidden', !show); };
+    $designBtn.addEventListener('click',function(){
       if(!$ind.checked && !/endurance\s*z?2/i.test($name.value||"")){
-        if(confirm("Mark as Indoor to design ERG intervals?")){ $ind.checked=true; w.indoor=true; save(); }
+        if(confirm('Mark as Indoor to design ERG intervals?')){ $ind.checked=true; w.indoor=true; save(); }
       }
       toggle($panel.classList.contains('hidden'));
     });
-    el.querySelector('[data-design-cancel]').addEventListener('click',()=>toggle(false));
-    el.querySelector('[data-design-save]').addEventListener('click',()=>{
-      const obj={
-        kind:(/sweet\s*spot/i.test($name.value||""))?"sweetspot":(/threshold/i.test($name.value||""))?"threshold":(/vo2/i.test($name.value||""))?"vo2":(/anaerobic|sprint/i.test($name.value||""))?"anaerobic":"custom",
-        ftp_watts:numOrNull($d_ftp.value),
-        sets:numOrNull($d_sets.value)??3,
-        work_sec:numOrNull($d_work.value)??720,
-        rec_sec:numOrNull($d_rec.value)??300,
-        target_pct:numOrNull($d_target.value)??defaultTargetPctByName($name.value||""),
-        overunder:$d_ou.checked,
-        under_pct:numOrNull($d_under.value)||undefined,
-        over_pct:numOrNull($d_over.value)||undefined,
-        warmup_sec:numOrNull($d_warm.value)??600,
-        cooldown_sec:numOrNull($d_cool.value)??600,
-        cadence:numOrNull($d_cad.value)||undefined,
-        erg:!!$d_erg.checked
-      };
-      for(const k of Object.keys(obj)) if(obj[k]===null || obj[k]===undefined) delete obj[k];
+    el.querySelector('[data-design-cancel]').addEventListener('click',function(){toggle(false);});
+    el.querySelector('[data-design-save]').addEventListener('click',function(){
+      var obj={kind:(/sweet\s*spot/i.test($name.value||""))?"sweetspot":(/threshold/i.test($name.value||""))?"threshold":(/vo2/i.test($name.value||""))?"vo2":(/anaerobic|sprint/i.test($name.value||""))?"anaerobic":"custom",
+        ftp_watts:numOrNull($d_ftp.value), sets:numOrNull($d_sets.value)||3, work_sec:numOrNull($d_work.value)||720, rec_sec:numOrNull($d_rec.value)||300,
+        target_pct:numOrNull($d_target.value)||defaultTargetPctByName($name.value||""), overunder:$d_ou.checked,
+        under_pct:numOrNull($d_under.value)||undefined, over_pct:numOrNull($d_over.value)||undefined,
+        warmup_sec:numOrNull($d_warm.value)||600, cooldown_sec:numOrNull($d_cool.value)||600, cadence:numOrNull($d_cad.value)||undefined, erg:!!$d_erg.checked};
+      Object.keys(obj).forEach(function(k){ if(obj[k]===null) delete obj[k]; });
       w.design=obj; save(); toggle(false);
     });
 
-    $zwo.addEventListener('click',async()=>{
+    $zwo.addEventListener('click',function(){
       try{
-        if(!w.indoor){ if(!confirm("This workout isn’t marked Indoor. Generate ZWO anyway?")) return; }
-        if(/endurance\s*z?2/i.test(w.name||"")){ alert("Skipping Z2 endurance for ZWO (non-ERG recommended)."); return; }
-        const xml=makeZwoXml(w);
-        const safe=safeFilename(`${iso} - ${w.name||'Workout'}`).replace(/\.zwo$/i,'')+'.zwo';
-        const cfg=ghGetCfg();
-        if(cfg.token && confirm("Upload .zwo to your repo? (Cancel = download only)")){
-          const path=`zwo/${safe}`;
-          await githubPutFile(cfg,path,xml,`feat(zwo): ${safe}`);
-          alert(`Uploaded ✓ ${path}`);
-        }else{
-          downloadText(safe,xml,'application/xml');
-        }
-      }catch(e){ alert(`ZWO generation failed: ${e.message||e}`); }
+        if(!w.indoor){ if(!confirm('Not marked Indoor. Generate ZWO anyway?')) return; }
+        if(/endurance\s*z?2/i.test(w.name||"")){ alert('Skipping Z2 endurance for ZWO.'); return; }
+        var xml=makeZwoXml(w);
+        var safe=safeFilename(iso+' - '+(w.name||'Workout')).replace(/\.zwo$/i,'')+'.zwo';
+        var cfg=ghGetCfg();
+        if(cfg.token && confirm('Upload .zwo to your repo? (Cancel = download only)')){
+          var path='zwo/'+safe; githubPutFile(cfg,path,xml,'feat(zwo): '+safe).then(function(){ alert('Uploaded ✓ '+path); }).catch(function(e){ alert('Upload failed: '+(e.message||e)); });
+        }else{ downloadText(safe,xml,'application/xml'); }
+      }catch(e){ alert('ZWO generation failed: '+(e.message||e)); }
     });
 
-    $del.addEventListener('click',()=>{
-      const list=state.days[iso]||[];
-      const idx=list.indexOf(w);
-      if(idx>=0){ list.splice(idx,1); el.remove(); totals(); save(); }
+    $del.addEventListener('click',function(){
+      var list=state.days[iso]||[]; var idx=list.indexOf(w); if(idx>=0){ list.splice(idx,1); el.remove(); totals(); save(); }
     });
 
     return frag;
   }
 
   function totals(){
-    let sec=0,tss=0; const byType=new Map();
-    for(const list of Object.values(state.days)){
-      for(const w of list){
-        sec+=(w.duration_sec||0); tss+=(w.tss||0);
-        const k=w.type||'Ride'; const cur=byType.get(k)||{sec:0,tss:0}; cur.sec+=(w.duration_sec||0); cur.tss+=(w.tss||0); byType.set(k,cur);
-      }
-    }
+    var sec=0,tss=0, byType=new Map();
+    Object.values(state.days).forEach(function(list){
+      list.forEach(function(w){ sec+=(w.duration_sec||0); tss+=(w.tss||0); var k=w.type||'Ride'; var cur=byType.get(k)||{sec:0,tss:0}; cur.sec+=(w.duration_sec||0); cur.tss+=(w.tss||0); byType.set(k,cur); });
+    });
     $('#totPlannedTime').textContent=fmtHMS(sec);
     $('#totPlannedTss').textContent=Math.round(tss);
-    $('#totByType').innerHTML=byType.size?Array.from(byType.entries()).map(([k,v])=>`<div><span class="font-medium">${k}</span>: ${fmtHMS(v.sec)}, TSS ${Math.round(v.tss)}</div>`).join(''):'—';
+    $('#totByType').innerHTML=byType.size?Array.from(byType.entries()).map(function(e){var k=e[0],v=e[1];return '<div><span class="font-medium">'+k+'</span>: '+fmtHMS(v.sec)+', TSS '+Math.round(v.tss)+'</div>';}).join(''):'—';
   }
 
-  // =============== Export / Import / Load ===============
+  // ---------- Export / Import / Load ----------
   function buildPayload(){
-    const out={version:1,tz:state.tz,athlete_id:Number(state.athleteId||0),week_start:state.weekStart,workouts:[]};
-    for(const [date,list] of Object.entries(state.days)){
-      for(const w of list){
-        const wo={date,name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||''};
+    var out={version:1,tz:state.tz,athlete_id:Number(state.athleteId||0),week_start:state.weekStart,workouts:[]};
+    Object.keys(state.days).forEach(function(date){
+      (state.days[date]||[]).forEach(function(w){
+        var wo={date:date,name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||''};
         if(w.design && typeof w.design==='object' && Object.keys(w.design).length) wo.design=w.design;
         out.workouts.push(wo);
-      }
-    } return out;
+      });
+    });
+    return out;
   }
-  function exportJson(){ if(!state.weekStart){ alert('Choose a week start first.'); return; } downloadText(`plan-${state.weekStart}.json`, JSON.stringify(buildPayload(),null,2), 'application/json'); }
+  function exportJson(){ if(!state.weekStart){ alert('Choose a week start first.'); return; } downloadText('plan-'+state.weekStart+'.json', JSON.stringify(buildPayload(),null,2), 'application/json'); }
   async function importJson(file){
     if(!file) return;
-    const text=await file.text(); let data; try{ data=JSON.parse(text); }catch{ alert('Invalid JSON'); return; }
+    var text=await file.text(); var data; try{ data=JSON.parse(text); }catch(e){ alert('Invalid JSON'); return; }
     if(!data || !data.week_start || !Array.isArray(data.workouts)){ alert('Missing fields'); return;}
     state.weekStart=data.week_start; $('#weekStart').value=state.weekStart;
     state.tz=data.tz||state.tz; $('#tz').value=state.tz;
-    state.athleteId=data.athlete_id ?? state.athleteId; $('#athleteId').value=state.athleteId;
-    state.days={};
-    for(const w of data.workouts){
-      (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined});
-    }
+    state.athleteId=(data.athlete_id!=null?data.athlete_id:state.athleteId); $('#athleteId').value=state.athleteId;
+    state.days={}; data.workouts.forEach(function(w){ (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined}); });
     save(); renderWeek();
   }
   async function refreshPlanList(){
-    const msg=$('#loadPlanMsg');
+    var msg=$('#loadPlanMsg');
     try{
-      const cfg=ghGetCfg(); if(!cfg.token){ msg.textContent='Add a GitHub token above first.'; return; }
-      const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
-      const items=await ghListPlans(cfg,prefix); items.sort((a,b)=>b.name.localeCompare(a.name));
-      const sel=$('#loadPlanSelect'); sel.innerHTML='<option value="">— select plan —</option>';
-      for(const it of items){ const o=document.createElement('option'); o.value=it.path; o.textContent=it.name.replace(/^plan-/,'').replace(/\.json$/,''); sel.appendChild(o); }
-      msg.textContent=`${items.length} plan(s) found in ${prefix}/`;
-    }catch(e){ msg.textContent=`Error: ${e.message||e}`; }
+      var cfg=ghGetCfg(); if(!cfg.token){ msg.textContent='Add a GitHub token above first.'; return; }
+      var prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
+      var items=await ghListPlans(cfg,prefix); items.sort(function(a,b){return b.name.localeCompare(a.name);});
+      var sel=$('#loadPlanSelect'); sel.innerHTML='<option value="">— select plan —</option>';
+      items.forEach(function(it){ var o=document.createElement('option'); o.value=it.path; o.textContent=it.name.replace(/^plan-/,'').replace(/\.json$/,''); sel.appendChild(o); });
+      msg.textContent=items.length+' plan(s) found in '+prefix+'/';
+    }catch(e){ msg.textContent='Error: '+(e.message||e); }
   }
   async function loadSelectedPlan(){
-    const path=$('#loadPlanSelect').value; if(!path){ alert('Pick a plan first.'); return; }
+    var path=$('#loadPlanSelect').value; if(!path){ alert('Pick a plan first.'); return; }
     try{
-      const cfg=ghGetCfg(); const data=await ghGetJsonFile(cfg,path); applyPlanData(data);
-      const link=$('#openPlanLink'); link.href=`https://github.com/${cfg.owner}/${cfg.repo}/blob/${encodeURIComponent(cfg.branch)}/${path}`;
-      $('#loadPlanMsg').textContent=`Loaded ${path}`;
-    }catch(e){ alert(`Load failed: ${e.message||e}`); }
-  }
-  function applyPlanData(data){
-    state.weekStart=data.week_start; $('#weekStart').value=state.weekStart;
-    state.tz=data.tz||state.tz; $('#tz').value=state.tz;
-    state.athleteId=(data.athlete_id ?? state.athleteId); $('#athleteId').value=state.athleteId;
-    state.days={};
-    for(const w of data.workouts){
-      (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined});
-    }
-    save(); renderWeek();
+      var cfg=ghGetCfg(); var data=await ghGetJsonFile(cfg,path);
+      state.weekStart=data.week_start; $('#weekStart').value=state.weekStart;
+      state.tz=data.tz||state.tz; $('#tz').value=state.tz;
+      state.athleteId=(data.athlete_id!=null?data.athlete_id:state.athleteId); $('#athleteId').value=state.athleteId;
+      state.days={}; data.workouts.forEach(function(w){ (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined}); });
+      save(); renderWeek();
+      var link=$('#openPlanLink'); var cfg2=ghGetCfg(); link.href='https://github.com/'+cfg2.owner+'/'+cfg2.repo+'/blob/'+encodeURIComponent(cfg2.branch)+'/'+path;
+      $('#loadPlanMsg').textContent='Loaded '+path;
+    }catch(e){ alert('Load failed: '+(e.message||e)); }
   }
 
-  // =============== Upload to Intervals (workflow dispatch) ===============
+  // ---------- Upload to Intervals (workflow dispatch) ----------
   async function saveThenUpload(){
     if(!state.weekStart){ alert('Pick a week start first.'); return; }
-    const cfg=ghGetCfg(); if(!cfg.token){ alert('Add a GitHub token first (GitHub settings).'); return; }
-    // ensure plan file exists in repo first
-    const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
-    const path=`${prefix}/plan-${state.weekStart}.json`;
-    await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), `feat(planner): save ${path}`);
-    await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', {
-      plan_path: path,
-      tz: state.tz || 'America/Los_Angeles',
-      athlete_id: String(state.athleteId || 0),
-      default_start: '06:00',
-      dry_run: 'false'
-    });
-    alert('Upload started ✅ (check Actions for progress)');
+    var cfg=ghGetCfg(); if(!cfg.token){ alert('Add a GitHub token first (GitHub settings).'); return; }
+    var prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); var path=prefix+'/plan-'+state.weekStart+'.json';
+    await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), 'feat(planner): save '+path);
+    await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', { plan_path:path, tz:state.tz||'America/Los_Angeles', athlete_id:String(state.athleteId||0), default_start:'06:00', dry_run:'false' });
+    alert('Upload started ✓ (check Actions).');
   }
 
-  // =============== ZWO XML local generator ===============
+  // ---------- Minimal local ZWO (unchanged from earlier) ----------
   function makeZwoXml(w){
-    const name=w.name||"Workout";
-    if(/endurance\s*z?2/i.test(name)) throw new Error('Endurance Z2 not converted to ZWO (ride free / non-ERG).');
-    const d=w.design||{}; const warmSec=d.warmup_sec??600; const coolSec=d.cooldown_sec??600;
-    const steps=[]; steps.push(`<Warmup Duration="${warmSec}" PowerLow="0.5" PowerHigh="0.75"/>`);
-    const sets=Math.max(1,parseInt(d.sets??3,10)); const work=Math.max(15,parseInt(d.work_sec??720,10)); const rec=Math.max(10,parseInt(d.rec_sec??300,10));
-    const pct=Number.isFinite(d.target_pct)?d.target_pct:defaultTargetPctByName(name); const cad=(d.cadence&&Number.isFinite(d.cadence))?` Cadence="${Math.round(d.cadence)}"`:'';
-    if(d.overunder){ steps.push(`<!-- NOTE: Over/Under simplified locally; Action will generate OU blocks -->`); }
-    if(d.erg===false){ for(let i=0;i<sets;i++){ steps.push(`<FreeRide Duration="${work}" />`); if(rec>0 && i!==sets-1) steps.push(`<SteadyState Duration="${rec}" Power="0.55"${cad}/>`); } }
-    else { steps.push(`<IntervalsT Repeat="${sets}" OnDuration="${work}" OffDuration="${rec}" OnPower="${pct}" OffPower="0.55"${cad}/>`); }
-    steps.push(`<Cooldown Duration="${coolSec}" PowerLow="0.5" PowerHigh="0.75"/>`);
-    const esc=s=>String(s).replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;'}[c]));
-    const body = steps.join('\n    ');
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<workout_file>
-  <author>planner</author>
-  <name>${esc(name)}</name>
-  <description>Auto-generated from planner</description>
-  <sportType>bike</sportType>
-  <tags></tags>
-  <workout>
-    ${body}
-  </workout>
-</workout_file>`;
+    var name=w.name||'Workout';
+    if(/endurance\s*z?2/i.test(name)) throw new Error('Endurance Z2 not converted to ZWO.');
+    var d=w.design||{}; var warmSec=d.warmup_sec!=null?d.warmup_sec:600; var coolSec=d.cooldown_sec!=null?d.cooldown_sec:600;
+    var steps=[]; steps.push('<Warmup Duration="'+warmSec+'" PowerLow="0.5" PowerHigh="0.75"/>');
+    var sets=Math.max(1,parseInt(d.sets!=null?d.sets:3,10)); var work=Math.max(15,parseInt(d.work_sec!=null?d.work_sec:720,10)); var rec=Math.max(10,parseInt(d.rec_sec!=null?d.rec_sec:300,10));
+    var pct=(d.target_pct!=null?d.target_pct:defaultTargetPctByName(name));
+    if(d.erg===false){ for(var i=0;i<sets;i++){ steps.push('<FreeRide Duration="'+work+'" />'); if(rec>0 && i!==sets-1) steps.push('<SteadyState Duration="'+rec+'" Power="0.55"/>'); } }
+    else { steps.push('<IntervalsT Repeat="'+sets+'" OnDuration="'+work+'" OffDuration="'+rec+'" OnPower="'+pct+'" OffPower="0.55" Cadence="0"/>'); }
+    steps.push('<Cooldown Duration="'+coolSec+'" PowerLow="0.5" PowerHigh="0.75"/>');
+    var esc=function(s){return String(s).replace(/[<>&'"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;'}[c];});};
+    var body=steps.join('\n    ');
+    return '<?xml version="1.0" encoding="UTF-8"?>\n<workout_file>\n  <author>planner</author>\n  <name>'+esc(name)+'</name>\n  <description>Auto-generated from planner</description>\n  <sportType>bike</sportType>\n  <tags></tags>\n  <workout>\n    '+body+'\n  </workout>\n</workout_file>\n';
   }
 
-  // =============== Events / Boot ===============
+  // ---------- Events / Boot ----------
   function setWeekStartFromInput(){
-    const raw=$('#weekStart').value; if(!raw) return;
-    const monday=mondayOf(raw); const iso=toISODate(monday); $('#weekStart').value=iso; state.weekStart=iso;
-    const prev=load(iso);
-    if(prev){ state.tz=prev.tz||state.tz; $('#tz').value=state.tz; state.athleteId=prev.athleteId ?? state.athleteId; $('#athleteId').value=state.athleteId; state.days=prev.days||{}; }
+    var raw=$('#weekStart').value; if(!raw) return;
+    var monday=mondayOf(raw); var iso=toISODate(monday); $('#weekStart').value=iso; state.weekStart=iso;
+    var prev=loadWeek(iso);
+    if(prev){ state.tz=prev.tz||state.tz; $('#tz').value=state.tz; state.athleteId=(prev.athleteId!=null?prev.athleteId:state.athleteId); $('#athleteId').value=state.athleteId; state.days=prev.days||{}; }
     else { state.days={}; }
     save(); renderWeek();
   }
 
-  // hook up
-  $('#weekStart').addEventListener('change', setWeekStartFromInput);
-  $('#tz').addEventListener('change',()=>{ state.tz=$('#tz').value; save(); });
-  $('#athleteId').addEventListener('change',()=>{ state.athleteId=Number($('#athleteId').value||0); save(); });
-  $('#newWeekBtn').addEventListener('click',()=>{ if(!$('#weekStart').value){ alert('Pick a Monday to start.'); return; } state.days={}; save(); renderWeek(); });
-  $('#exportBtn').addEventListener('click', exportJson);
-  $('#importFile').addEventListener('change', e=>importJson(e.target.files[0]));
-  $('#saveRepoBtn').addEventListener('click', async ()=>{
-    if(!state.weekStart){ alert('Pick a week start first.'); return; }
-    const cfg=ghGetCfg(); if(!cfg.token){ alert('Add a GitHub token first (GitHub settings).'); return; }
-    const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); const path=`${prefix}/plan-${state.weekStart}.json`;
-    await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), `feat(planner): save ${path}`); alert(`Saved ✓ ${path}`);
-  });
-  $('#uploadIntervalsBtn').addEventListener('click', saveThenUpload);
-  $('#saveGhCfg').addEventListener('click', ()=>{ ghSave({token:$('#ghToken').value,owner:$('#ghOwner').value,repo:$('#ghRepo').value,branch:$('#ghBranch').value,prefix:$('#ghPrefix').value}); alert('GitHub settings saved locally.'); });
-  $('#clearGhCfg').addEventListener('click', ()=>{ localStorage.removeItem(GH_STORE_KEY); if($('#ghToken')) $('#ghToken').value=''; alert('Cleared token from this browser.'); });
-  $('#phase').addEventListener('change', updateTemplateList);
-  $('#focus').addEventListener('change', updateTemplateList);
-  $('#templateKey').addEventListener('change', updateTemplateList);
-  $('#loadTemplateBtn').addEventListener('click', applyTemplate);
-  $('#refreshPlansBtn').addEventListener('click', refreshPlanList);
-  $('#loadPlanBtn').addEventListener('click', loadSelectedPlan);
-
-  // boot defaults
   (function boot(){
-    const isoMonday=toISODate(mondayOf(new Date()));
-    $('#weekStart').value=isoMonday; setWeekStartFromInput(); updateTemplateList();
-    try{ if(ghGetCfg().token) refreshPlanList(); }catch{}
+    try{
+      // Wire basic handlers first
+      $('#weekStart').addEventListener('change', setWeekStartFromInput);
+      $('#tz').addEventListener('change',function(){ state.tz=$('#tz').value; save(); });
+      $('#athleteId').addEventListener('change',function(){ state.athleteId=Number($('#athleteId').value||0); save(); });
+      $('#newWeekBtn').addEventListener('click',function(){ if(!$('#weekStart').value){ alert('Pick a Monday to start.'); return; } state.days={}; save(); renderWeek(); });
+      $('#exportBtn').addEventListener('click', exportJson);
+      $('#importFile').addEventListener('change', function(e){ importJson(e.target.files[0]); });
+      $('#saveRepoBtn').addEventListener('click', async function(){
+        if(!state.weekStart){ alert('Pick a week start first.'); return; }
+        var cfg=ghGetCfg(); if(!cfg.token){ alert('Add a GitHub token first.'); return; }
+        var prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); var path=prefix+'/plan-'+state.weekStart+'.json';
+        await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), 'feat(planner): save '+path);
+        alert('Saved ✓ '+path);
+      });
+      $('#uploadIntervalsBtn').addEventListener('click', saveThenUpload);
+      $('#saveGhCfg').addEventListener('click', function(){
+        ghSave({token:$('#ghToken').value,owner:$('#ghOwner').value,repo:$('#ghRepo').value,branch:$('#ghBranch').value,prefix:$('#ghPrefix').value});
+        $('#saveGhMsg').textContent='Saved ✓';
+        // auto-refresh plan list if token present
+        try{ if(ghGetCfg().token){ refreshPlanList(); } }catch(e){}
+      });
+      $('#clearGhCfg').addEventListener('click', function(){ localStorage.removeItem(GH_STORE_KEY); if($('#ghToken')) $('#ghToken').value=''; $('#saveGhMsg').textContent='Cleared'; });
+      $('#phase').addEventListener('change', updateTemplateList);
+      $('#focus').addEventListener('change', updateTemplateList);
+      $('#templateKey').addEventListener('change', function(){
+        var phase=$('#phase').value, focus=$('#focus').value, key=$('#templateKey').value;
+        var g=TEMPLATES[phase] && TEMPLATES[phase][focus] ? TEMPLATES[phase][focus] : null;
+        $('#templateDesc').textContent=(g && g[key] && g[key].desc) ? g[key].desc : '';
+      });
+      $('#loadTemplateBtn').addEventListener('click', applyTemplate);
+      $('#refreshPlansBtn').addEventListener('click', refreshPlanList);
+      $('#loadPlanBtn').addEventListener('click', loadSelectedPlan);
+
+      // Boot: set current Monday, populate templates, maybe refresh plan list
+      var isoMonday=toISODate(mondayOf(new Date()));
+      $('#weekStart').value=isoMonday; setWeekStartFromInput();
+      updateTemplateList();
+      try{ if(ghGetCfg().token){ refreshPlanList(); } }catch(e){}
+    }catch(e){ showErr(e.message||e); }
   })();
   </script>
 </body>
