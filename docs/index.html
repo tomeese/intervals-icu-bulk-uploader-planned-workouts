@@ -239,6 +239,8 @@
         <div class="mb-3 flex flex-wrap gap-3 items-center">
           <label class="inline-flex items-center gap-2">
             <input id="upSelectAll" type="checkbox" class="h-4 w-4" checked>
+            <button id="upWeekdays" class="sm-btn">Weekdays</button>
+            <button id="upWeekend"  class="sm-btn">Weekend</button>
             <span>Select all</span>
           </label>
           <div class="flex flex-wrap gap-3">
@@ -488,6 +490,15 @@
     $('#uploadHint').innerHTML = nDays
       ? `Selected <b>${nDays}</b> day(s), <b>${nWos}</b> workout(s): ${dates.join(', ')}`
       : `No days selected.`;
+
+    // Update button label + disabled state
+    const btn = document.getElementById('uploadIntervalsBtn');
+    const nWos = buildPayloadFiltered(dates).workouts.length;
+    btn.textContent = nWos ? `Upload to Intervals (${nWos})` : 'Upload to Intervals';
+    btn.disabled = nWos === 0;
+    btn.classList.toggle('opacity-50', nWos === 0);
+    btn.classList.toggle('cursor-not-allowed', nWos === 0);
+
   }
 
 
@@ -996,6 +1007,18 @@
         document.getElementById('upSelectAll').checked = allChecked;
         updateUploadHint();
       }));
+
+      document.getElementById('upWeekdays').addEventListener('click', ()=>{
+      uploadDayCheckboxEls().forEach((cb,i)=> cb.checked = (i>=0 && i<=4)); // Mon–Fri
+      document.getElementById('upSelectAll').checked = false;
+      updateUploadHint();
+      });
+      document.getElementById('upWeekend').addEventListener('click', ()=>{
+        uploadDayCheckboxEls().forEach((cb,i)=> cb.checked = (i===5 || i===6)); // Sat/Sun
+        document.getElementById('upSelectAll').checked = false;
+        updateUploadHint();
+      });
+
       updateUploadHint();
 
 
