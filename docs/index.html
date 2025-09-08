@@ -228,14 +228,51 @@
       </section>
 
       <!-- Tab: Intervals Upload -->
-      <section id="tab-upload" role="tabpanel" class="hidden p-4 space-y-4">
-        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-          <h3 class="text-lg font-semibold mb-2">Upload this week’s plan</h3>
-          <p class="text-sm text-slate-500 mb-3">Triggers the <code>upload-week-plan.yml</code> GitHub Action. You’ll confirm before sending.</p>
-          <button id="uploadIntervalsBtn" class="rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 font-medium">Upload to Intervals</button>
-          <div class="text-xs text-slate-500 mt-3" id="uploadHint"></div>
+     <section id="tab-upload" role="tabpanel" class="hidden p-4 space-y-4">
+      <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+        <h3 class="text-lg font-semibold mb-2">Upload this week’s plan</h3>
+        <p class="text-sm text-slate-500 mb-4">
+          Select the day(s) you want to upload. We’ll save a filtered plan file and trigger <code>upload-week-plan.yml</code>.
+        </p>
+
+        <!-- Day checkboxes -->
+        <div class="mb-3 flex flex-wrap gap-3 items-center">
+          <label class="inline-flex items-center gap-2">
+            <input id="upSelectAll" type="checkbox" class="h-4 w-4" checked>
+            <span>Select all</span>
+          </label>
+          <div class="flex flex-wrap gap-3">
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" class="h-4 w-4" data-upday="0" checked><span>Mon</span>
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" class="h-4 w-4" data-upday="1" checked><span>Tue</span>
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" class="h-4 w-4" data-upday="2" checked><span>Wed</span>
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" class="h-4 w-4" data-upday="3" checked><span>Thu</span>
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" class="h-4 w-4" data-upday="4" checked><span>Fri</span>
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" class="h-4 w-4" data-upday="5" checked><span>Sat</span>
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" class="h-4 w-4" data-upday="6" checked><span>Sun</span>
+            </label>
+          </div>
         </div>
-      </section>
+
+        <button id="uploadIntervalsBtn" class="rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 font-medium">
+          Upload to Intervals
+        </button>
+        <div class="text-xs text-slate-500 mt-3" id="uploadHint"></div>
+      </div>
+    </section>
+
 
       <!-- Tab: Settings -->
       <section id="tab-settings" role="tabpanel" class="hidden p-4 space-y-4">
@@ -369,6 +406,41 @@
   const safeFilename=name=>(name||'file').replace(/[^\w\-.]+/g,'_').slice(0,120);
   const base64EncodeUTF8=str=>btoa(unescape(encodeURIComponent(str)));
   const encodePathPreserveSlashes=p=>p.split('/').map(encodeURIComponent).join('/');
+
+  function uploadDayCheckboxEls(){ return Array.from(document.querySelectorAll('[data-upday]')); }
+  function setUploadDaysAll(val){ uploadDayCheckboxEls().forEach(cb => cb.checked = !!val); }
+
+  function selectedUploadDates(){
+    if(!state.weekStart) return [];
+    const base = new Date(state.weekStart);
+    const idxs = uploadDayCheckboxEls().filter(cb => cb.checked).map(cb => parseInt(cb.getAttribute('data-upday'),10));
+    return idxs.map(i => toISODate(addDays(base, i)));
+  }
+
+  function countFilteredWorkouts(dates){
+    const set = new Set(dates);
+    let n = 0;
+    Object.entries(state.days).forEach(([iso, list]) => { if(set.has(iso)) n += (list||[]).length; });
+    return n;
+  }
+
+  function buildPayloadFiltered(dates){
+    const all = buildPayload();
+    if (!dates || dates.length === 0) return { ...all, workouts: [] };
+    const set = new Set(dates);
+    return { ...all, workouts: all.workouts.filter(w => set.has(w.date)) };
+  }
+
+  function updateUploadHint(){
+    if(!state.weekStart){ $('#uploadHint').textContent = 'Pick a week on the Plan tab.'; return; }
+    const dates = selectedUploadDates();
+    const nDays = dates.length;
+    const nWos = countFilteredWorkouts(dates);
+    $('#uploadHint').innerHTML = nDays
+      ? `Selected <b>${nDays}</b> day(s), <b>${nWos}</b> workout(s): ${dates.join(', ')}`
+      : `No days selected.`;
+  }
+
 
   // ---------- State ----------
   const state={weekStart:null,tz:'America/Los_Angeles',athleteId:0,days:{}, selectedDay:0};
@@ -521,6 +593,8 @@
     });
     save(); renderDayEditor();
     totals();
+
+    updateUploadHint();
   }
 
   // ---------- Day editor (tab) ----------
@@ -649,6 +723,8 @@
     state.athleteId=(data.athlete_id ?? state.athleteId); $('#athleteId').value=state.athleteId;
     state.days={}; data.workouts.forEach(w=>{ (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined}); });
     save(); renderDayEditor(); totals();
+
+    updateUploadHint();
   }
 
   async function refreshPlanList(){
@@ -679,31 +755,55 @@
   // ---------- Upload to Intervals (with confirm) ----------
   async function saveThenUpload(){
     if(!state.weekStart){ alert('Pick a week start first.'); return; }
-    const payload=buildPayload();
-    const n=payload.workouts.length;
-    const html=`<div class="space-y-2">
-      <div>Week: <b>${payload.week_start}</b></div>
-      <div>Time zone: <code>${payload.tz}</code></div>
-      <div>Athlete ID: <code>${payload.athlete_id}</code></div>
-      <div class="text-rose-600 font-medium">This will dispatch a GitHub Action to upload <b>${n}</b> workout(s) to Intervals. Continue?</div>
+
+    const dates = selectedUploadDates();
+    if (dates.length === 0) { alert('Select at least one day.'); return; }
+
+    const full = buildPayload();                 // full plan
+    const part = buildPayloadFiltered(dates);    // filtered plan
+    const n = part.workouts.length;
+
+    const html = `<div class="space-y-2">
+      <div>Week: <b>${full.week_start}</b></div>
+      <div>Time zone: <code>${full.tz}</code></div>
+      <div>Athlete ID: <code>${full.athlete_id}</code></div>
+      <div>Days: ${dates.join(', ')}</div>
+      <div class="text-rose-600 font-medium">This will upload <b>${n}</b> workout(s) for the selected day(s). Continue?</div>
     </div>`;
-    const ok=await confirmDialog({title:'Upload to Intervals', html});
+    const ok = await confirmDialog({title:'Upload to Intervals', html});
     if(!ok) return;
 
-    // Save plan to repo first (idempotent)
-    const cfg=ghGetCfg(); const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); const path=`${prefix}/plan-${state.weekStart}.json`;
-    await githubPutFile(cfg, path, JSON.stringify(payload,null,2), `feat(planner): save ${path}`);
+    const cfg = ghGetCfg();
+    const prefix = (cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
 
-    // Dispatch action
+    // Always keep a canonical full-week file up-to-date
+    const fullPath = `${prefix}/plan-${state.weekStart}.json`;
+    await githubPutFile(cfg, fullPath, JSON.stringify(full,null,2), `feat(planner): save ${fullPath}`);
+
+    // For partial uploads, write a filtered copy under plans/partial/
+    let dispatchPath = fullPath;
+    if (dates.length !== 7) {
+      const short = dates.map(d=>d.slice(8,10)).join(''); // DDDD...
+      const partialDir = `${prefix}/partial`;
+      const partialPath = `${partialDir}/plan-${state.weekStart}-d${short}.json`;
+      await githubPutFile(cfg, partialPath, JSON.stringify(part,null,2), `feat(planner): save ${partialPath}`);
+      dispatchPath = partialPath;
+    }
+
     await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', {
-      plan_path:path, tz:payload.tz||'America/Los_Angeles', athlete_id:String(payload.athlete_id||0), default_start:'06:00', dry_run:'false'
+      plan_path: dispatchPath,
+      tz: full.tz || 'America/Los_Angeles',
+      athlete_id: String(full.athlete_id || 0),
+      default_start: '06:00',
+      dry_run: 'false'
     });
 
-    const runsUrl=`https://github.com/${cfg.owner}/${cfg.repo}/actions/workflows/upload-week-plan.yml`;
+    const runsUrl = `https://github.com/${cfg.owner}/${cfg.repo}/actions/workflows/upload-week-plan.yml`;
     toast(`Upload dispatched for ${n} workout(s).`, 'ok', 3500);
-    const hint=$('#uploadHint');
-    if(hint) hint.innerHTML=`Dispatched ✓ — <a class="underline" target="_blank" href="${runsUrl}">view workflow runs</a>.`;
+    const hint = $('#uploadHint');
+    if(hint) hint.innerHTML = `Dispatched ✓ — <a class="underline" target="_blank" href="${runsUrl}">view workflow runs</a>.`;
   }
+
 
   // ---------- Minimal ZWO ----------
   function makeZwoXml(w){
@@ -738,6 +838,8 @@
     save(); renderDayEditor(); totals();
     // Update day tab selection
     document.querySelectorAll('[data-daytab]').forEach(btn=>btn.setAttribute('aria-selected', btn.getAttribute('data-daytab')==state.selectedDay?'true':'false'));
+  
+    updateUploadHint();
   }
 
   (function boot(){
@@ -832,6 +934,18 @@
       const isoMonday=toISODate(mondayOf(new Date())); $('#weekStart').value=isoMonday; setWeekStartFromInput();
       updateTemplateList();
       refreshPlanList(); // public fallback works if repo is public
+
+      // Upload day selection events
+      document.getElementById('upSelectAll').addEventListener('change', e => { setUploadDaysAll(e.target.checked); updateUploadHint(); });
+      uploadDayCheckboxEls().forEach(cb => cb.addEventListener('change', () => {
+        // Keep "select all" in sync
+        const allChecked = uploadDayCheckboxEls().every(x => x.checked);
+        document.getElementById('upSelectAll').checked = allChecked;
+        updateUploadHint();
+      }));
+      updateUploadHint();
+
+
     }catch(e){ showErr(e.message||e); }
   })();
   </script>
