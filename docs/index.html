@@ -652,6 +652,56 @@
       refreshPlanList();
     }catch(e){ showErr(e.message||e); }
   })();
+
+(function(){
+  // Remove invisible Unicode & trim
+  function cleanToken(t){ return (t||'').replace(/[\u2000-\u200B\u202F\u205F\uFEFF]/g,'').trim(); }
+  function asciiOnly(s){ return /^[\x00-\x7F]*$/.test(s); }
+
+  // Hardened fetch: sanitize token; if header construction fails, try public GET
+  const oldGhFetch = window.ghFetch;
+  window.ghFetch = async function(url, token, init){
+    const baseHeaders = { Accept: 'application/vnd.github+json' };
+    const req = Object.assign({}, init||{});
+    req.headers = Object.assign({}, baseHeaders, req.headers||{});
+
+    const tok = cleanToken(token||'');
+    if (tok) {
+      if (!asciiOnly(tok)) throw new Error('PAT contains non-ASCII characters. Re-copy it from GitHub.');
+      req.headers.Authorization = 'token ' + tok;
+    }
+
+    try {
+      return await fetch(url, req);
+    } catch (e) {
+      // If building headers blew up (Safari/Chrome strictness), try unauthenticated fetch for public repos
+      if (tok) {
+        try { return await fetch(url, { headers: baseHeaders, method: req.method||'GET', body: req.body }); }
+        catch { /* fall through */ }
+      }
+      throw e;
+    }
+  };
+
+  // Sanitize token on save so future calls are clean
+  const saveBtn = document.getElementById('saveGhCfg');
+  if (saveBtn && !saveBtn.__sanitized) {
+    saveBtn.__sanitized = true;
+    saveBtn.addEventListener('click', function(){
+      const cfg = {
+        token: cleanToken(document.getElementById('ghToken').value),
+        owner: document.getElementById('ghOwner').value,
+        repo:  document.getElementById('ghRepo').value,
+        branch:document.getElementById('ghBranch').value,
+        prefix:document.getElementById('ghPrefix').value
+      };
+      ghSave(cfg);
+      document.getElementById('ghToken').value = cfg.token; // reflect cleaned value
+      const m = document.getElementById('saveGhMsg');
+      if (m) { m.textContent = 'Saved ✓'; setTimeout(()=>m.textContent='',2500); }
+    });
+  }
+})();
   </script>
 </body>
 </html>
