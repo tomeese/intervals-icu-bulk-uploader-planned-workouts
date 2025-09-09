@@ -246,54 +246,105 @@
     .btn-ghost{ background:transparent; border-color:transparent; }
 
     /* Tabs: force our colors to win over any utility classes */
-.tabs .tab{
-  background: var(--tabInactiveBg) !important;
-  color: var(--tabInactiveFg) !important;
-  border-color: var(--tabBorder) !important;
-}
-.tabs .tab[aria-selected="true"]{
-  background: var(--panelBg) !important;
-  color: inherit !important; /* or #fff if you prefer */
-  border-color: var(--tabBorder) !important;
-}
-/* ---- Stronger active-tab styling ---- */
-:root{
-  /* brand accent (light) */
-  --tabActiveAccent: rgb(37 99 235);   /* blue-600 */
-  --tabActiveText:   rgb(100 124 201);   /* blue-800 */
-}
-@media (prefers-color-scheme: dark){
-  /* brighter accent for dark backgrounds */
-  --tabActiveAccent: rgb(96 165 250);  /* blue-400 */
-  --tabActiveText:   rgb(100 124 201); /* blue-200 */
- /* --tabActiveText:   rgb(191 219 254); /* blue-200 */
-}
+    .tabs .tab{
+      background: var(--tabInactiveBg) !important;
+      color: var(--tabInactiveFg) !important;
+      border-color: var(--tabBorder) !important;
+    }
+    .tabs .tab[aria-selected="true"]{
+      background: var(--panelBg) !important;
+      color: inherit !important; /* or #fff if you prefer */
+      border-color: var(--tabBorder) !important;
+    }
+    /* ---- Stronger active-tab styling ---- */
+    :root{
+      /* brand accent (light) */
+      --tabActiveAccent: rgb(37 99 235);   /* blue-600 */
+      --tabActiveText:   rgb(100 124 201);   /* blue-800 */
+    }
+    @media (prefers-color-scheme: dark){
+      /* brighter accent for dark backgrounds */
+      --tabActiveAccent: rgb(96 165 250);  /* blue-400 */
+      --tabActiveText:   rgb(100 124 201); /* blue-200 */
+    /* --tabActiveText:   rgb(191 219 254); /* blue-200 */
+    }
 
-/* Base tab colors already set; make active tab stand out */
-.tabs .tab[aria-selected="true"]{
-  background: var(--panelBg) !important;                 /* keep connected look */
-  color: var(--tabActiveText) !important;                /* colored label */
-  font-weight: 700;                                      /* bolder text */
-  border-color: var(--tabBorder) !important;
-  border-top: 3px solid var(--tabActiveAccent) !important; /* accent bar */
-  padding-top: calc(.55rem - 2px);                       /* compensate for thicker top */
-  box-shadow: 0 1px 0 0 var(--panelBg);                  /* clean edge to panel */
-}
+    /* Base tab colors already set; make active tab stand out */
+    .tabs .tab[aria-selected="true"]{
+      background: var(--panelBg) !important;                 /* keep connected look */
+      color: var(--tabActiveText) !important;                /* colored label */
+      font-weight: 700;                                      /* bolder text */
+      border-color: var(--tabBorder) !important;
+      border-top: 3px solid var(--tabActiveAccent) !important; /* accent bar */
+      padding-top: calc(.55rem - 2px);                       /* compensate for thicker top */
+      box-shadow: 0 1px 0 0 var(--panelBg);                  /* clean edge to panel */
+    }
 
-/* Slight tint on hover for any tab */
-.tabs .tab:hover{
-  /* subtle tint; falls back to no tint if color-mix unsupported */
-  background: color-mix(in oklab, var(--panelBg) 94%, var(--tabActiveAccent)) !important;
-}
+    /* Slight tint on hover for any tab */
+    .tabs .tab:hover{
+      /* subtle tint; falls back to no tint if color-mix unsupported */
+      background: color-mix(in oklab, var(--panelBg) 94%, var(--tabActiveAccent)) !important;
+    }
 
-/* Keep inactive tabs soft in dark mode */
-@media (prefers-color-scheme: dark){
-  .tabs .tab[aria-selected="false"]{
-    background: var(--tabInactiveBg) !important;
-    color: var(--tabInactiveFg) !important;
-    border-color: var(--tabBorder) !important;
-  }
-}
+    /* Keep inactive tabs soft in dark mode */
+    @media (prefers-color-scheme: dark){
+      .tabs .tab[aria-selected="false"]{
+        background: var(--tabInactiveBg) !important;
+        color: var(--tabInactiveFg) !important;
+        border-color: var(--tabBorder) !important;
+      }
+    }
+    /* === Day-of-week tabs styled like the top tabs === */
+    .day-tabs{                      /* container (like .tabs) */
+      display:flex; gap:.4rem; align-items:flex-end;
+      border-bottom:1px solid var(--tabBorder);
+      overflow-x:auto; -webkit-overflow-scrolling:touch;
+      padding:0 .25rem; margin-top:.5rem;
+    }
+    .day-tabs::-webkit-scrollbar{ height:6px }
+    .day-tabs::-webkit-scrollbar-thumb{ background:rgba(100,116,139,.35); border-radius:9999px }
+
+    /* buttons act like tabs */
+    .day-tabs .day-tab{
+      position:relative; top:1px;
+      padding:.5rem .8rem; font-weight:600;
+      border:1px solid var(--tabBorder); border-bottom:none;
+      border-top-left-radius:.6rem; border-top-right-radius:.6rem;
+      background:var(--tabInactiveBg); color:var(--tabInactiveFg);
+      transition: filter .15s ease, background .15s ease, color .15s ease;
+      white-space:nowrap;
+    }
+    .day-tabs .day-tab:hover{ filter:brightness(.98) }
+
+    /* stronger active indicator (same as top tabs) */
+    .day-tabs .day-tab[aria-selected="true"]{
+      background:var(--panelBg) !important;
+      color:var(--tabActiveText) !important;
+      font-weight:700;
+      border-color:var(--tabBorder) !important;
+      border-top:3px solid var(--tabActiveAccent) !important;
+      padding-top:calc(.5rem - 2px);
+      z-index:2;
+    }
+
+    /* the panel connected to day tabs */
+    .day-tabpanel{
+      background:var(--panelBg);
+      border:1px solid var(--tabBorder);
+      border-top:none;
+      border-bottom-left-radius:.75rem; border-bottom-right-radius:.75rem;
+      padding:1rem;
+    }
+
+    /* Totals: its own independent card, not connected to day panel */
+    .totals-card{
+      background:var(--panelBg);
+      border:1px solid var(--tabBorder);
+      border-radius:.75rem;
+      padding:1rem;
+      margin-top:1rem;
+    }
+
 
   </style>
 </head>
@@ -391,13 +442,19 @@
         <!-- Day tabs -->
         <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
           <div class="p-3 border-b border-slate-200 dark:border-slate-800 day-tabs flex gap-2 flex-wrap">
-            <button class="sm-btn" data-daytab="0" aria-selected="true">Mon</button>
-            <button class="sm-btn" data-daytab="1">Tue</button>
-            <button class="sm-btn" data-daytab="2">Wed</button>
-            <button class="sm-btn" data-daytab="3">Thu</button>
-            <button class="sm-btn" data-daytab="4">Fri</button>
-            <button class="sm-btn" data-daytab="5">Sat</button>
-            <button class="sm-btn" data-daytab="6">Sun</button>
+            <div class="day-tabs" role="tablist" aria-label="Weekdays">
+              <button class="day-tab" data-day="0" aria-selected="true">Mon</button>
+              <button class="day-tab" data-day="1" aria-selected="false">Tue</button>
+              <button class="day-tab" data-day="2" aria-selected="false">Wed</button>
+              <button class="day-tab" data-day="3" aria-selected="false">Thu</button>
+              <button class="day-tab" data-day="4" aria-selected="false">Fri</button>
+              <button class="day-tab" data-day="5" aria-selected="false">Sat</button>
+              <button class="day-tab" data-day="6" aria-selected="false">Sun</button>
+            </div>
+<div class="day-tabpanel space-y-4">
+  <!-- the “Copy prev / Clear day / Add workout” toolbar -->
+  <!-- the currently selected day’s content / rows -->
+
             <div class="ml-auto flex gap-2">
               <button class="btn btn-outline" id="copyPrevDayBtn">Copy prev</button>
               <button class="btn btn-outline" id="clearDayBtn">Clear day</button>
@@ -406,7 +463,7 @@
           </div>
           <div class="p-4" id="dayEditor"><!-- rows render here --></div>
         </div>
-
+</div>
         <!-- Totals -->
         <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
           <h3 class="text-lg font-semibold mb-3">Totals</h3>
