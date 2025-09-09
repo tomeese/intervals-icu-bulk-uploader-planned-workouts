@@ -244,6 +244,18 @@
     .btn-danger{ background:var(--btnDangerBg); color:#fff; border-color:var(--btnDangerBg); }
     .btn-ghost{ background:transparent; border-color:transparent; }
 
+    /* Tabs: force our colors to win over any utility classes */
+.tabs .tab{
+  background: var(--tabInactiveBg) !important;
+  color: var(--tabInactiveFg) !important;
+  border-color: var(--tabBorder) !important;
+}
+.tabs .tab[aria-selected="true"]{
+  background: var(--panelBg) !important;
+  color: inherit !important; /* or #fff if you prefer */
+  border-color: var(--tabBorder) !important;
+}
+
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
