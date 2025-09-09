@@ -5,233 +5,68 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Weekly Workout Planner</title>
   <meta name="color-scheme" content="light dark"/>
+
+  <!-- Prebuilt Tailwind v4 stylesheet (built by GH Action) -->
+  <link rel="stylesheet" href="assets/tw.css?v=3"/>
+
+  <!-- Favicon (project page path) -->
   <link rel="icon" href="./favicon.ico" sizes="any">
-  <link rel="stylesheet" href="assets/tw.css?v=2"/>
+
   <style>
-/* ==== unified tokens ==== */
-:root{
-  /* tabs/panel (light) */
-  --panelBg: #fff;
-  --tabBorder: rgb(203 213 225);      /* slate-300 */
-  --tabInactiveBg: rgb(248 250 252);  /* slate-50 */
-  --tabInactiveFg: rgb(71 85 105);    /* slate-600 */
+    /* Safety: even if Tailwind fails to load, don't fall back to Times */
+    html{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";}
 
-  /* inputs (light) */
-  --inputBg: #fff;
-  --inputFg: rgb(15 23 42);           /* slate-900 */
-  --inputBd: rgb(226 232 240);        /* slate-200 */
-}
+    /* ---------- Tokens ---------- */
+    :root{
+      /* Panel + tabs (light) */
+      --panelBg: #fff;
+      --tabBorder: rgb(203 213 225);      /* slate-300 */
+      --tabInactiveBg: rgb(248 250 252);  /* slate-50 */
+      --tabInactiveFg: rgb(71 85 105);    /* slate-600 */
+      --tabActiveAccent: rgb(37 99 235);  /* blue-600 */
+      --tabActiveText:   rgb(100 124 201);/* preferred accent text */
 
-/* dark scheme — matches Tailwind's media dark mode */
-@media (prefers-color-scheme: dark){
-  :root{
-    --panelBg: rgb(30 41 59);         /* slate-800 */
-    --tabBorder: rgb(51 65 85);       /* slate-700 */
-    --tabInactiveBg: rgb(30 41 59);   /* slate-800 (softer, not white) */
-    --tabInactiveFg: rgb(203 213 225);/* slate-300 */
+      /* Inputs (light) */
+      --inputBg: #fff;
+      --inputFg: rgb(15 23 42);           /* slate-900 */
+      --inputBd: rgb(226 232 240);        /* slate-200 */
 
-    --inputBg: rgb(15 23 42);         /* slate-900 */
-    --inputFg: rgb(226 232 240);      /* slate-200/300 */
-    --inputBd: rgb(51 65 85);         /* slate-700 */
-  }
-}
+      /* Buttons (light) */
+      --btnPrimaryBg: rgb(37 99 235);     /* blue-600 */
+      --btnDangerBg:  rgb(220 38 38);     /* red-600  */
+      --btnSecBg:     rgb(226 232 240);   /* slate-200 */
+      --btnSecFg:     rgb(15 23 42);      /* slate-900 */
+      --btnSecBd:     rgb(203 213 225);   /* slate-300 */
+      --btnOlFg:      rgb(51 65 85);      /* slate-700 */
+      --btnOlBd:      rgb(203 213 225);   /* slate-300 */
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --panelBg: rgb(30 41 59);         /* slate-800 */
+        --tabBorder: rgb(51 65 85);       /* slate-700 */
+        --tabInactiveBg: rgb(30 41 59);   /* slate-800 */
+        --tabInactiveFg: rgb(203 213 225);/* slate-300 */
+        --tabActiveAccent: rgb(96 165 250); /* blue-400 */
+        --tabActiveText:   rgb(100 124 201); /* user preference */
 
-/* ==== tabs look/feel ==== */
-.tabs{ border-bottom:1px solid var(--tabBorder); }
-.tab{
-  background: var(--tabInactiveBg);
-  color: var(--tabInactiveFg);
-  border:1px solid var(--tabBorder);
-  border-bottom:none;
-}
-.tab[aria-selected="true"]{
-  background: var(--panelBg);
-  color: inherit;
-  border-color: var(--tabBorder);
-  z-index:2;
-}
-.tabpanel{
-  background: var(--panelBg);
-  border:1px solid var(--tabBorder);
-  border-top:none;
-  border-bottom-left-radius:.75rem;
-  border-bottom-right-radius:.75rem;
-}
+        --inputBg: rgb(15 23 42);         /* slate-900 */
+        --inputFg: rgb(226 232 240);      /* slate-200/300 */
+        --inputBd: rgb(51 65 85);         /* slate-700 */
 
-/* ==== inputs/selects/textarea inside panels ==== */
-/* Use .tabpanel to add specificity and beat utility classes */
-.tabpanel input,
-.tabpanel select,
-.tabpanel textarea{
-  background: var(--inputBg) !important;
-  color: var(--inputFg) !important;
-  border: 1px solid var(--inputBd) !important;
-}
-.tabpanel input::placeholder,
-.tabpanel textarea::placeholder{ color: color-mix(in oklab, var(--inputFg) 55%, transparent); }
-.tabpanel select option{ color: initial; } /* keep native options readable */
+        --btnSecBg:  rgb(30 41 59);       /* slate-800 */
+        --btnSecFg:  rgb(203 213 225);    /* slate-300 */
+        --btnSecBd:  rgb(51 65 85);       /* slate-700 */
+        --btnOlFg:   rgb(203 213 225);    /* slate-300 */
+        --btnOlBd:   rgb(51 65 85);       /* slate-700 */
+      }
+    }
 
-/* day pill buttons in dark mode (for consistency) */
-@media (prefers-color-scheme: dark){
-  .day-tabs button{
-    background: rgb(30 41 59);
-    color: rgb(203 213 225);
-    border-color: var(--tabBorder);
-  }
-  .day-tabs button:hover{ background: rgb(51 65 85); }
-  .day-tabs button[aria-selected="true"]{ background: var(--panelBg); color:#fff; }
-}
-
-
-    :root{--ring:0 0 0 2px rgba(37,99,235,.35)}
+    /* ---------- Utilities ---------- */
+    [hidden]{display:none !important;}
     .card{border-radius:.75rem}
     .field{display:flex;flex-direction:column;gap:.45rem}
-    .lbl{font-size:.85rem;line-height:1.1rem;color:rgb(100 116 139)}
-    .inp{width:100%;padding:.6rem .7rem;border-radius:.6rem;border:1px solid rgb(203 213 225)}
-    .inp.dark{border-color:rgb(51 65 85);background:rgb(15 23 42)}
-    .inp:focus{outline:none;box-shadow:var(--ring)}
-    .sm-btn{padding:.5rem .75rem;border-radius:.55rem;border:1px solid rgb(203 213 225)}
-    .row-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:.75rem}
-   /* Day tabs: selected vs inactive, with dark-mode contrast */
-    .day-tabs button[aria-selected="true"]{
-      background: rgb(15 23 42);      /* slate-900 */
-      color: #fff;
-      border-color: rgb(15 23 42);
-    }
-    .day-tabs button{
-      background: rgb(226 232 240);   /* slate-200 */
-      color: rgb(15 23 42);           /* slate-900 */
-    }
-    .day-tabs button:hover{ filter: brightness(0.95); }
 
-    /* Dark mode inactive tabs: readable text on dark bg */
-    .dark .day-tabs button{
-      background: rgb(30 41 59);      /* slate-800 */
-      color: rgb(203 213 225);        /* slate-300 */
-    }
-    .dark .day-tabs button:hover{
-      background: rgb(51 65 85);      /* slate-700 */
-    }
-    /* Top-level tabs (Plan / Load & Save / Upload / Settings) */
-    [role="tab"][aria-selected="true"]{
-      background: rgb(37 99 235);     /* blue-600 */
-      border-color: rgb(37 99 235);
-      color: #fff;
-    }
-    [role="tab"][aria-selected="false"]{
-      background: rgb(226 232 240);
-      color: rgb(15 23 42);
-    }
-    .dark [role="tab"][aria-selected="false"]{
-      background: rgb(30 41 59);
-      color: rgb(203 213 225);
-    }
-    /* Toasts */
-    #toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:.5rem;z-index:60}
-    .toast{padding:.6rem .8rem;border-radius:.6rem;color:white}
-    .toast-ok{background:#10b981}
-    .toast-warn{background:#f59e0b}
-    .toast-err{background:#ef4444}
-    /* Modal */
-    #modal{position:fixed;inset:0;z-index:50;display:none}
-    #modal.show{display:block}
-
-    /* ===== Top Nav Tabs ===== */
-    :root{
-      --panelBg: #fff;
-      --tabBorder: rgb(203 213 225);   /* slate-300 */
-      --tabInactiveBg: rgb(248 250 252); /* slate-50 */
-      --tabInactiveFg: rgb(71 85 105);   /* slate-600 */
-    }
-    .dark{
-      --panelBg: rgb(30 41 59);        /* slate-800 */
-      --tabBorder: rgb(51 65 85);      /* slate-700 */
-      --tabInactiveBg: rgb(15 23 42);  /* slate-900 */
-      --tabInactiveFg: rgb(203 213 225); /* slate-300 */
-    }
-/* Light defaults already set above via :root … */
-
-/* ---- Dark-mode overrides (media-based, to match Tailwind CDN) ---- */
-@media (prefers-color-scheme: dark){
-  :root{
-    /* Panels & tabs */
-    --panelBg: rgb(30 41 59);        /* slate-800 */
-    --tabBorder: rgb(51 65 85);      /* slate-700 */
-    --tabInactiveBg: rgb(15 23 42);  /* slate-900 */
-    --tabInactiveFg: rgb(203 213 225); /* slate-300 */
-
-    /* Button system */
-    --btnSecBg:  rgb(30 41 59);      /* slate-800 */
-    --btnSecFg:  rgb(203 213 225);   /* slate-300 */
-    --btnSecBd:  rgb(51 65 85);      /* slate-700 */
-    --btnOlFg:   rgb(203 213 225);   /* slate-300 */
-    --btnOlBd:   rgb(51 65 85);      /* slate-700 */
-  }
-
-  /* Top tabs & panel borders pick up dark vars automatically,
-     but ensure we don’t inherit light colors anywhere */
-  .tab{ background: var(--tabInactiveBg); color: var(--tabInactiveFg); border-color: var(--tabBorder); }
-  .tabpanel{ background: var(--panelBg); border-color: var(--tabBorder); }
-
-  /* Day tabs contrast in dark mode */
-  .day-tabs button{
-    background: rgb(30 41 59);       /* slate-800 */
-    color: rgb(203 213 225);         /* slate-300 */
-    border-color: var(--tabBorder);
-  }
-  .day-tabs button:hover{ background: rgb(51 65 85); } /* slate-700 */
-  .day-tabs button[aria-selected="true"]{
-    background: var(--panelBg);
-    color: #fff; /* or keep inherit if you prefer */
-  }
-}
-
-    .tabs{
-      display:flex; gap:.4rem; align-items:flex-end;
-      border-bottom:1px solid var(--tabBorder);
-      overflow-x:auto; -webkit-overflow-scrolling:touch;
-      padding:0 .25rem;
-    }
-    .tabs::-webkit-scrollbar{ height:6px }
-    .tabs::-webkit-scrollbar-thumb{ background:rgba(100,116,139,.35); border-radius:9999px }
-
-    .tab{
-      position:relative; top:1px; /* lift onto the panel border */
-      padding:.55rem .9rem; font-weight:600;
-      border:1px solid var(--tabBorder); border-bottom:none;
-      border-top-left-radius:.6rem; border-top-right-radius:.6rem;
-      background:var(--tabInactiveBg); color:var(--tabInactiveFg);
-      transition: filter .15s ease, background .15s ease, color .15s ease;
-      white-space:nowrap;
-    }
-    .tab:hover{ filter:brightness(.98) }
-    .tab:focus{ outline: none; box-shadow: 0 0 0 2px rgba(37,99,235,.35); border-color: rgba(37,99,235,.55); }
-
-    /* Active tab sits “on” the panel */
-    .tab[aria-selected="true"]{
-      background:var(--panelBg); color:inherit;
-      z-index:2;
-    }
-
-    /* Panel that sits under tabs */
-    .tabpanel{
-      background:var(--panelBg);
-      border:1px solid var(--tabBorder);
-      border-top:none; /* connect to the active tab edge */
-      border-bottom-left-radius:.75rem; border-bottom-right-radius:.75rem;
-    }
-
-    /* ---------- Unified button system ---------- */
-    :root{
-      --btnPrimaryBg: rgb(37 99 235);   /* blue-600 */
-      --btnDangerBg:  rgb(220 38 38);   /* red-600  */
-      --btnSecBg:     rgb(226 232 240); /* slate-200 */
-      --btnSecFg:     rgb(15 23 42);    /* slate-900 */
-      --btnSecBd:     rgb(203 213 225); /* slate-300 */
-      --btnOlFg:      rgb(51 65 85);    /* slate-700 */
-      --btnOlBd:      rgb(203 213 225); /* slate-300 */
-    }
-    
+    /* ---------- Button system ---------- */
     .btn{
       display:inline-flex; align-items:center; justify-content:center;
       padding:.55rem .9rem; border-radius:.6rem; font-weight:600;
@@ -243,59 +78,58 @@
     .btn-secondary{ background:var(--btnSecBg); color:var(--btnSecFg); border-color:var(--btnSecBd); }
     .btn-outline{ background:transparent; color:var(--btnOlFg); border-color:var(--btnOlBd); }
     .btn-danger{ background:var(--btnDangerBg); color:#fff; border-color:var(--btnDangerBg); }
-    .btn-ghost{ background:transparent; border-color:transparent; }
-
-    /* Tabs: force our colors to win over any utility classes */
-    .tabs .tab{
-      background: var(--tabInactiveBg) !important;
-      color: var(--tabInactiveFg) !important;
-      border-color: var(--tabBorder) !important;
-    }
-    .tabs .tab[aria-selected="true"]{
-      background: var(--panelBg) !important;
-      color: inherit !important; /* or #fff if you prefer */
-      border-color: var(--tabBorder) !important;
-    }
-    /* ---- Stronger active-tab styling ---- */
-    :root{
-      /* brand accent (light) */
-      --tabActiveAccent: rgb(37 99 235);   /* blue-600 */
-      --tabActiveText:   rgb(100 124 201);   /* blue-800 */
-    }
+    /* Dark-mode contrast for outline buttons */
     @media (prefers-color-scheme: dark){
-      /* brighter accent for dark backgrounds */
-      --tabActiveAccent: rgb(96 165 250);  /* blue-400 */
-      --tabActiveText:   rgb(100 124 201); /* blue-200 */
-    /* --tabActiveText:   rgb(191 219 254); /* blue-200 */
-    }
-
-    /* Base tab colors already set; make active tab stand out */
-    .tabs .tab[aria-selected="true"]{
-      background: var(--panelBg) !important;                 /* keep connected look */
-      color: var(--tabActiveText) !important;                /* colored label */
-      font-weight: 700;                                      /* bolder text */
-      border-color: var(--tabBorder) !important;
-      border-top: 3px solid var(--tabActiveAccent) !important; /* accent bar */
-      padding-top: calc(.55rem - 2px);                       /* compensate for thicker top */
-      box-shadow: 0 1px 0 0 var(--panelBg);                  /* clean edge to panel */
-    }
-
-    /* Slight tint on hover for any tab */
-    .tabs .tab:hover{
-      /* subtle tint; falls back to no tint if color-mix unsupported */
-      background: color-mix(in oklab, var(--panelBg) 94%, var(--tabActiveAccent)) !important;
-    }
-
-    /* Keep inactive tabs soft in dark mode */
-    @media (prefers-color-scheme: dark){
-      .tabs .tab[aria-selected="false"]{
-        background: var(--tabInactiveBg) !important;
-        color: var(--tabInactiveFg) !important;
-        border-color: var(--tabBorder) !important;
+      .btn-outline{
+        background: rgba(148, 163, 184, 0.10) !important; /* slate-400 @10% */
+        color: rgb(226, 232, 240) !important;              /* slate-200 */
+        border-color: rgb(71, 85, 105) !important;         /* slate-600 */
+      }
+      .btn-outline:hover{
+        background: rgba(148, 163, 184, 0.18) !important;
+        border-color: rgb(100, 116, 139) !important;
+        filter: none;
       }
     }
-    /* === Day-of-week tabs styled like the top tabs === */
-    .day-tabs{                      /* container (like .tabs) */
+
+    /* ---------- Top nav tabs ---------- */
+    .tabs{
+      display:flex; gap:.4rem; align-items:flex-end;
+      border-bottom:1px solid var(--tabBorder);
+      overflow-x:auto; -webkit-overflow-scrolling:touch;
+      padding:0 .25rem;
+    }
+    .tabs::-webkit-scrollbar{ height:6px }
+    .tabs::-webkit-scrollbar-thumb{ background:rgba(100,116,139,.35); border-radius:9999px }
+    .tab{
+      position:relative; top:1px;
+      padding:.55rem .9rem; font-weight:600;
+      border:1px solid var(--tabBorder); border-bottom:none;
+      border-top-left-radius:.6rem; border-top-right-radius:.6rem;
+      background:var(--tabInactiveBg); color:var(--tabInactiveFg);
+      transition: filter .15s ease, background .15s ease, color .15s ease;
+      white-space:nowrap;
+    }
+    .tab:hover{ filter:brightness(.98) }
+    .tab[aria-selected="true"]{
+      background: var(--panelBg) !important;
+      color: var(--tabActiveText) !important;
+      font-weight: 700;
+      border-color: var(--tabBorder) !important;
+      border-top: 3px solid var(--tabActiveAccent) !important;
+      padding-top: calc(.55rem - 2px);
+      z-index:2;
+      box-shadow: 0 1px 0 0 var(--panelBg);
+    }
+    .tabpanel{
+      background:var(--panelBg);
+      border:1px solid var(--tabBorder);
+      border-top:none;
+      border-bottom-left-radius:.75rem; border-bottom-right-radius:.75rem;
+    }
+
+    /* ---------- Day tabs styled like top tabs ---------- */
+    .day-tabs{
       display:flex; gap:.4rem; align-items:flex-end;
       border-bottom:1px solid var(--tabBorder);
       overflow-x:auto; -webkit-overflow-scrolling:touch;
@@ -303,9 +137,7 @@
     }
     .day-tabs::-webkit-scrollbar{ height:6px }
     .day-tabs::-webkit-scrollbar-thumb{ background:rgba(100,116,139,.35); border-radius:9999px }
-
-    /* buttons act like tabs */
-    .day-tabs .day-tab{
+    .day-tab{
       position:relative; top:1px;
       padding:.5rem .8rem; font-weight:600;
       border:1px solid var(--tabBorder); border-bottom:none;
@@ -314,10 +146,8 @@
       transition: filter .15s ease, background .15s ease, color .15s ease;
       white-space:nowrap;
     }
-    .day-tabs .day-tab:hover{ filter:brightness(.98) }
-
-    /* stronger active indicator (same as top tabs) */
-    .day-tabs .day-tab[aria-selected="true"]{
+    .day-tab:hover{ filter:brightness(.98) }
+    .day-tab[aria-selected="true"]{
       background:var(--panelBg) !important;
       color:var(--tabActiveText) !important;
       font-weight:700;
@@ -326,8 +156,6 @@
       padding-top:calc(.5rem - 2px);
       z-index:2;
     }
-
-    /* the panel connected to day tabs */
     .day-tabpanel{
       background:var(--panelBg);
       border:1px solid var(--tabBorder);
@@ -335,8 +163,10 @@
       border-bottom-left-radius:.75rem; border-bottom-right-radius:.75rem;
       padding:1rem;
     }
+    .tabs .tab{ background: var(--tabInactiveBg) !important; color: var(--tabInactiveFg) !important; border-color: var(--tabBorder) !important; }
+    .tabs .tab[aria-selected="true"]{ background: var(--panelBg) !important; color: var(--tabActiveText) !important; border-color: var(--tabBorder) !important; }
 
-    /* Totals: its own independent card, not connected to day panel */
+    /* Totals as a separate card */
     .totals-card{
       background:var(--panelBg);
       border:1px solid var(--tabBorder);
@@ -344,1064 +174,900 @@
       padding:1rem;
       margin-top:1rem;
     }
-/* Dark-mode contrast fix for outline buttons */
-@media (prefers-color-scheme: dark){
-  .btn-outline{
-    background: rgba(148, 163, 184, 0.10) !important; /* slate-400 @10% */
-    color: rgb(226, 232, 240) !important;              /* slate-200 */
-    border-color: rgb(71, 85, 105) !important;         /* slate-600 */
-  }
-  .btn-outline:hover{
-    background: rgba(148, 163, 184, 0.18) !important;  /* a bit more fill */
-    border-color: rgb(100, 116, 139) !important;       /* slate-500 */
-    filter: none;                                       /* skip generic dim */
-  }
-  .btn-outline:active{
-    background: rgba(148, 163, 184, 0.24) !important;
-    border-color: rgb(148, 163, 184) !important;       /* slate-400 */
-  }
-  .btn-outline:focus-visible{
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(96, 165, 250, .45);     /* blue-400 ring */
-    border-color: rgb(96, 165, 250) !important;
-  }
-}
 
-
+    /* Inputs inside panels: readable in both modes */
+    .tabpanel input,
+    .tabpanel select,
+    .tabpanel textarea{
+      background: var(--inputBg) !important;
+      color: var(--inputFg) !important;
+      border: 1px solid var(--inputBd) !important;
+    }
+    .tabpanel input::placeholder,
+    .tabpanel textarea::placeholder{ color: color-mix(in oklab, var(--inputFg) 55%, transparent); }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-  <!-- Error banner -->
-  <div id="errBanner" class="hidden bg-rose-600 text-white text-sm px-4 py-2"></div>
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <header class="mb-4 flex items-center justify-between">
+      <h1 class="text-2xl font-semibold">Weekly Workout Planner</h1>
+      <div class="text-xs text-slate-500">TZ: <span id="tzBadge">America/Los_Angeles</span></div>
+    </header>
 
-  <!-- Toasts -->
-  <div id="toasts"></div>
+    <!-- Top tabs -->
+    <nav class="tabs mb-0" role="tablist" aria-label="Planner tabs">
+      <button class="tab" role="tab" data-tab="plan"      aria-selected="true">Plan</button>
+      <button class="tab" role="tab" data-tab="loadsave"  aria-selected="false">Load &amp; Save</button>
+      <button class="tab" role="tab" data-tab="upload"    aria-selected="false">Intervals Upload</button>
+      <button class="tab" role="tab" data-tab="settings"  aria-selected="false">Settings</button>
+    </nav>
 
-  <!-- Modal -->
-  <div id="modal" class="bg-black/40">
-    <div class="max-w-lg mx-auto mt-28 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl">
-      <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-        <div id="modalTitle" class="text-lg font-semibold">Confirm</div>
+    <!-- PLAN -->
+    <section id="tab-plan" role="tabpanel" class="tabpanel p-4 space-y-6">
+      <!-- plan header / template -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+          <h3 class="text-lg font-semibold mb-3">Week</h3>
+          <div class="field">
+            <label class="text-xs text-slate-500">Week start (Monday)</label>
+            <input id="weekStart" type="date" class="rounded-lg px-2.5 py-1.5"/>
+          </div>
+          <div class="field mt-2">
+            <label class="text-xs text-slate-500">Template</label>
+            <select id="templateSelect" class="rounded-lg px-2.5 py-1.5">
+              <option value="">— Select —</option>
+              <option value="base-build">Base · Build week</option>
+              <option value="base-recovery">Base · Recovery week</option>
+              <option value="build-threshold">Build · Threshold focus</option>
+              <option value="specialty-vo2">Specialty · VO₂Max focus</option>
+            </select>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2">
+            <button id="loadTemplateBtn" class="btn btn-primary">Load template</button>
+            <button id="newWeekBtn" class="btn btn-secondary">Clear week</button>
+          </div>
+        </div>
+
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 md:col-span-2">
+          <h3 class="text-lg font-semibold">Edit days</h3>
+
+          <!-- Day tabs header -->
+          <div class="p-3">
+            <div class="day-tabs" role="tablist" aria-label="Weekdays">
+              <button class="day-tab" data-day="0" aria-selected="true">Mon</button>
+              <button class="day-tab" data-day="1" aria-selected="false">Tue</button>
+              <button class="day-tab" data-day="2" aria-selected="false">Wed</button>
+              <button class="day-tab" data-day="3" aria-selected="false">Thu</button>
+              <button class="day-tab" data-day="4" aria-selected="false">Fri</button>
+              <button class="day-tab" data-day="5" aria-selected="false">Sat</button>
+              <button class="day-tab" data-day="6" aria-selected="false">Sun</button>
+            </div>
+          </div>
+
+          <!-- Connected panel -->
+          <div class="day-tabpanel space-y-4">
+            <div class="flex items-center gap-2 justify-end">
+              <button class="btn btn-outline" id="copyPrevDayBtn">Copy prev</button>
+              <button class="btn btn-outline" id="clearDayBtn">Clear day</button>
+              <button class="btn btn-primary" id="addRowBtn">Add workout</button>
+            </div>
+            <div id="dayEditor"><!-- rows render here --></div>
+          </div>
+        </div>
       </div>
-      <div id="modalBody" class="px-4 py-3 text-sm"></div>
-      <div class="px-4 py-3 flex justify-end gap-2">
+
+      <!-- Totals (separate card) -->
+      <section class="totals-card space-y-4" id="totals">
+        <h3 class="text-lg font-semibold">Totals</h3>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="text-xs text-slate-500">Planned Time</div>
+            <div id="totPlannedTime" class="text-base font-semibold">0h 00m</div>
+          </div>
+          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="text-xs text-slate-500">Planned TSS</div>
+            <div id="totPlannedTss" class="text-base font-semibold">0</div>
+          </div>
+          <div class="md:col-span-1 col-span-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div class="text-xs text-slate-500 mb-1">By Type</div>
+            <div id="totByType" class="text-sm leading-6">—</div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- LOAD & SAVE -->
+    <section id="tab-loadsave" role="tabpanel" class="tabpanel p-4 space-y-6" hidden>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 space-y-3">
+          <h3 class="text-lg font-semibold">Save</h3>
+          <div class="text-xs text-slate-500">Saves the current plan JSON to your repo under <code>&lt;prefix&gt;/plan-&lt;week&gt;.json</code>.</div>
+          <button id="saveRepoBtn" class="btn btn-primary w-full">Save to repo</button>
+          <button id="exportBtn" class="btn btn-secondary w-full">Export JSON</button>
+          <div id="saveHint" class="text-xs text-slate-500"></div>
+        </div>
+
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 space-y-3">
+          <h3 class="text-lg font-semibold">Load from repo</h3>
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
+            <div class="md:col-span-4">
+              <label class="text-xs text-slate-500">Plan file</label>
+              <select id="planList" class="w-full rounded-lg px-2.5 py-1.5"></select>
+            </div>
+            <div class="md:col-span-1 flex gap-2">
+              <button id="refreshPlansBtn" class="btn btn-outline w-full">Refresh</button>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button id="loadPlanBtn" class="btn btn-primary">Load</button>
+            <a id="openPlanLink" class="btn btn-outline" target="_blank" href="#">Open on GitHub</a>
+          </div>
+          <div class="text-xs text-slate-500" id="loadHint"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- UPLOAD -->
+    <section id="tab-upload" role="tabpanel" class="tabpanel p-4 space-y-4" hidden>
+      <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+        <h3 class="text-lg font-semibold mb-2">Upload to Intervals</h3>
+        <p class="text-sm text-slate-500 mb-4">Select day(s) to upload. We’ll save a filtered plan file and trigger <code>upload-week-plan.yml</code>.</p>
+
+        <!-- Day checkboxes -->
+        <div class="mb-3 flex flex-wrap gap-3 items-center">
+          <label class="inline-flex items-center gap-2">
+            <input id="upSelectAll" type="checkbox" class="h-4 w-4" checked>
+            <span>Select all</span>
+          </label>
+          <div class="flex flex-wrap gap-3">
+            <label class="inline-flex items-center gap-2"><input type="checkbox" class="h-4 w-4" data-upday="0" checked><span>Mon</span></label>
+            <label class="inline-flex items-center gap-2"><input type="checkbox" class="h-4 w-4" data-upday="1" checked><span>Tue</span></label>
+            <label class="inline-flex items-center gap-2"><input type="checkbox" class="h-4 w-4" data-upday="2" checked><span>Wed</span></label>
+            <label class="inline-flex items-center gap-2"><input type="checkbox" class="h-4 w-4" data-upday="3" checked><span>Thu</span></label>
+            <label class="inline-flex items-center gap-2"><input type="checkbox" class="h-4 w-4" data-upday="4" checked><span>Fri</span></label>
+            <label class="inline-flex items-center gap-2"><input type="checkbox" class="h-4 w-4" data-upday="5" checked><span>Sat</span></label>
+            <label class="inline-flex items-center gap-2"><input type="checkbox" class="h-4 w-4" data-upday="6" checked><span>Sun</span></label>
+          </div>
+          <div class="ml-auto flex gap-2">
+            <button id="upWeekdays" class="btn btn-outline">Weekdays</button>
+            <button id="upWeekend"  class="btn btn-outline">Weekend</button>
+          </div>
+        </div>
+
+        <button id="uploadIntervalsBtn" class="btn btn-primary">Upload to Intervals</button>
+        <div class="text-xs text-slate-500 mt-3" id="uploadHint"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="tab-settings" role="tabpanel" class="tabpanel p-4 space-y-6" hidden>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 space-y-3">
+          <h3 class="text-lg font-semibold">GitHub save settings</h3>
+          <div class="text-xs text-slate-500">Stored only in this browser. Needs Content: Read &amp; Write.</div>
+          <label class="block">
+            <span class="block text-xs text-slate-500">Personal Access Token</span>
+            <input id="ghToken" type="password" placeholder="ghp_…" class="w-full rounded-lg px-2.5 py-1.5"/>
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <label><span class="block text-xs text-slate-500">Owner</span><input id="ghOwner" class="w-full rounded-lg px-2.5 py-1.5"/></label>
+            <label><span class="block text-xs text-slate-500">Repo</span><input id="ghRepo" class="w-full rounded-lg px-2.5 py-1.5"/></label>
+            <label><span class="block text-xs text-slate-500">Branch</span><input id="ghBranch" value="main" class="w-full rounded-lg px-2.5 py-1.5"/></label>
+            <label><span class="block text-xs text-slate-500">Path prefix</span><input id="ghPrefix" value="plans" class="w-full rounded-lg px-2.5 py-1.5"/></label>
+          </div>
+          <div class="flex gap-2">
+            <button id="saveGhCfg" class="btn btn-primary">Save settings</button>
+            <button id="clearGhCfg" class="btn btn-danger">Clear token</button>
+            <button id="testGhBtn" class="btn btn-outline">Test GitHub</button>
+          </div>
+          <div id="ghHint" class="text-xs text-slate-500"></div>
+        </div>
+
+        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 space-y-3">
+          <h3 class="text-lg font-semibold">Planner defaults</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <label><span class="block text-xs text-slate-500">Time zone</span><input id="inpTz" value="America/Los_Angeles" class="w-full rounded-lg px-2.5 py-1.5"/></label>
+            <label><span class="block text-xs text-slate-500">Athlete ID</span><input id="inpAthlete" value="0" class="w-full rounded-lg px-2.5 py-1.5"/></label>
+          </div>
+          <div class="text-xs text-slate-500">These are embedded into saved plan JSON and used by the workflow.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal (confirm) -->
+  <div id="modal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50"></div>
+    <div class="relative max-w-lg mx-auto mt-24 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+      <h3 id="modalTitle" class="text-lg font-semibold mb-2">Confirm</h3>
+      <div id="modalBody" class="prose prose-sm dark:prose-invert max-w-none"></div>
+      <div class="mt-4 flex justify-end gap-2">
         <button id="modalCancel" class="btn btn-outline">Cancel</button>
         <button id="modalOk" class="btn btn-primary">Confirm</button>
       </div>
     </div>
   </div>
 
-  <header class="bg-white/70 dark:bg-slate-900/60 backdrop-blur border-b border-slate-200 dark:border-slate-800">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex items-center justify-between gap-4">
-      <h1 class="text-2xl font-semibold tracking-tight">Weekly Workout Planner</h1>
-      <div class="hidden md:flex items-center gap-2 text-xs text-slate-500">
-        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">1) Plan</span>→
-        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">2) Save / Load</span>→
-        <span class="px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800">3) Upload</span>
-      </div>
-    </div>
-  </header>
-
-  <!-- Tabs -->
-  <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
-      <!-- Tab headers -->
-      <div class="px-3 pt-2">
-        <nav class="tabs" role="tablist" aria-label="Planner tabs">
-          <button class="tab" role="tab" data-tab="plan"      aria-selected="true">Plan</button>
-          <button class="tab" role="tab" data-tab="loadsave"  aria-selected="false">Load & Save</button>
-          <button class="tab" role="tab" data-tab="upload"    aria-selected="false">Intervals Upload</button>
-          <button class="tab" role="tab" data-tab="settings"  aria-selected="false">Settings</button>
-        </nav>
-      </div>
-
-      <!-- Tab: Plan -->
-      <section id="tab-plan" role="tabpanel" class="tabpanel p-4 space-y-6">
-        <!-- Week toolbar -->
-        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-            <label class="field">
-              <span class="lbl">Week start (Monday)</span>
-              <input id="weekStart" type="date" class="inp dark"/>
-            </label>
-            <label class="field">
-              <span class="lbl">Time zone (IANA)</span>
-              <input id="tz" type="text" value="America/Los_Angeles" class="inp dark"/>
-            </label>
-            <label class="field">
-              <span class="lbl">Athlete ID</span>
-              <input id="athleteId" type="number" value="0" class="inp dark"/>
-            </label>
-            <div class="flex items-end">
-              <button id="newWeekBtn" class="btn btn-secondary w-full">Clear week</button>
-
-            </div>
-          </div>
-        </div>
-
-        <!-- Phase & Template -->
-        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-          <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-            <label class="field">
-              <span class="lbl">Macro-phase</span>
-              <select id="phase" class="inp dark"><option>Base</option><option>Build</option><option>Specialty</option></select>
-            </label>
-            <label class="field">
-              <span class="lbl">Week focus</span>
-              <select id="focus" class="inp dark"><option>Build</option><option>Recovery</option></select>
-            </label>
-            <label class="field md:col-span-2">
-              <span class="lbl">Template</span>
-              <select id="templateKey" class="inp dark"><option value="">— choose phase & focus —</option></select>
-              <div id="templateDesc" class="mt-1 text-xs text-slate-500"></div>
-            </label>
-            <div class="flex items-end">
-              <button id="loadTemplateBtn" class="btn btn-primary w-full">Load template</button>
-            </div>
-          </div>
-        </div>
-
-      <!-- Day tabs -->
-      <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
-
-        <!-- Tabs header (just the tabs + a bottom border) -->
-        <div class="p-3 border-b border-slate-200 dark:border-slate-800">
-          <div class="day-tabs" role="tablist" aria-label="Weekdays">
-            <button class="day-tab" data-day="0" aria-selected="true">Mon</button>
-            <button class="day-tab" data-day="1" aria-selected="false">Tue</button>
-            <button class="day-tab" data-day="2" aria-selected="false">Wed</button>
-            <button class="day-tab" data-day="3" aria-selected="false">Thu</button>
-            <button class="day-tab" data-day="4" aria-selected="false">Fri</button>
-            <button class="day-tab" data-day="5" aria-selected="false">Sat</button>
-            <button class="day-tab" data-day="6" aria-selected="false">Sun</button>
-          </div>
-        </div>
-
-        <!-- Connected panel under the tabs -->
-        <div class="day-tabpanel space-y-4">
-          <div class="p-3 flex items-center gap-2 justify-end">
-            <button class="btn btn-outline" id="copyPrevDayBtn">Copy prev</button>
-            <button class="btn btn-outline" id="clearDayBtn">Clear day</button>
-            <button class="btn btn-primary" id="addRowBtn">Add workout</button>
-          </div>
-          <div class="p-4" id="dayEditor"><!-- rows render here --></div>
-        </div>
-
-      </div>
-
-        <section class="totals-card space-y-4" id="totals">
-        <!-- Totals -->
-        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-          <h3 class="text-lg font-semibold mb-3">Totals</h3>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-              <div class="text-xs text-slate-500">Planned Time</div>
-              <div id="totPlannedTime" class="text-base font-semibold">0h 00m</div>
-            </div>
-            <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-              <div class="text-xs text-slate-500">Planned TSS</div>
-              <div id="totPlannedTss" class="text-base font-semibold">0</div>
-            </div>
-            <div class="col-span-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-              <div class="text-xs text-slate-500 mb-1">By Type</div>
-              <div id="totByType" class="text-sm leading-6">—</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Tab: Load & Save -->
-      <section id="tab-loadsave" role="tabpanel" class="tabpanel p-4 space-y-6">
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-            <h3 class="text-lg font-semibold mb-3">Save current plan to repo</h3>
-            <button id="saveRepoBtn" class="btn btn-primary">Save to repo</button>
-       </div>
-          <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-            <h3 class="text-lg font-semibold mb-3">Export / Import</h3>
-            <div class="flex gap-2">
-              <button id="exportBtn" class="btn btn-secondary">Export JSON</button>
-              <label class="field">
-                <span class="lbl">Import JSON</span>
-                <input id="importFile" type="file" accept="application/json" class="text-sm"/>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold">Load a plan from repo</h3>
-            <div class="flex gap-2">
-              <button id="testGhBtn" class="btn btn-outline">Test GitHub</button>
-              <button id="refreshPlansBtn" class="btn btn-outline">Refresh</button>
-            </div>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-3">
-            <select id="loadPlanSelect" class="sm:col-span-3 inp dark"><option value="">— select plan —</option></select>
-              <button id="loadPlanBtn" class="btn btn-primary">Load</button>
-            <a id="openPlanLink" href="#" target="_blank" class="btn btn-outline">Open on GitHub</a>
-          </div>
-          <div id="loadPlanMsg" class="text-xs text-slate-500 mt-2"></div>
-        </div>
-      </section>
-
-      <!-- Tab: Intervals Upload -->
-     <section id="tab-upload" role="tabpanel" class="tabpanel p-4 space-y-6">
-
-      <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-        <h3 class="text-lg font-semibold mb-2">Upload this week’s plan</h3>
-        <p class="text-sm text-slate-500 mb-4">
-          Select the day(s) you want to upload. We’ll save a filtered plan file and trigger <code>upload-week-plan.yml</code>.
-        </p>
-
-        <!-- Day checkboxes -->
-        <div class="mb-3 flex flex-wrap gap-3 items-center">
-          <label class="inline-flex items-center gap-2">
-            <input id="upSelectAll" type="checkbox" class="h-4 w-4" checked>
-              <button id="upWeekdays" class="btn btn-outline">Weekdays</button>
-              <button id="upWeekend"  class="btn btn-outline">Weekend</button>
-
-            <span>Select all</span>
-          </label>
-          <div class="flex flex-wrap gap-3">
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" class="h-4 w-4" data-upday="0" checked><span>Mon</span>
-            </label>
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" class="h-4 w-4" data-upday="1" checked><span>Tue</span>
-            </label>
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" class="h-4 w-4" data-upday="2" checked><span>Wed</span>
-            </label>
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" class="h-4 w-4" data-upday="3" checked><span>Thu</span>
-            </label>
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" class="h-4 w-4" data-upday="4" checked><span>Fri</span>
-            </label>
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" class="h-4 w-4" data-upday="5" checked><span>Sat</span>
-            </label>
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" class="h-4 w-4" data-upday="6" checked><span>Sun</span>
-            </label>
-          </div>
-        </div>
-       <button id="uploadIntervalsBtn" class="btn btn-primary">Upload to Intervals</button>
-        <div class="text-xs text-slate-500 mt-3" id="uploadHint"></div>
-      </div>
-    </section>
-
-
-      <!-- Tab: Settings -->
-      <section id="tab-settings" role="tabpanel" class="tabpanel p-4 space-y-6">
-        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-          <h3 class="text-lg font-semibold mb-3">GitHub settings</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <label class="field"><span class="lbl">Personal Access Token (fine-grained)</span><input id="ghToken" type="password" placeholder="ghp_…" class="inp dark"/></label>
-            <label class="field"><span class="lbl">Owner</span><input id="ghOwner" value="tomeese" class="inp dark"/></label>
-            <label class="field"><span class="lbl">Repo</span><input id="ghRepo" value="intervals-icu-bulk-uploader-planned-workouts" class="inp dark"/></label>
-            <label class="field"><span class="lbl">Branch</span><input id="ghBranch" value="main" class="inp dark"/></label>
-            <label class="field"><span class="lbl">Path prefix</span><input id="ghPrefix" value="plans" class="inp dark"/></label>
-          </div>
-          <div class="flex items-center gap-2 mt-3">
-            <button id="saveGhCfg" class="btn btn-primary">Save settings</button>
-            <span id="saveGhMsg" class="text-xs text-emerald-500"></span>
-            <button id="clearGhCfg" class="btn btn-danger">Clear token</button>
-          </div>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <!-- Workout row template -->
-  <template id="rowTpl">
-    <div class="py-4 border-b border-slate-100 dark:border-slate-900 last:border-0">
-      <div class="row-grid">
-        <label class="field col-span-6">
-          <span class="lbl">Name</span>
-          <input type="text" class="inp dark" placeholder="Endurance Z2 - 2h" data-name/>
-        </label>
-        <label class="field col-span-3">
-          <span class="lbl">Type</span>
-          <select class="inp dark" data-type>
-            <option>Ride</option><option>Gravel Ride</option><option>Virtual Ride</option>
-          </select>
-        </label>
-        <label class="field col-span-3">
-          <span class="lbl">Indoor</span>
-          <input type="checkbox" class="h-5 w-5 mt-2" data-indoor/>
-        </label>
-
-        <label class="field col-span-3">
-          <span class="lbl">Duration (HH:MM)</span>
-          <input type="text" inputmode="numeric" pattern="^\\d{1,2}:[0-5]\\d$" placeholder="HH:MM" class="inp dark" value="01:00" data-duration/>
-        </label>
-        <label class="field col-span-3">
-          <span class="lbl">TSS</span>
-          <input type="number" min="0" step="1" class="inp dark" value="50" data-tss/>
-        </label>
-        <label class="field col-span-6">
-          <span class="lbl">Notes</span>
-          <input type="text" class="inp dark" placeholder="Optional" data-notes/>
-        </label>
-      </div>
-
-      <div class="mt-3 flex flex-wrap gap-2 justify-end">
-        <button class="btn btn-outline" data-design-btn>Design</button>
-        <button class="btn btn-secondary" data-zwo>ZWO</button>
-        <button class="btn btn-danger" data-del>Delete</button>
-      </div>
-
-      <!-- DESIGN panel -->
-      <div class="hidden rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900 mt-3" data-design-panel>
-        <div class="text-xs text-slate-500 mb-2">Workout design (saved into JSON for ZWO)</div>
-        <div class="row-grid">
-          <label class="field col-span-3"><span class="lbl">FTP (W)</span><input type="number" min="50" max="600" step="1" class="inp dark" data-d-ftp></label>
-          <label class="field col-span-3"><span class="lbl">Sets</span><input type="number" min="1" max="20" step="1" class="inp dark" data-d-sets></label>
-          <label class="field col-span-3"><span class="lbl">Work (sec)</span><input type="number" min="15" max="7200" step="5" class="inp dark" data-d-work></label>
-          <label class="field col-span-3"><span class="lbl">Rest (sec)</span><input type="number" min="10" max="7200" step="5" class="inp dark" data-d-rec></label>
-
-          <label class="field col-span-3"><span class="lbl">Target %FTP</span><input type="number" min="0.3" max="1.8" step="0.01" placeholder="0.95" class="inp dark" data-d-target></label>
-          <label class="field col-span-3"><span class="lbl">Over/Under</span><input type="checkbox" class="h-5 w-5 mt-2" data-d-ou></label>
-          <label class="field col-span-3"><span class="lbl">Under %FTP</span><input type="number" min="0.3" max="1.5" step="0.01" placeholder="0.95" class="inp dark" data-d-under></label>
-          <label class="field col-span-3"><span class="lbl">Over %FTP</span><input type="number" min="0.3" max="1.8" step="0.01" placeholder="1.05" class="inp dark" data-d-over></label>
-
-          <label class="field col-span-3"><span class="lbl">Warmup (sec)</span><input type="number" min="60" max="3600" step="30" placeholder="600" class="inp dark" data-d-warm></label>
-          <label class="field col-span-3"><span class="lbl">Cooldown (sec)</span><input type="number" min="60" max="3600" step="30" placeholder="600" class="inp dark" data-d-cool></label>
-          <label class="field col-span-3"><span class="lbl">Cadence (rpm)</span><input type="number" min="50" max="130" step="1" class="inp dark" data-d-cad></label>
-          <label class="field col-span-3"><span class="lbl">ERG</span><input type="checkbox" class="h-5 w-5 mt-2" data-d-erg checked></label>
-        </div>
-        <div class="mt-2 flex gap-2 justify-end">
-          <button class="btn btn-outline" data-design-cancel>Close</button>
-          <button class="btn btn-primary" data-design-save>Save</button>
-       </div>
-      </div>
-    </div>
-  </template>
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-4 right-4 z-50 hidden"></div>
 
   <script>
-  // ---------- Error banner ----------
-  function showErr(msg){const b=document.getElementById('errBanner');b.textContent=String(msg||'Unknown error');b.classList.remove('hidden');console.error('[planner]', msg);}
-  window.addEventListener('error', e=>showErr(e.message||e));
-
-  // ---------- Toasts ----------
-  function toast(msg, kind='ok', ms=2600){
-    const box=document.getElementById('toasts');
-    const div=document.createElement('div');
-    div.className='toast '+(kind==='ok'?'toast-ok':kind==='warn'?'toast-warn':'toast-err');
-    div.textContent=msg;
-    box.appendChild(div);
-    setTimeout(()=>{div.remove();}, ms);
-  }
-
-  // ---------- Modal confirm ----------
-  function confirmDialog({title,html}){
-    return new Promise(resolve=>{
-      const m=document.getElementById('modal');
-      document.getElementById('modalTitle').textContent=title||'Confirm';
-      document.getElementById('modalBody').innerHTML=html||'Are you sure?';
-      const onCancel=()=>{m.classList.remove('show'); cleanup(); resolve(false);};
-      const onOk=()=>{m.classList.remove('show'); cleanup(); resolve(true);};
-      function cleanup(){ok.removeEventListener('click',onOk); cancel.removeEventListener('click',onCancel);}
-      const ok=document.getElementById('modalOk'); const cancel=document.getElementById('modalCancel');
-      ok.addEventListener('click',onOk); cancel.addEventListener('click',onCancel);
-      m.classList.add('show');
-    });
-  }
-
-  // ---------- Utilities ----------
-  const $=s=>document.querySelector(s);
-  const dayNames=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-  const fmtHMS=sec=>{sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60);return `${h}h ${String(m).padStart(2,'0')}m`;};
-  const parseHHMM=v=>{const m=String(v||'').trim().match(/^(\d{1,2}):([0-5]\d)$/); if(!m) return 0; return parseInt(m[1],10)*3600+parseInt(m[2],10)*60;};
-  const normalizeHHMM=s=>{const m=String(s||'').trim().match(/^(\d{1,2}):([0-5]\d)$/); if(!m) return s; return `${m[1].padStart(2,'0')}:${m[2]}`;};
-  const mondayOf=date=>{const d=new Date(date);const gd=d.getDay();const diff=(gd===0?-6:1-gd);d.setDate(d.getDate()+diff);d.setHours(0,0,0,0);return d;};
-  const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
-  const toISODate=d=>d.toISOString().slice(0,10);
-  const hhmmFromSec=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;};
-  const numOrNull=x=>{const v=Number(x);return Number.isFinite(v)?v:null;};
-  const defaultTargetPctByName=n=>/sweet\s*spot/i.test(n||'')?0.88:/threshold/i.test(n||'')?0.95:/vo2/i.test(n||'')?1.2:/anaerobic|sprint/i.test(n||'')?1.5:0.9;
-  const safeFilename=name=>(name||'file').replace(/[^\w\-.]+/g,'_').slice(0,120);
-  const base64EncodeUTF8=str=>btoa(unescape(encodeURIComponent(str)));
-  const encodePathPreserveSlashes=p=>p.split('/').map(encodeURIComponent).join('/');
-
-  // Escapes plain text for safe HTML insertion
-  function escHtml(s){ return String(s ?? '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
-
-  // Short day-of-week from ISO date (UTC to avoid TZ rollovers)
-  function dowShortFromISO(iso){
-    // Force UTC midnight so local TZ doesn't shift the date
-    const d = new Date(iso + 'T00:00:00Z');
-    return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()];
-  }
-
-  // Build the bullet list HTML for the confirm dialog
-  function buildDaysBulletsHTML(dates){
-    const items = dates.map(iso=>{
-      const list  = state.days[iso] || [];
-      const names = list.length
-        ? list.map(w => escHtml(w.name || 'Untitled')).join(' · ')
-        : '<span class="text-slate-400">(no workouts)</span>';
-      const label = `${dowShortFromISO(iso)} — ${iso}`;
-      return `<li><b>${label}</b>: ${names}</li>`;
-    }).join('');
-    return `<ul class="list-disc pl-6 space-y-1">${items}</ul>`;
-  }
-
-  function uploadDayCheckboxEls(){ return Array.from(document.querySelectorAll('[data-upday]')); }
-  function setUploadDaysAll(val){ uploadDayCheckboxEls().forEach(cb => cb.checked = !!val); }
-
-  function selectedUploadDates(){
-    if(!state.weekStart) return [];
-    const base = new Date(state.weekStart);
-    const idxs = uploadDayCheckboxEls().filter(cb => cb.checked).map(cb => parseInt(cb.getAttribute('data-upday'),10));
-    return idxs.map(i => toISODate(addDays(base, i)));
-  }
-
-  function countFilteredWorkouts(dates){
-    const set = new Set(dates);
-    let n = 0;
-    Object.entries(state.days).forEach(([iso, list]) => { if(set.has(iso)) n += (list||[]).length; });
-    return n;
-  }
-
-  // REPLACE your existing buildPayloadFiltered with this:
-  function buildPayloadFiltered(dates){
-    const set = new Set(dates || []);
-    const out = {
-      version: 1,
-      tz: state.tz,
-      athlete_id: Number(state.athleteId || 0),
-      week_start: state.weekStart,
-      workouts: []
+    // ---------- State ----------
+    const state = {
+      tz: 'America/Los_Angeles',
+      athleteId: 0,
+      weekStart: null,         // ISO Monday
+      selectedDay: 0,          // 0..6
+      days: {}                 // { 'YYYY-MM-DD': [ {name,type,indoor,duration_sec,tss,notes,design?} ] }
     };
-    Object.entries(state.days).forEach(([iso, list])=>{
-      if(!set.has(iso)) return;
-      (list || []).forEach(w=>{
-        const wo = {
-          date: iso,
-          name: w.name || '',
-          type: w.type || 'Ride',
-          indoor: !!w.indoor,
-          duration_sec: Number(w.duration_sec || 0),
-          tss: Number(w.tss || 0),
-          notes: w.notes || ''
-        };
-        if (w.design && typeof w.design === 'object' && Object.keys(w.design).length) {
-          wo.design = w.design;
-        }
-        out.workouts.push(wo);
+
+    // ---------- Small utils ----------
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+    const escHtml = s => String(s ?? '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+    const toISO = d => d.toISOString().slice(0,10);
+    const today = () => toISO(new Date());
+    function mondayOfCurrentWeek(tz='America/Los_Angeles'){
+      const now = new Date(); // use local; visually OK for input
+      const dow = (now.getDay()+6)%7; // 0=Mon
+      const mon = new Date(now); mon.setDate(now.getDate()-dow);
+      return toISO(mon);
+    }
+
+    // ---------- Top tabs ----------
+    function switchTopTab(name){
+      $$('[role="tab"][data-tab]').forEach(btn=>{
+        btn.setAttribute('aria-selected', btn.dataset.tab === name ? 'true' : 'false');
       });
-    });
-    return out;
-  }
-
-
-  function updateUploadHint(){
-    if(!state.weekStart){ $('#uploadHint').textContent = 'Pick a week on the Plan tab.'; return; }
-    const dates = selectedUploadDates();
-    const nDays = dates.length;
-    const nWos = buildPayloadFiltered(dates).workouts.length;
-
-    $('#uploadHint').innerHTML = nDays
-      ? `Selected <b>${nDays}</b> day(s), <b>${nWos}</b> workout(s): ${dates.join(', ')}`
-      : `No days selected.`;
-
-    // Update button label + disabled state
-    const btn = document.getElementById('uploadIntervalsBtn');
-    btn.textContent = nWos ? `Upload to Intervals (${nWos})` : 'Upload to Intervals';
-    btn.disabled = nWos === 0;
-    btn.classList.toggle('opacity-50', nWos === 0);
-    btn.classList.toggle('cursor-not-allowed', nWos === 0);
-
-  }
-
-
-  // ---------- State ----------
-  const state={weekStart:null,tz:'America/Los_Angeles',athleteId:0,days:{}, selectedDay:0};
-  const storageKey=()=>`planner:${state.weekStart}`;
-  const save=()=>{if(!state.weekStart)return; localStorage.setItem(storageKey(), JSON.stringify(state));};
-  const loadWeek=week=>{const raw=localStorage.getItem(`planner:${week}`); try{return raw?JSON.parse(raw):null}catch(_){return null}};
-
-  // ---------- Templates ----------
-  const TEMPLATES={
-    "Base":{"Build":{"Base-1 (endurance focus)":{
-      desc:"Mostly Z2 endurance with light tempo. Long ride Sat.",
-      days:{0:[{name:"Rest or 45' Recovery",type:"Ride",indoor:false,duration_sec:2700,tss:20,notes:"Optional spin"}],
-            1:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
-            2:[{name:"Tempo 2x20' @85%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:70}],
-            3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
-            4:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],
-            5:[{name:"Long Endurance Z2 - 3h",type:"Ride",indoor:false,duration_sec:10800,tss:135}],
-            6:[{name:"Endurance Z2 - 2h",type:"Ride",indoor:false,duration_sec:7200,tss:90}]}}},
-      "Recovery":{"Recovery-Base":{
-        desc:"Reduced volume, no intensity.",
-        days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
-              3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:35}],
-              4:[],5:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}],6:[]}}}
-    },
-    "Build":{"Build":{"Threshold-1":{
-      desc:"Threshold focus: 3x12' and 4x8'.",
-      days:{0:[],1:[{name:"Threshold 3x12' @95%",type:"Virtual Ride",indoor:true,duration_sec:5400,tss:80}],
-            2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
-            3:[{name:"Threshold 4x8' @100%",type:"Virtual Ride",indoor:true,duration_sec:4800,tss:80}],
-            4:[],5:[{name:"Sweet Spot 3x20' @88%",type:"Ride",indoor:false,duration_sec:7200,tss:110}],
-            6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}}},
-      "Recovery":{"Recovery-Build":{
-        desc:"Keep legs spinning; minimal intensity.",
-        days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
-              3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:35}],
-              4:[],5:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:55}],6:[]}}}
-    },
-    "Specialty":{"Build":{"VO2/Anaerobic-1":{
-      desc:"VO2Max + Anaerobic focus.",
-      days:{0:[],1:[{name:"VO2Max 5x3' @120%",type:"Virtual Ride",indoor:true,duration_sec:4200,tss:75}],
-            2:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:40}],
-            3:[{name:"VO2Max 6x2' @125%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:70}],
-            4:[],5:[{name:"Anaerobic 8x1' @150%",type:"Virtual Ride",indoor:true,duration_sec:3600,tss:65}],
-            6:[{name:"Endurance Z2 - 90m",type:"Ride",indoor:false,duration_sec:5400,tss:60}]}}},
-      "Recovery":{"Recovery-Specialty":{
-        desc:"Strip intensity, keep short endurance.",
-        days:{0:[],1:[{name:"Recovery Spin - 45m",type:"Virtual Ride",indoor:true,duration_sec:2700,tss:20}],2:[],
-              3:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:35}],
-              4:[],5:[{name:"Endurance Z2 - 60m",type:"Ride",indoor:false,duration_sec:3600,tss:35}],6:[]}}}
+      $$('section[role="tabpanel"]').forEach(sec=>{
+        const key = sec.id.replace(/^tab-/, '');
+        sec.hidden = (key !== name);
+      });
     }
-  };
-
-  // ---------- Tabs ----------
-  const tabs=['plan','loadsave','upload','settings'];
-  function setTab(id){
-    tabs.forEach(t=>{
-      const btn=document.querySelector(`[role="tab"][data-tab="${t}"]`);
-      const panel=document.getElementById(`tab-${t}`);
-      const sel=(t===id);
-      btn.setAttribute('aria-selected', String(sel));
-      panel.classList.toggle('hidden', !sel);
-    });
-  }
-
-  // ---------- GitHub helpers (hardened & public fallback) ----------
-  const GH_STORE_KEY='planner:ghcfg';
-  const ghLoad=()=>{try{return JSON.parse(localStorage.getItem(GH_STORE_KEY)||'{}')}catch(_){return{}}};
-  const ghSaveCfg=cfg=>localStorage.setItem(GH_STORE_KEY, JSON.stringify(cfg||{}));
-  function cleanToken(t){ return (t||'').replace(/[\u2000-\u200B\u202F\u205F\uFEFF]/g,'').trim(); }
-  function ghGetCfg(){
-    const saved=ghLoad();
-    return {
-      token: ($('#ghToken')?.value) || saved.token || "",
-      owner: ($('#ghOwner')?.value) || saved.owner || "tomeese",
-      repo:  ($('#ghRepo') ?.value) || saved.repo  || "intervals-icu-bulk-uploader-planned-workouts",
-      branch:($('#ghBranch')?.value) || saved.branch|| "main",
-      prefix:($('#ghPrefix')?.value) || saved.prefix|| "plans"
-    };
-  }
-  async function ghFetch(url, token, init){
-    const tok = cleanToken(token||'');
-    const headers = Object.assign({Accept:"application/vnd.github+json"}, tok?{Authorization:'token '+tok}:{});
-    const req = Object.assign({headers}, init||{});
-    try { return await fetch(url, req); }
-    catch (e) {
-      if (tok) return await fetch(url, Object.assign({headers:{Accept:"application/vnd.github+json"}}, init||{}));
-      throw e;
+    function initTopTabs(){
+      $$('[role="tab"][data-tab]').forEach(btn=>{
+        btn.addEventListener('click', ()=> switchTopTab(btn.dataset.tab));
+      });
+      const current = document.querySelector('[role="tab"][aria-selected="true"][data-tab]');
+      switchTopTab(current ? current.dataset.tab : 'plan');
     }
-  }
-  async function githubPutFile(cfg, path, text, message){
-    const api=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(path)}`;
-    const getRes=await ghFetch(`${api}?ref=${encodeURIComponent(cfg.branch)}`, cfg.token);
-    let sha=null;
-    if(getRes.status===200){ sha=(await getRes.json()).sha; }
-    else if(getRes.status!==404){ throw new Error(`GET ${getRes.status}: ${await getRes.text()}`); }
-    const body={message:message||`save ${path}`,content:base64EncodeUTF8(text),branch:cfg.branch,sha,
-      committer:{name:"planner-bot",email:"planner@users.noreply.github.com"},
-      author:{name:"planner-bot",email:"planner@users.noreply.github.com"}};
-    const putRes=await ghFetch(api, cfg.token, {method:'PUT',body:JSON.stringify(body)});
-    const txt=await putRes.text(); if(!putRes.ok) throw new Error(`PUT ${putRes.status}: ${txt.slice(0,400)}`); return JSON.parse(txt);
-  }
-  async function ghDispatchWorkflow(cfg, workflowFile, inputs){
-    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/workflows/${encodeURIComponent(workflowFile)}/dispatches`;
-    const res=await ghFetch(url, cfg.token, {method:"POST",body:JSON.stringify({ref:cfg.branch,inputs:inputs||{}})});
-    if(!res.ok) throw new Error(`dispatch ${res.status}: ${await res.text()}`);
-    return true;
-  }
-  async function ghListPlans(cfg, prefix="plans"){
-    const p=(prefix||"plans").replace(/^\/+|\/+$/g,"");
-    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(p)}?ref=${encodeURIComponent(cfg.branch)}`;
-    const res=await ghFetch(url, cfg.token);
-    if(!res.ok){ throw new Error(`list ${res.status}: ${await res.text()}`); }
-    const items=await res.json();
-    return (Array.isArray(items)?items:[])
-      .filter(it=>it.type==="file" && /^plan-\d{4}-\d{2}-\d{2}\.json$/.test(it.name))
-      .map(it=>({name:it.name,path:it.path}));
-  }
-  async function ghGetJsonFile(cfg, path){
-    const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodePathPreserveSlashes(path)}?ref=${encodeURIComponent(cfg.branch)}`;
-    const res=await ghFetch(url, cfg.token);
-    if(!res.ok) throw new Error(`get ${res.status}: ${await res.text()}`);
-    const obj=await res.json(); const txt=atob((obj.content||"").replace(/\n/g,'')); return JSON.parse(txt);
-  }
 
-  // ---------- Template handling ----------
-  function updateTemplateList(){
-    try{
-      const phase=$('#phase').value, focus=$('#focus').value;
-      const group=(TEMPLATES[phase]&&TEMPLATES[phase][focus])?TEMPLATES[phase][focus]:{};
-      const sel=$('#templateKey'), desc=$('#templateDesc');
-      sel.innerHTML='';
-      const keys=Object.keys(group);
-      if(keys.length){
-        keys.forEach(k=>{const o=document.createElement('option'); o.value=k; o.textContent=k; sel.appendChild(o);});
-        sel.value=keys[0]; desc.textContent=group[keys[0]].desc||'';
-      }else{
-        sel.innerHTML='<option value="">— no templates —</option>'; desc.textContent='No templates for this selection.';
-      }
-    }catch(e){ showErr(e.message||e); }
-  }
-  function applyTemplate(){
-    const phase=$('#phase').value, focus=$('#focus').value, key=$('#templateKey').value;
-    const g=TEMPLATES[phase]&&TEMPLATES[phase][focus]?TEMPLATES[phase][focus]:null;
-    const tpl=g&&g[key]; if(!tpl){ alert('No template for selection'); return; }
-    if(!state.weekStart){ alert('Pick a week start first.'); return; }
-    const base=new Date(state.weekStart); state.days={};
-    Object.entries(tpl.days).forEach(([idx,lst])=>{
-      const iso=toISODate(addDays(base,parseInt(idx,10)));
-      state.days[iso]=(lst||[]).map(w=>({...w}));
-    });
-    save(); renderDayEditor();
-    totals();
-
-    updateUploadHint();
-  }
-
-  // ---------- Day editor (tab) ----------
-  function currentIso(){ const base=new Date(state.weekStart); return toISODate(addDays(base,state.selectedDay)); }
-  function renderDayEditor(){
-    const container=$('#dayEditor'); container.innerHTML='';
-    if(!state.weekStart) return;
-    const iso=currentIso();
-    // header
-    const hdr=document.createElement('div');
-    hdr.className="mb-3 text-sm text-slate-500";
-    hdr.textContent=`${dayNames[state.selectedDay]} — ${iso}`;
-    container.appendChild(hdr);
-
-    // rows
-    const list=state.days[iso]||[];
-    list.forEach(w=>container.appendChild(renderRow(iso,w)));
-    if(list.length===0){
-      const empty=document.createElement('div');
-      empty.className="text-sm text-slate-500";
-      empty.textContent="No workouts yet. Click 'Add workout'.";
-      container.appendChild(empty);
+    // ---------- Day tabs ----------
+    function isoForDayIndex(idx){
+      if (!state.weekStart) return null;
+      const d = new Date(state.weekStart + 'T00:00:00');
+      d.setDate(d.getDate() + Number(idx || 0));
+      return toISO(d);
     }
-  }
+    function ensureDay(iso){
+      if (!state.days[iso]) state.days[iso] = [];
+      return state.days[iso];
+    }
     function bindDayTabs(){
-    const tabs = Array.from(document.querySelectorAll('.day-tab'));
-    tabs.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.day, 10);
-        tabs.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
-        // your function that updates state + re-renders the day:
-        setSelectedDay(idx);        // <-- keep your existing name here
-        // make sure totals & hints reflect the change:
-        if (typeof updateTotals === 'function') updateTotals();
-        if (typeof updateUploadHint === 'function') updateUploadHint();
+      $$('.day-tab').forEach(btn=>{
+        btn.addEventListener('click', ()=> setSelectedDay(parseInt(btn.dataset.day,10)));
       });
-    });
-  }
-
-  // ---------- Render a workout row ----------
-  function renderRow(iso,w){
-    const frag=document.importNode($('#rowTpl').content,true);
-    const el=frag.firstElementChild;
-    const $name=el.querySelector('[data-name]'), $type=el.querySelector('[data-type]'), $ind=el.querySelector('[data-indoor]');
-    const $dur=el.querySelector('[data-duration]'), $tss=el.querySelector('[data-tss]'), $notes=el.querySelector('[data-notes]');
-    const $designBtn=el.querySelector('[data-design-btn]'), $panel=el.querySelector('[data-design-panel]');
-    const $zwo=el.querySelector('[data-zwo]'), $del=el.querySelector('[data-del]');
-    const $d_ftp=el.querySelector('[data-d-ftp]'), $d_sets=el.querySelector('[data-d-sets]'), $d_work=el.querySelector('[data-d-work]');
-    const $d_rec=el.querySelector('[data-d-rec]'), $d_target=el.querySelector('[data-d-target]'), $d_ou=el.querySelector('[data-d-ou]');
-    const $d_under=el.querySelector('[data-d-under]'), $d_over=el.querySelector('[data-d-over]');
-    const $d_warm=el.querySelector('[data-d-warm]'), $d_cool=el.querySelector('[data-d-cool]'), $d_cad=el.querySelector('[data-d-cad]'), $d_erg=el.querySelector('[data-d-erg]');
-
-    // bind
-    $name.value=w.name||''; $type.value=w.type||'Ride'; $ind.checked=!!w.indoor;
-    $dur.value=hhmmFromSec(w.duration_sec||0); $tss.value=Number.isFinite(w.tss)?w.tss:0; $notes.value=w.notes||'';
-    $name.addEventListener('input',()=>{w.name=$name.value; save();}); 
-    $type.addEventListener('change',()=>{w.type=$type.value; save(); totals();});
-    $ind.addEventListener('change',()=>{w.indoor=$ind.checked; save();});
-    $dur.addEventListener('change',()=>{w.duration_sec=parseHHMM($dur.value); $dur.value=normalizeHHMM($dur.value); save(); totals();});
-    $tss.addEventListener('change',()=>{w.tss=Math.max(0,parseFloat($tss.value||'0')); save(); totals();});
-    $notes.addEventListener('input',()=>{w.notes=$notes.value; save();});
-
-    const d=w.design||{};
-    $d_ftp.value=d.ftp_watts??''; $d_sets.value=d.sets??3; $d_work.value=d.work_sec??720; $d_rec.value=d.rec_sec??300;
-    $d_target.value=d.target_pct ?? defaultTargetPctByName(w.name||''); $d_ou.checked=!!d.overunder;
-    $d_under.value=d.under_pct??''; $d_over.value=d.over_pct??'';
-    $d_warm.value=d.warmup_sec??600; $d_cool.value=d.cooldown_sec??600; $d_cad.value=d.cadence??''; $d_erg.checked=(d.erg??true);
-
-    const toggle=show=>$panel.classList.toggle('hidden', !show);
-    $designBtn.addEventListener('click',()=>{ toggle($panel.classList.contains('hidden')); });
-    el.querySelector('[data-design-cancel]').addEventListener('click',()=>toggle(false));
-    el.querySelector('[data-design-save]').addEventListener('click',()=>{
-      const obj={
-        kind:(/sweet\s*spot/i.test($name.value||""))?"sweetspot":(/threshold/i.test($name.value||""))?"threshold":(/vo2/i.test($name.value||""))?"vo2":(/anaerobic|sprint/i.test($name.value||""))?"anaerobic":"custom",
-        ftp_watts:numOrNull($d_ftp.value), sets:numOrNull($d_sets.value)??3, work_sec:numOrNull($d_work.value)??720, rec_sec:numOrNull($d_rec.value)??300,
-        target_pct:numOrNull($d_target.value)??defaultTargetPctByName($name.value||""), overunder:$d_ou.checked,
-        under_pct:numOrNull($d_under.value)||undefined, over_pct:numOrNull($d_over.value)||undefined,
-        warmup_sec:numOrNull($d_warm.value)||600, cooldown_sec:numOrNull($d_cool.value)||600, cadence:numOrNull($d_cad.value)||undefined, erg:!!$d_erg.checked
-      };
-      for(const k of Object.keys(obj)) if(obj[k]===null) delete obj[k];
-      w.design=obj; save(); toggle(false);
-    });
-
-    $zwo.addEventListener('click',()=>{
-      try{
-        if(!w.indoor && !confirm("Not marked Indoor. Generate ZWO anyway?")) return;
-        if(/endurance\s*z?2/i.test(w.name||"")){ alert("Skipping Z2 endurance for ZWO."); return; }
-        const xml=makeZwoXml(w);
-        const safe=safeFilename(`${iso} - ${w.name||'Workout'}`).replace(/\.zwo$/i,'')+'.zwo';
-        const cfg=ghGetCfg();
-        if(cfg.token && confirm("Upload .zwo to your repo? (Cancel = download only)")){
-          const path=`zwo/${safe}`; githubPutFile(cfg,path,xml,`feat(zwo): ${safe}`).then(()=>toast(`Uploaded ${path}`,'ok')).catch(e=>toast(`Upload failed: ${e.message||e}`,'err'));
-        }else{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([xml],{type:'application/xml'})); a.download=safe; a.click(); URL.revokeObjectURL(a.href); }
-      }catch(e){ alert(`ZWO generation failed: ${e.message||e}`); }
-    });
-
-    $del.addEventListener('click',()=>{
-      const list=state.days[iso]||[]; const idx=list.indexOf(w);
-      if(idx>=0){ list.splice(idx,1); el.remove(); totals(); save(); }
-    });
-
-    return frag;
-  }
-
-  // ---------- Totals ----------
-  function totals(){
-    let sec=0,tss=0; const byType=new Map();
-    Object.values(state.days).forEach(list=>{
-      list.forEach(w=>{ sec+=(w.duration_sec||0); tss+=(w.tss||0);
-        const k=w.type||'Ride'; const cur=byType.get(k)||{sec:0,tss:0}; cur.sec+=(w.duration_sec||0); cur.tss+=(w.tss||0); byType.set(k,cur); });
-    });
-    $('#totPlannedTime').textContent=fmtHMS(sec);
-    $('#totPlannedTss').textContent=Math.round(tss);
-    $('#totByType').innerHTML=byType.size?Array.from(byType.entries()).map(([k,v])=>`<div><span class="font-medium">${k}</span>: ${fmtHMS(v.sec)}, TSS ${Math.round(v.tss)}</div>`).join(''):'—';
-  }
-
-  // ---------- Export / Import / Load ----------
-  function buildPayload(){
-    const out={version:1,tz:state.tz,athlete_id:Number(state.athleteId||0),week_start:state.weekStart,workouts:[]};
-    Object.entries(state.days).forEach(([date,list])=>{
-      list.forEach(w=>{
-        const wo={date,name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||''};
-        if(w.design && typeof w.design==='object' && Object.keys(w.design).length) wo.design=w.design;
-        out.workouts.push(wo);
-      });
-    });
-    return out;
-  }
-  function exportJson(){ if(!state.weekStart){ alert('Choose a week start first.'); return; }
-    const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(buildPayload(),null,2)],{type:'application/json'})); a.download=`plan-${state.weekStart}.json`; a.click(); URL.revokeObjectURL(a.href); }
-  async function importJson(file){
-    if(!file) return; const text=await file.text(); let data;
-    try{ data=JSON.parse(text); }catch{ alert('Invalid JSON'); return; }
-    if(!data || !data.week_start || !Array.isArray(data.workouts)){ alert('Missing fields'); return;}
-    applyPlanData(data);
-  }
-  function applyPlanData(data){
-    state.weekStart=data.week_start; $('#weekStart').value=state.weekStart;
-    state.tz=data.tz||state.tz; $('#tz').value=state.tz;
-    state.athleteId=(data.athlete_id ?? state.athleteId); $('#athleteId').value=state.athleteId;
-    state.days={}; data.workouts.forEach(w=>{ (state.days[w.date] ||= []).push({name:w.name||'',type:w.type||'Ride',indoor:!!w.indoor,duration_sec:Number(w.duration_sec||0),tss:Number(w.tss||0),notes:w.notes||'',design:(w.design&&typeof w.design==='object')?w.design:undefined}); });
-    save(); renderDayEditor(); totals();
-
-    updateUploadHint();
-  }
-
-  async function refreshPlanList(){
-    const msg=$('#loadPlanMsg'); if(msg) msg.textContent='Loading…';
-    try{
-      const cfg=ghGetCfg(); cfg.token=cleanToken(cfg.token||'');
-      const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
-      const items=await ghListPlans(cfg,prefix);
-      const sel=$('#loadPlanSelect'); if(!sel) return;
-      sel.innerHTML='<option value="">— select plan —</option>';
-      items.sort((a,b)=>b.name.localeCompare(a.name)).forEach(it=>{
-        const o=document.createElement('option'); o.value=it.path; o.textContent=it.name.replace(/^plan-/,'').replace(/\.json$/,''); sel.appendChild(o);
-      });
-      if(msg) msg.textContent=`${items.length} plan(s) in ${prefix}/`;
-    }catch(e){ if(msg) msg.textContent=`Error: ${e.message||e}`; showErr(e.message||e); }
-  }
-  async function loadSelectedPlan(){
-    const path=$('#loadPlanSelect').value; if(!path){ alert('Pick a plan first.'); return; }
-    try{
-      const cfg=ghGetCfg(); const data=await ghGetJsonFile(cfg,path); applyPlanData(data);
-      const link=$('#openPlanLink'); if(link) link.href=`https://github.com/${cfg.owner}/${cfg.repo}/blob/${encodeURIComponent(cfg.branch)}/${path}`;
-      const msg=$('#loadPlanMsg'); if(msg) msg.textContent=`Loaded ${path}`;
-      toast('Plan loaded','ok');
-      setTab('plan');
-    }catch(e){ alert(`Load failed: ${e.message||e}`); }
-  }
-
-  // ---------- Upload to Intervals (with confirm) ----------
-  async function saveThenUpload(){
-    if(!state.weekStart){ alert('Pick a week start first.'); return; }
-
-    const dates = selectedUploadDates();
-    if (dates.length === 0) { alert('Select at least one day.'); return; }
-
-    // build both full and filtered payloads
-    const full = buildPayload();
-    const part = buildPayloadFiltered(dates);
-    const n = part.workouts.length;
-    const bullets = buildDaysBulletsHTML(dates);
-
-    const html = `<div class="space-y-2">
-      <div>Week: <b>${full.week_start}</b></div>
-      <div>Time zone: <code>${escHtml(full.tz)}</code></div>
-      <div>Athlete ID: <code>${full.athlete_id}</code></div>
-      <div class="mt-2">${bullets}</div>
-      <div class="text-rose-600 font-medium">
-        This will upload <b>${n}</b> workout(s) for the selected day(s). Continue?
-      </div>
-    </div>`;
-    const ok = await confirmDialog({title:'Upload to Intervals', html});
-    if(!ok) return;
-
-    const cfg = ghGetCfg();
-    const prefix = (cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
-
-    // Keep full-week plan up to date
-    const fullPath = `${prefix}/plan-${state.weekStart}.json`;
-    await githubPutFile(cfg, fullPath, JSON.stringify(full,null,2), `feat(planner): save ${fullPath}`);
-
-    // For partial uploads, write filtered copy under plans/partial/
-    let dispatchPath = fullPath;
-    if (dates.length !== 7) {
-      const short = dates.map(d=>d.slice(8,10)).join('');
-      const partialDir = `${prefix}/partial`;
-      const partialPath = `${partialDir}/plan-${state.weekStart}-d${short}.json`;
-      await githubPutFile(cfg, partialPath, JSON.stringify(part,null,2), `feat(planner): save ${partialPath}`);
-      dispatchPath = partialPath;
+    }
+    function setSelectedDay(idx){
+      if (idx == null) return;
+      state.selectedDay = Number(idx);
+      const iso = isoForDayIndex(state.selectedDay);
+      if (!iso) return;
+      ensureDay(iso);
+      $$('.day-tab').forEach((b,i)=> b.setAttribute('aria-selected', i===state.selectedDay ? 'true':'false'));
+      renderDay(iso);
+      updateTotals();
+      updateUploadHint();
     }
 
-    await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', {
-      plan_path: dispatchPath,
-      tz: full.tz || 'America/Los_Angeles',
-      athlete_id: String(full.athlete_id || 0),
-      default_start: '06:00',
-      dry_run: 'false'
-    });
+    // ---------- Templates (simple seeders) ----------
+    const TEMPLATES = {
+      'base-build': (startISO)=>({
+        'Mon':[{name:'Endurance Z2 - 90m', type:'Ride', indoor:false, duration_sec:5400, tss:60, notes:''}],
+        'Tue':[{name:'Tempo 3x12m', type:'Ride', indoor:true,  duration_sec:4500, tss:70, notes:'', design:{target_pct:0.90, sets:3, work_sec:720, rec_sec:300, warmup_sec:600, cooldown_sec:600}}],
+        'Wed':[{name:'Endurance Z2 - 75m', type:'Ride', indoor:false, duration_sec:4500, tss:50, notes:''}],
+        'Thu':[{name:'Sweet Spot 4x8m', type:'Virtual Ride', indoor:true, duration_sec:4200, tss:72, notes:'', design:{target_pct:0.93, sets:4, work_sec:480, rec_sec:240, warmup_sec:600, cooldown_sec:600}}],
+        'Fri':[],
+        'Sat':[{name:'Long Endurance - 3h', type:'Gravel Ride', indoor:false, duration_sec:10800, tss:150, notes:''}],
+        'Sun':[{name:'Recovery Spin 45m', type:'Virtual Ride', indoor:true, duration_sec:2700, tss:25, notes:''}]
+      }),
+      'base-recovery': ()=>({
+        'Mon':[],
+        'Tue':[{name:'Recovery Spin 45m', type:'Virtual Ride', indoor:true, duration_sec:2700, tss:25, notes:''}],
+        'Wed':[ ],
+        'Thu':[{name:'Endurance Z2 - 60m', type:'Ride', indoor:false, duration_sec:3600, tss:35, notes:''}],
+        'Fri':[ ],
+        'Sat':[{name:'Endurance Z2 - 90m', type:'Ride', indoor:false, duration_sec:5400, tss:60, notes:''}],
+        'Sun':[ ]
+      }),
+      'build-threshold': ()=>({
+        'Mon':[ ],
+        'Tue':[ {name:'Threshold 3x12m', type:'Virtual Ride', indoor:true, duration_sec:4500, tss:85, notes:'', design:{target_pct:0.95, sets:3, work_sec:720, rec_sec:300, warmup_sec:600, cooldown_sec:600}}],
+        'Wed':[ {name:'Endurance Z2 - 75m', type:'Ride', indoor:false, duration_sec:4500, tss:50, notes:''}],
+        'Thu':[ {name:'Over/Under 6x6m', type:'Virtual Ride', indoor:true, duration_sec:4200, tss:90, notes:'', design:{target_pct:1.0, sets:6, work_sec:360, rec_sec:180, warmup_sec:600, cooldown_sec:600}}],
+        'Fri':[ ],
+        'Sat':[ {name:'Endurance Z2 - 2h', type:'Ride', indoor:false, duration_sec:7200, tss:90, notes:''}],
+        'Sun':[ {name:'Endurance Z2 - 90m', type:'Ride', indoor:false, duration_sec:5400, tss:60, notes:''}]
+      }),
+      'specialty-vo2': ()=>({
+        'Mon':[ ],
+        'Tue':[ {name:'VO₂Max 5x3m', type:'Virtual Ride', indoor:true, duration_sec:3600, tss:85, notes:'', design:{target_pct:1.20, sets:5, work_sec:180, rec_sec:240, warmup_sec:600, cooldown_sec:600}}],
+        'Wed':[ {name:'Recovery Spin 45m', type:'Virtual Ride', indoor:true, duration_sec:2700, tss:25, notes:''}],
+        'Thu':[ {name:'VO₂Max 6x2m', type:'Virtual Ride', indoor:true, duration_sec:3000, tss:80, notes:'', design:{target_pct:1.25, sets:6, work_sec:120, rec_sec:180, warmup_sec:600, cooldown_sec:600}}],
+        'Fri':[ ],
+        'Sat':[ {name:'Endurance Z2 - 2h', type:'Ride', indoor:false, duration_sec:7200, tss:90, notes:''}],
+        'Sun':[ ]
+      })
+    };
 
-    const runsUrl = `https://github.com/${cfg.owner}/${cfg.repo}/actions/workflows/upload-week-plan.yml`;
-    toast(`Upload dispatched for ${n} workout(s).`, 'ok', 3500);
-    const hint = $('#uploadHint');
-    if(hint) hint.innerHTML = `Dispatched ✓ — <a class="underline" target="_blank" href="${runsUrl}">view workflow runs</a>.`;
-  }
+    function applyTemplate(key){
+      if(!state.weekStart){ alert('Pick a week start first.'); return; }
+      const map = TEMPLATES[key]?.();
+      if(!map){ toast('Select a template first.','warn'); return; }
+      const labelToIdx = {Mon:0,Tue:1,Wed:2,Thu:3,Fri:4,Sat:5,Sun:6};
+      for(const [lbl, arr] of Object.entries(map)){
+        const iso = isoForDayIndex(labelToIdx[lbl]);
+        state.days[iso] = (arr || []).map(x=>({...x}));
+      }
+      setSelectedDay(state.selectedDay ?? 0);
+      updateTotals();
+      toast('Template applied.','ok');
+    }
 
+    // ---------- Editor ----------
+    function hmsFromSec(sec){ sec=Number(sec||0); const h=Math.floor(sec/3600); const m=Math.floor((sec%3600)/60); return {h,m}; }
+    function secFromHM(h,m){ return (Number(h||0)*3600 + Number(m||0)*60); }
 
-  // ---------- Minimal ZWO ----------
-  function makeZwoXml(w){
-    const name=w.name||"Workout";
-    if(/endurance\s*z?2/i.test(name)) throw new Error('Endurance Z2 not converted to ZWO.');
-    const d=w.design||{}; const warm=d.warmup_sec??600, cool=d.cooldown_sec??600;
-    const sets=Math.max(1,parseInt(d.sets??3,10)), work=Math.max(15,parseInt(d.work_sec??720,10)), rec=Math.max(10,parseInt(d.rec_sec??300,10));
-    const pct=(d.target_pct!=null?d.target_pct:defaultTargetPctByName(name));
-    const steps=[`<Warmup Duration="${warm}" PowerLow="0.5" PowerHigh="0.75"/>`,
-                 `<IntervalsT Repeat="${sets}" OnDuration="${work}" OffDuration="${rec}" OnPower="${pct}" OffPower="0.55" Cadence="0"/>`,
-                 `<Cooldown Duration="${cool}" PowerLow="0.5" PowerHigh="0.75"/>`];
-    const esc=s=>String(s).replace(/[<>&'"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;'}[c]));
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<workout_file>
-  <author>planner</author>
-  <name>${esc(name)}</name>
-  <description>Auto-generated from planner</description>
-  <sportType>bike</sportType>
-  <tags></tags>
-  <workout>
-    ${steps.join('\n    ')}
-  </workout>
-</workout_file>`;
-  }
+    function renderDay(iso){
+      const list = ensureDay(iso);
+      const root = $('#dayEditor');
+      root.innerHTML = '';
 
-  // ---------- Boot ----------
-  function setWeekStartFromInput(){
-    const raw=$('#weekStart').value; if(!raw) return;
-    const iso=toISODate(mondayOf(raw)); $('#weekStart').value=iso; state.weekStart=iso;
-    const prev=loadWeek(iso); if(prev){ state.tz=prev.tz||state.tz; $('#tz').value=state.tz; state.athleteId=(prev.athleteId??state.athleteId); $('#athleteId').value=state.athleteId; state.days=prev.days||{}; state.selectedDay=prev.selectedDay||0; }
-    else { state.days={}; state.selectedDay=0; }
-    save(); renderDayEditor(); totals();
-    // Update day tab selection
-    document.querySelectorAll('[data-daytab]').forEach(btn=>btn.setAttribute('aria-selected', btn.getAttribute('data-daytab')==state.selectedDay?'true':'false'));
-  
-    updateUploadHint();
-  }
+      // each workout row
+      list.forEach((w,idx)=>{
+        const {h,m} = hmsFromSec(w.duration_sec);
+        const row = document.createElement('div');
+        row.className = 'p-3 border border-slate-200 dark:border-slate-800 rounded-lg';
+        row.innerHTML = `
+          <div class="grid grid-cols-1 md:grid-cols-6 gap-2 items-end">
+            <label class="field md:col-span-2">
+              <span class="text-xs text-slate-500">Name</span>
+              <input data-k="name" value="${escHtml(w.name||'')}" class="rounded-lg px-2.5 py-1.5"/>
+            </label>
+            <label class="field">
+              <span class="text-xs text-slate-500">Type</span>
+              <select data-k="type" class="rounded-lg px-2.5 py-1.5">
+                ${['Ride','Gravel Ride','Virtual Ride'].map(t=>`<option ${w.type===t?'selected':''}>${t}</option>`).join('')}
+              </select>
+            </label>
+            <label class="field">
+              <span class="text-xs text-slate-500">Indoor</span>
+              <select data-k="indoor" class="rounded-lg px-2.5 py-1.5">
+                <option value="false" ${!w.indoor?'selected':''}>No</option>
+                <option value="true"  ${ w.indoor?'selected':''}>Yes</option>
+              </select>
+            </label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="field">
+                <span class="text-xs text-slate-500">Hours</span>
+                <input data-k="dur_h" type="number" min="0" value="${h}" class="rounded-lg px-2.5 py-1.5"/>
+              </label>
+              <label class="field">
+                <span class="text-xs text-slate-500">Minutes</span>
+                <input data-k="dur_m" type="number" min="0" max="59" value="${m}" class="rounded-lg px-2.5 py-1.5"/>
+              </label>
+            </div>
+            <label class="field">
+              <span class="text-xs text-slate-500">TSS</span>
+              <input data-k="tss" type="number" min="0" value="${Number(w.tss||0)}" class="rounded-lg px-2.5 py-1.5"/>
+            </label>
+          </div>
+          <div class="mt-2 grid grid-cols-1 gap-2">
+            <label class="field">
+              <span class="text-xs text-slate-500">Notes</span>
+              <textarea data-k="notes" rows="2" class="rounded-lg px-2.5 py-1.5">${escHtml(w.notes||'')}</textarea>
+            </label>
+          </div>
+          <div class="mt-2 flex gap-2 justify-end">
+            <button class="btn btn-outline" data-design-btn>Design</button>
+            <button class="btn btn-secondary" data-zwo>Generate ZWO</button>
+            <button class="btn btn-danger" data-del>Delete</button>
+          </div>
+          <div class="mt-2 hidden" data-design-panel>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <label class="field"><span class="text-xs text-slate-500">Target %FTP</span><input data-d="target_pct" type="number" step="0.01" value="${w.design?.target_pct ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
+              <label class="field"><span class="text-xs text-slate-500">Sets</span><input data-d="sets" type="number" value="${w.design?.sets ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
+              <label class="field"><span class="text-xs text-slate-500">Work (sec)</span><input data-d="work_sec" type="number" value="${w.design?.work_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
+              <label class="field"><span class="text-xs text-slate-500">Recovery (sec)</span><input data-d="rec_sec" type="number" value="${w.design?.rec_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
+              <label class="field"><span class="text-xs text-slate-500">Warmup (sec)</span><input data-d="warmup_sec" type="number" value="${w.design?.warmup_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
+              <label class="field"><span class="text-xs text-slate-500">Cooldown (sec)</span><input data-d="cooldown_sec" type="number" value="${w.design?.cooldown_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
+            </div>
+            <div class="mt-2 flex gap-2 justify-end">
+              <button class="btn btn-outline" data-design-cancel>Close</button>
+              <button class="btn btn-primary" data-design-save>Save</button>
+            </div>
+          </div>
+        `;
+        root.appendChild(row);
 
-  // Compute ISO date (YYYY-MM-DD) from weekStart + day index (0=Mon … 6=Sun)
-function isoForDayIndex(idx){
-  if (!state.weekStart) return null;
-  const d = new Date(state.weekStart + 'T00:00:00'); // safe, no TZ shift at midnight
-  d.setDate(d.getDate() + Number(idx || 0));
-  return d.toISOString().slice(0,10);
-}
+        // handlers
+        row.querySelectorAll('[data-k]').forEach(inp=>{
+          inp.addEventListener('input', ()=>{
+            const k = inp.getAttribute('data-k');
+            if(k==='name') w.name = inp.value;
+            else if(k==='type') w.type = inp.value;
+            else if(k==='indoor') w.indoor = (inp.value==='true');
+            else if(k==='tss') w.tss = Number(inp.value||0);
+            else if(k==='dur_h' || k==='dur_m'){
+              const hh = Number(row.querySelector('[data-k="dur_h"]').value||0);
+              const mm = Number(row.querySelector('[data-k="dur_m"]').value||0);
+              w.duration_sec = secFromHM(hh,mm);
+            }
+            updateTotals();
+            updateUploadHint();
+          });
+        });
+        row.querySelector('[data-k="notes"]').addEventListener('input', e=>{ w.notes = e.target.value; });
 
-function ensureDay(iso){
-  if (!state.days) state.days = {};
-  if (!state.days[iso]) state.days[iso] = [];
-  return state.days[iso];
-}
-
-// Main: switch the selected day and re-render
-function setSelectedDay(idx){
-  if (idx == null) return;
-  state.selectedDay = Number(idx);
-  const iso = isoForDayIndex(state.selectedDay);
-  if (!iso) return;
-  ensureDay(iso);
-
-  // Update the day tab buttons
-  const tabs = document.querySelectorAll('.day-tab');
-  tabs.forEach((b,i)=> b.setAttribute('aria-selected', i === state.selectedDay ? 'true' : 'false'));
-
-  // Re-render the day editor using your existing function if available
-  if (typeof renderDay === 'function') {
-    renderDay(iso);                 // preferred: if you already have it
-  } else if (typeof renderDayEditor === 'function') {
-    renderDayEditor(iso);           // alt name we’ve used before
-  } else {
-    // Minimal fallback so you see *something* even without the app’s renderer
-    const el = document.getElementById('dayEditor');
-    if (el) el.innerHTML = `<div class="text-sm text-slate-500">
-      Selected <b>${iso}</b> — ${state.days[iso].length} workout(s).
-    </div>`;
-  }
-
-  // Refresh totals / upload widgets if present
-  if (typeof updateTotals === 'function') updateTotals();
-  if (typeof updateUploadHint === 'function') updateUploadHint();
-}
-
-
-  (function boot(){
-    try{
-      // Tab wiring
-      document.querySelectorAll('[role="tab"]').forEach(btn=>{
-        btn.addEventListener('click', ()=> setTab(btn.getAttribute('data-tab')));
-      });
-      setTab('plan');
-
-      // Day tab events
-      document.querySelectorAll('[data-daytab]').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          const idx=parseInt(btn.getAttribute('data-daytab'),10);
-          state.selectedDay=idx; document.querySelectorAll('[data-daytab]').forEach(b=>b.setAttribute('aria-selected','false'));
-          btn.setAttribute('aria-selected','true');
-          renderDayEditor();
+        row.querySelector('[data-del]').addEventListener('click', ()=>{
+          list.splice(idx,1); renderDay(iso); updateTotals(); updateUploadHint();
+        });
+        row.querySelector('[data-design-btn]').addEventListener('click', ()=>{
+          row.querySelector('[data-design-panel]').classList.toggle('hidden');
+        });
+        row.querySelector('[data-design-cancel]').addEventListener('click', ()=>{
+          row.querySelector('[data-design-panel]').classList.add('hidden');
+        });
+        row.querySelector('[data-design-save]').addEventListener('click', ()=>{
+          const d = w.design || (w.design={});
+          row.querySelectorAll('[data-d]').forEach(inp=>{
+            const k = inp.getAttribute('data-d');
+            const v = inp.value;
+            d[k] = v==='' ? undefined : Number(v);
+          });
+          toast('Design saved.','ok',1500);
         });
       });
-      $('#addRowBtn').addEventListener('click', ()=>{
-        if(!state.weekStart){ alert('Pick a week start first.'); return; }
-        const iso=currentIso();
-        const w={name:'',type:'Ride',indoor:false,duration_sec:3600,tss:50,notes:''};
-        (state.days[iso] ||= []).push(w);
-        renderDayEditor(); totals(); save();
+
+      // add-row button
+      $('#addRowBtn').onclick = ()=>{
+        list.push({name:'',type:'Ride',indoor:false,duration_sec:0,tss:0,notes:''});
+        renderDay(iso); updateTotals(); updateUploadHint();
+      };
+      $('#clearDayBtn').onclick = ()=>{
+        if(!confirm('Clear all workouts for this day?')) return;
+        state.days[iso] = []; renderDay(iso); updateTotals(); updateUploadHint();
+      };
+      $('#copyPrevDayBtn').onclick = ()=>{
+        const prev = isoForDayIndex(state.selectedDay-1);
+        if(!prev) return;
+        state.days[iso] = (state.days[prev]||[]).map(x=>({...x}));
+        renderDay(iso); updateTotals(); updateUploadHint();
+      };
+    }
+
+    // ---------- Totals ----------
+    function updateTotals(){
+      let seconds=0, tss=0; const byType = {};
+      Object.values(state.days).forEach(list=>{
+        (list||[]).forEach(w=>{
+          seconds += Number(w.duration_sec||0);
+          tss     += Number(w.tss||0);
+          const k = w.type || 'Other';
+          byType[k] = byType[k] || {sec:0, tss:0};
+          byType[k].sec += Number(w.duration_sec||0);
+          byType[k].tss += Number(w.tss||0);
+        });
       });
-      $('#clearDayBtn').addEventListener('click', ()=>{
-        if(!state.weekStart) return;
-        const iso=currentIso(); state.days[iso]=[]; renderDayEditor(); totals(); save();
+      const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60);
+      $('#totPlannedTime').textContent = `${h}h ${String(m).padStart(2,'0')}m`;
+      $('#totPlannedTss').textContent = Math.round(tss);
+      const by = Object.entries(byType).map(([k,v])=>{
+        const hh=Math.floor(v.sec/3600), mm=Math.floor((v.sec%3600)/60);
+        return `<span class="inline-block mr-3"><b>${escHtml(k)}</b>: ${hh}h ${String(mm).padStart(2,'0')}m, TSS ${Math.round(v.tss)}</span>`;
+      }).join(' ');
+      $('#totByType').innerHTML = by || '—';
+    }
+
+    // ---------- Build + filtered payloads ----------
+    function buildPayload(){
+      // Flatten days into workouts array
+      const workouts = [];
+      Object.entries(state.days).forEach(([iso,list])=>{
+        (list||[]).forEach(w=>{
+          const item = {
+            date: iso,
+            name: w.name || '',
+            type: w.type || 'Ride',
+            indoor: !!w.indoor,
+            duration_sec: Number(w.duration_sec||0),
+            tss: Number(w.tss||0),
+            notes: w.notes || ''
+          };
+          if (w.design && Object.keys(w.design).length) item.design = w.design;
+          workouts.push(item);
+        });
       });
-      $('#copyPrevDayBtn').addEventListener('click', ()=>{
-        if(!state.weekStart || state.selectedDay===0) return;
-        const base=new Date(state.weekStart);
-        const prevIso=toISODate(addDays(base, state.selectedDay-1));
-        const iso=currentIso();
-        state.days[iso]=(state.days[prevIso]||[]).map(w=>({...w}));
-        renderDayEditor(); totals(); save();
+      return {
+        version: 1,
+        tz: state.tz,
+        athlete_id: Number(state.athleteId||0),
+        week_start: state.weekStart,
+        workouts
+      };
+    }
+    function uploadDayCheckboxEls(){ return $$('#tab-upload [data-upday]'); }
+    function setUploadDaysAll(val){ uploadDayCheckboxEls().forEach(cb => cb.checked = !!val); }
+    function selectedUploadDates(){
+      if(!state.weekStart) return [];
+      const base = new Date(state.weekStart);
+      const idxs = uploadDayCheckboxEls().filter(cb => cb.checked).map(cb => parseInt(cb.getAttribute('data-upday'),10));
+      return idxs.map(i => toISO(addDays(base, i)));
+    }
+    function buildPayloadFiltered(dates){
+      const set = new Set(dates || []);
+      const out = { version:1, tz:state.tz, athlete_id:Number(state.athleteId||0), week_start:state.weekStart, workouts:[] };
+      Object.entries(state.days).forEach(([iso, list])=>{
+        if(!set.has(iso)) return;
+        (list || []).forEach(w=>{
+          const wo = {
+            date: iso,
+            name: w.name || '',
+            type: w.type || 'Ride',
+            indoor: !!w.indoor,
+            duration_sec: Number(w.duration_sec || 0),
+            tss: Number(w.tss || 0),
+            notes: w.notes || ''
+          };
+          if (w.design && Object.keys(w.design).length) wo.design = w.design;
+          out.workouts.push(wo);
+        });
+      });
+      return out;
+    }
+    function countFilteredWorkouts(dates){ return buildPayloadFiltered(dates).workouts.length; }
+
+    // ---------- Upload tab helpers ----------
+    function buildDaysBulletsHTML(dates){
+      const items = dates.map(iso=>{
+        const list  = state.days[iso] || [];
+        const names = list.length
+          ? list.map(w => escHtml(w.name || 'Untitled')).join(' · ')
+          : '<span class="text-slate-400">(no workouts)</span>';
+        const d = new Date(iso+'T00:00:00Z');
+        const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getUTCDay()];
+        return `<li><b>${dow} — ${iso}</b>: ${names}</li>`;
+      }).join('');
+      return `<ul class="list-disc pl-6 space-y-1">${items}</ul>`;
+    }
+    function updateUploadHint(){
+      if(!state.weekStart){ $('#uploadHint').textContent='Pick a week on the Plan tab.'; return; }
+      const dates = selectedUploadDates();
+      const nWos = countFilteredWorkouts(dates);
+      const nDays = dates.length;
+      const btn = $('#uploadIntervalsBtn');
+      btn.textContent = nWos ? `Upload to Intervals (${nWos})` : 'Upload to Intervals';
+      btn.disabled = nWos === 0;
+      $('#uploadHint').innerHTML = nDays ? `Selected <b>${nDays}</b> day(s), <b>${nWos}</b> workout(s).` : 'No days selected.';
+    }
+
+    // ---------- Modal / toast ----------
+    function confirmDialog({title, html}){
+      return new Promise(res=>{
+        $('#modalTitle').textContent = title || 'Confirm';
+        $('#modalBody').innerHTML = html || '';
+        $('#modal').classList.remove('hidden');
+        const ok = ()=>{ cleanup(); res(true); };
+        const cancel = ()=>{ cleanup(); res(false); };
+        const cleanup = ()=>{
+          $('#modal').classList.add('hidden');
+          $('#modalOk').removeEventListener('click', ok);
+          $('#modalCancel').removeEventListener('click', cancel);
+        };
+        $('#modalOk').addEventListener('click', ok, {once:true});
+        $('#modalCancel').addEventListener('click', cancel, {once:true});
+      });
+    }
+    function toast(msg, kind='ok', ms=2000){
+      const t = $('#toast');
+      t.textContent = msg;
+      t.className = `fixed bottom-4 right-4 z-50 px-3 py-2 rounded-lg border ${kind==='ok'?'bg-green-600 text-white border-green-700': kind==='warn'?'bg-amber-500 text-white border-amber-600':'bg-slate-800 text-white border-slate-700'}`;
+      t.classList.remove('hidden');
+      setTimeout(()=> t.classList.add('hidden'), ms);
+    }
+
+    // ---------- GitHub API ----------
+    function ghGetCfg(){
+      return {
+        token: localStorage.getItem('ghToken') || '',
+        owner: localStorage.getItem('ghOwner') || '',
+        repo:  localStorage.getItem('ghRepo')  || '',
+        branch:localStorage.getItem('ghBranch')|| 'main',
+        prefix:localStorage.getItem('ghPrefix')|| 'plans'
+      };
+    }
+    function ghSetCfg(cfg){
+      localStorage.setItem('ghToken', cfg.token||'');
+      localStorage.setItem('ghOwner', cfg.owner||'');
+      localStorage.setItem('ghRepo',  cfg.repo||'');
+      localStorage.setItem('ghBranch',cfg.branch||'main');
+      localStorage.setItem('ghPrefix',cfg.prefix||'plans');
+    }
+    function githubHeaders(token){
+      return {
+        'Accept':'application/vnd.github+json',
+        'Authorization': token ? `Bearer ${token}` : undefined
+      };
+    }
+    async function githubGetFile(cfg, path){
+      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}?ref=${encodeURIComponent(cfg.branch)}`;
+      const r = await fetch(url, {headers: githubHeaders(cfg.token)});
+      if(!r.ok) throw new Error(`GET ${path}: ${r.status}`);
+      const j = await r.json();
+      const content = j.content ? atob(j.content.replace(/\n/g,'')) : '';
+      return { sha: j.sha, content, html_url: j.html_url, path };
+    }
+    async function githubPutFile(cfg, path, content, message){
+      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}`;
+      let sha;
+      try{
+        const prev = await githubGetFile(cfg, path);
+        sha = prev.sha;
+      }catch(e){ /* new file */ }
+      const body = {
+        message: message || `update ${path}`,
+        content: btoa(unescape(encodeURIComponent(content))),
+        branch: cfg.branch,
+        sha
+      };
+      const r = await fetch(url, {
+        method:'PUT',
+        headers: {'Accept':'application/vnd.github+json','Authorization': `Bearer ${cfg.token}`,'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      if(!r.ok) throw new Error(`PUT ${path}: ${r.status}`);
+      return r.json();
+    }
+    async function ghListPlans(cfg){
+      const dir = (cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
+      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(dir)}?ref=${encodeURIComponent(cfg.branch)}`;
+      const r = await fetch(url, {headers: githubHeaders(cfg.token)});
+      if(!r.ok) throw new Error(`List ${dir}: ${r.status}`);
+      const j = await r.json();
+      return j.filter(x=> x.type==='file' && x.name.endsWith('.json')).map(x=> x.path);
+    }
+    async function ghGetJsonFile(cfg, path){
+      const {content, html_url} = await githubGetFile(cfg, path);
+      return { data: JSON.parse(content), html_url };
+    }
+    async function ghDispatchWorkflow(cfg, workflowFile, inputs){
+      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/actions/workflows/${encodeURIComponent(workflowFile)}/dispatches`;
+      const body = { ref: cfg.branch, inputs: inputs || {} };
+      const r = await fetch(url, {
+        method:'POST',
+        headers:{'Accept':'application/vnd.github+json','Authorization':`Bearer ${cfg.token}`,'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+      if(!r.ok) throw new Error(`Dispatch ${workflowFile}: ${r.status}`);
+    }
+
+    // ---------- Save / Load ----------
+    async function saveToRepo(){
+      const cfg = ghGetCfg();
+      if(!cfg.token||!cfg.owner||!cfg.repo){ toast('Missing GitHub settings.','warn',2500); switchTopTab('settings'); return; }
+      if(!state.weekStart){ toast('Pick a week start first.','warn'); return; }
+      const prefix = (cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
+      const path = `${prefix}/plan-${state.weekStart}.json`;
+      const content = JSON.stringify(buildPayload(), null, 2);
+      await githubPutFile(cfg, path, content, `feat(planner): save ${path}`);
+      $('#saveHint').textContent = `Saved ${path}`;
+      toast('Plan saved to repo.','ok');
+    }
+    async function refreshPlanList(){
+      const cfg = ghGetCfg();
+      if(!cfg.token||!cfg.owner||!cfg.repo){ $('#loadHint').textContent='Set GitHub settings first.'; return; }
+      try{
+        const paths = await ghListPlans(cfg);
+        const sel = $('#planList');
+        sel.innerHTML = paths.map(p=> `<option value="${escHtml(p)}">${escHtml(p)}</option>`).join('');
+        $('#loadHint').textContent = `${paths.length} plan(s) found.`;
+        const cfgPrefix = (cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
+        $('#openPlanLink').href = paths.length ? `https://github.com/${cfg.owner}/${cfg.repo}/blob/${encodeURIComponent(cfg.branch)}/${paths[0]}` : '#';
+      }catch(e){
+        $('#loadHint').textContent = `Error: ${e.message}`;
+      }
+    }
+    async function loadSelectedPlan(){
+      const cfg = ghGetCfg();
+      const path = $('#planList').value;
+      if(!path){ toast('No plan selected.','warn'); return; }
+      try{
+        const {data, html_url} = await ghGetJsonFile(cfg, path);
+        applyPlanData(data);
+        $('#openPlanLink').href = html_url;
+        toast('Plan loaded.','ok');
+      }catch(e){
+        toast('Load failed: '+e.message,'warn',3000);
+      }
+    }
+    function applyPlanData(plan){
+      state.tz = plan.tz || state.tz;
+      state.athleteId = Number(plan.athlete_id || 0);
+      state.weekStart = plan.week_start || state.weekStart;
+      $('#tzBadge').textContent = state.tz;
+      $('#weekStart').value = state.weekStart || '';
+      state.days = {};
+      (plan.workouts||[]).forEach(w=>{
+        const iso = w.date;
+        if(!iso) return;
+        if(!state.days[iso]) state.days[iso]=[];
+        state.days[iso].push({
+          name: w.name||'',
+          type: w.type||'Ride',
+          indoor: !!w.indoor,
+          duration_sec: Number(w.duration_sec||0),
+          tss: Number(w.tss||0),
+          notes: w.notes||'',
+          design: w.design||undefined
+        });
+      });
+      setSelectedDay(0);
+      updateTotals();
+      updateUploadHint();
+    }
+
+    // ---------- Upload to Intervals (filtered) ----------
+    async function saveThenUpload(){
+      if(!state.weekStart){ alert('Pick a week start first.'); return; }
+      const dates = selectedUploadDates();
+      if (dates.length === 0) { alert('Select at least one day.'); return; }
+
+      const full = buildPayload();
+      const part = buildPayloadFiltered(dates);
+      const n = part.workouts.length;
+      const bullets = buildDaysBulletsHTML(dates);
+
+      const html = `<div class="space-y-2">
+        <div>Week: <b>${full.week_start}</b></div>
+        <div>Time zone: <code>${escHtml(full.tz)}</code></div>
+        <div>Athlete ID: <code>${full.athlete_id}</code></div>
+        <div class="mt-2">${bullets}</div>
+        <div class="text-rose-600 font-medium">This will upload <b>${n}</b> workout(s) for the selected day(s). Continue?</div>
+      </div>`;
+      const ok = await confirmDialog({title:'Upload to Intervals', html});
+      if(!ok) return;
+
+      const cfg = ghGetCfg();
+      const prefix = (cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
+      // Save full week
+      const fullPath = `${prefix}/plan-${state.weekStart}.json`;
+      await githubPutFile(cfg, fullPath, JSON.stringify(full,null,2), `feat(planner): save ${fullPath}`);
+
+      // Save filtered copy (if partial)
+      let dispatchPath = fullPath;
+      if (dates.length !== 7) {
+        const short = dates.map(d=>d.slice(8,10)).join('');
+        const partialDir = `${prefix}/partial`;
+        const partialPath = `${partialDir}/plan-${state.weekStart}-d${short}.json`;
+        await githubPutFile(cfg, partialPath, JSON.stringify(part,null,2), `feat(planner): save ${partialPath}`);
+        dispatchPath = partialPath;
+      }
+
+      await ghDispatchWorkflow(cfg, 'upload-week-plan.yml', {
+        plan_path: dispatchPath,
+        tz: full.tz || 'America/Los_Angeles',
+        athlete_id: String(full.athlete_id || 0),
+        default_start: '06:00',
+        dry_run: 'false'
       });
 
-      // Week controls
-      $('#weekStart').addEventListener('change', setWeekStartFromInput);
-      $('#tz').addEventListener('change',()=>{ state.tz=$('#tz').value; save(); });
-      $('#athleteId').addEventListener('change',()=>{ state.athleteId=Number($('#athleteId').value||0); save(); });
-      $('#newWeekBtn').addEventListener('click',()=>{ if(!$('#weekStart').value){ alert('Pick a Monday to start.'); return; } state.days={}; save(); renderDayEditor(); totals(); });
+      const runsUrl = `https://github.com/${cfg.owner}/${cfg.repo}/actions/workflows/upload-week-plan.yml`;
+      toast(`Upload dispatched for ${n} workout(s).`, 'ok', 3500);
+      const hint = $('#uploadHint');
+      if(hint) hint.innerHTML = `Dispatched ✓ — <a class="underline" target="_blank" href="${runsUrl}">view workflow runs</a>.`;
+    }
 
-      // Template controls
-      $('#phase').addEventListener('change', updateTemplateList);
-      $('#focus').addEventListener('change', updateTemplateList);
-      $('#templateKey').addEventListener('change', ()=>{
-        const phase=$('#phase').value, focus=$('#focus').value, key=$('#templateKey').value;
-        const g=TEMPLATES[phase]&&TEMPLATES[phase][focus]?TEMPLATES[phase][focus]:null;
-        $('#templateDesc').textContent=(g&&g[key]&&g[key].desc)?g[key].desc:'';
+    // ---------- Settings ----------
+    function loadSettingsIntoUI(){
+      const cfg = ghGetCfg();
+      $('#ghToken').value = cfg.token;
+      $('#ghOwner').value = cfg.owner || 'tomeese';
+      $('#ghRepo').value  = cfg.repo  || 'intervals-icu-bulk-uploader-planned-workouts';
+      $('#ghBranch').value= cfg.branch|| 'main';
+      $('#ghPrefix').value= cfg.prefix|| 'plans';
+      $('#inpTz').value   = state.tz;
+      $('#inpAthlete').value = String(state.athleteId||0);
+      $('#tzBadge').textContent = state.tz;
+    }
+    function saveSettingsFromUI(){
+      const cfg = {
+        token: $('#ghToken').value.trim(),
+        owner: $('#ghOwner').value.trim(),
+        repo:  $('#ghRepo').value.trim(),
+        branch:$('#ghBranch').value.trim() || 'main',
+        prefix:$('#ghPrefix').value.trim() || 'plans'
+      };
+      ghSetCfg(cfg);
+      state.tz = $('#inpTz').value.trim() || state.tz;
+      state.athleteId = Number($('#inpAthlete').value||0);
+      $('#tzBadge').textContent = state.tz;
+      toast('Settings saved.','ok');
+    }
+
+    // ---------- Boot ----------
+    function bindGlobal(){
+      // Top tabs
+      initTopTabs();
+
+      // Plan header
+      $('#loadTemplateBtn').addEventListener('click', ()=> applyTemplate($('#templateSelect').value));
+      $('#newWeekBtn').addEventListener('click', ()=>{
+        if(!confirm('Clear all days for this week?')) return;
+        Object.keys(state.days).forEach(k=> delete state.days[k]);
+        renderDay(isoForDayIndex(state.selectedDay||0)); updateTotals(); updateUploadHint();
       });
-      $('#loadTemplateBtn').addEventListener('click', applyTemplate);
+      $('#weekStart').addEventListener('change', ()=>{
+        state.weekStart = $('#weekStart').value || null;
+        setSelectedDay(0);
+        updateTotals();
+        updateUploadHint();
+      });
 
-      // Load & Save tab
-      $('#exportBtn').addEventListener('click', exportJson);
-      $('#importFile').addEventListener('change', e=>importJson(e.target.files[0]));
-      $('#saveRepoBtn').addEventListener('click', async ()=>{
-        if(!state.weekStart){ alert('Pick a week start first.'); return; }
-        const cfg=ghGetCfg(); const prefix=(cfg.prefix||'plans').replace(/^\/+|\/+$/g,''); const path=`${prefix}/plan-${state.weekStart}.json`;
-        const n=buildPayload().workouts.length;
-        const ok=await confirmDialog({title:'Save to repo', html:`Save <b>${path}</b> with <b>${n}</b> workout(s)?`});
-        if(!ok) return;
-        await githubPutFile(cfg, path, JSON.stringify(buildPayload(),null,2), `feat(planner): save ${path}`);
-        toast(`Saved ${path}`,'ok');
+      // Day tabs
+      bindDayTabs();
+
+      // Load & Save
+      $('#saveRepoBtn').addEventListener('click', saveToRepo);
+      $('#exportBtn').addEventListener('click', ()=>{
+        const blob = new Blob([JSON.stringify(buildPayload(),null,2)], {type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `plan-${state.weekStart||today()}.json`; a.click();
+        URL.revokeObjectURL(a.href);
       });
       $('#refreshPlansBtn').addEventListener('click', refreshPlanList);
       $('#loadPlanBtn').addEventListener('click', loadSelectedPlan);
-      $('#testGhBtn').addEventListener('click', async ()=>{
-        try{
-          const cfg=ghGetCfg(); const url=`https://api.github.com/repos/${cfg.owner}/${cfg.repo}`;
-          const res=await ghFetch(url, cfg.token);
-          const ok=res.ok; const js=await res.json();
-          $('#loadPlanMsg').textContent= ok ? `GitHub OK: default_branch=${js.default_branch}` : `GitHub ERROR ${res.status}`;
-          toast(ok?'GitHub OK':'GitHub error','ok');
-        }catch(e){ $('#loadPlanMsg').textContent=`GitHub ERROR: ${e.message||e}`; toast('GitHub error','err'); }
-      });
 
-      // Upload tab
+      // Upload
       $('#uploadIntervalsBtn').addEventListener('click', saveThenUpload);
-
-      // Settings tab
-      $('#saveGhCfg').addEventListener('click', ()=>{
-        const cfg={token:cleanToken($('#ghToken').value),owner:$('#ghOwner').value,repo:$('#ghRepo').value,branch:$('#ghBranch').value,prefix:$('#ghPrefix').value};
-        ghSaveCfg(cfg); $('#ghToken').value=cfg.token; $('#saveGhMsg').textContent='Saved ✓'; setTimeout(()=>$('#saveGhMsg').textContent='',2500);
-        toast('GitHub settings saved','ok');
-      });
-      $('#clearGhCfg').addEventListener('click', ()=>{ localStorage.removeItem(GH_STORE_KEY); if($('#ghToken')) $('#ghToken').value=''; $('#saveGhMsg').textContent='Cleared'; setTimeout(()=>$('#saveGhMsg').textContent='',2000); toast('GitHub token cleared','warn'); });
-
-      // Boot defaults
-      const isoMonday=toISODate(mondayOf(new Date())); $('#weekStart').value=isoMonday; setWeekStartFromInput();
-      updateTemplateList();
-      refreshPlanList(); // public fallback works if repo is public
-
-      // Upload day selection events
-      document.getElementById('upSelectAll').addEventListener('change', e => { setUploadDaysAll(e.target.checked); updateUploadHint(); });
-      uploadDayCheckboxEls().forEach(cb => cb.addEventListener('change', () => {
-        // Keep "select all" in sync
-        const allChecked = uploadDayCheckboxEls().every(x => x.checked);
-        document.getElementById('upSelectAll').checked = allChecked;
+      $('#upSelectAll').addEventListener('change', e=>{ setUploadDaysAll(e.target.checked); updateUploadHint(); });
+      uploadDayCheckboxEls().forEach(cb=> cb.addEventListener('change', ()=>{
+        const allChecked = uploadDayCheckboxEls().every(x=> x.checked);
+        $('#upSelectAll').checked = allChecked;
         updateUploadHint();
       }));
-
-      document.getElementById('upWeekdays').addEventListener('click', ()=>{
-      uploadDayCheckboxEls().forEach((cb,i)=> cb.checked = (i>=0 && i<=4)); // Mon–Fri
-      document.getElementById('upSelectAll').checked = false;
-      updateUploadHint();
+      $('#upWeekdays').addEventListener('click', ()=>{
+        uploadDayCheckboxEls().forEach((cb,i)=> cb.checked = (i>=0 && i<=4));
+        $('#upSelectAll').checked = false; updateUploadHint();
       });
-      document.getElementById('upWeekend').addEventListener('click', ()=>{
-        uploadDayCheckboxEls().forEach((cb,i)=> cb.checked = (i===5 || i===6)); // Sat/Sun
-        document.getElementById('upSelectAll').checked = false;
-        updateUploadHint();
+      $('#upWeekend').addEventListener('click', ()=>{
+        uploadDayCheckboxEls().forEach((cb,i)=> cb.checked = (i===5 || i===6));
+        $('#upSelectAll').checked = false; updateUploadHint();
       });
 
-      updateUploadHint();
-      bindDayTabs();
-      if (state.weekStart) setSelectedDay(state.selectedDay ?? 0);
+      // Settings
+      $('#saveGhCfg').addEventListener('click', saveSettingsFromUI);
+      $('#clearGhCfg').addEventListener('click', ()=>{ localStorage.removeItem('ghToken'); $('#ghToken').value=''; toast('Token cleared.','ok'); });
+      $('#testGhBtn').addEventListener('click', async ()=>{
+        try{
+          const cfg = ghGetCfg();
+          const dir = (cfg.prefix||'plans').replace(/^\/+|\/+$/g,'');
+          const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(dir)}?ref=${encodeURIComponent(cfg.branch)}`;
+          const r = await fetch(url, {headers: githubHeaders(cfg.token)});
+          $('#ghHint').textContent = r.ok ? 'GitHub OK.' : `GitHub error: ${r.status}`;
+        }catch(e){ $('#ghHint').textContent = 'GitHub error: '+e.message; }
+      });
+    }
 
-    }catch(e){ showErr(e.message||e); }
-  })();
+    (function boot(){
+      // Defaults
+      state.weekStart = mondayOfCurrentWeek();
+      $('#weekStart').value = state.weekStart;
+      loadSettingsIntoUI();
+      bindGlobal();
+      setSelectedDay(0);
+      refreshPlanList();
+      updateUploadHint();
+    })();
   </script>
 </body>
 </html>
