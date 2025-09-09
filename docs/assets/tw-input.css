@@ -1,3 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* v4 style: pulls in preflight + utilities (and components) */
+@import "tailwindcss";
+/* If you want just the essentials instead, do:
+@import "tailwindcss/preflight";
+@import "tailwindcss/utilities";
+*/

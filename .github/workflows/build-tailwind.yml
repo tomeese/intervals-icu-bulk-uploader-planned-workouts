@@ -33,7 +33,8 @@ jobs:
         run: |
           ./tailwindcss -i docs/assets/tw-input.css -o docs/assets/tw.css --minify
           echo "Built CSS size:" && wc -c docs/assets/tw.css
-          echo "First lines of tw.css:" && head -n 5 docs/assets/tw.css
+          echo "Search for preflight font rule:"
+          grep -m1 -o 'html{font-family:[^}]*}' docs/assets/tw.css || true
 
       - name: Commit built CSS if changed
         run: |
