@@ -59,6 +59,37 @@
     /* Modal */
     #modal{position:fixed;inset:0;z-index:50;display:none}
     #modal.show{display:block}
+
+    /* ---------- Unified button system ---------- */
+    :root{
+      --btnPrimaryBg: rgb(37 99 235);   /* blue-600 */
+      --btnDangerBg:  rgb(220 38 38);   /* red-600  */
+      --btnSecBg:     rgb(226 232 240); /* slate-200 */
+      --btnSecFg:     rgb(15 23 42);    /* slate-900 */
+      --btnSecBd:     rgb(203 213 225); /* slate-300 */
+      --btnOlFg:      rgb(51 65 85);    /* slate-700 */
+      --btnOlBd:      rgb(203 213 225); /* slate-300 */
+    }
+    .dark{
+      --btnSecBg:     rgb(30 41 59);    /* slate-800 */
+      --btnSecFg:     rgb(203 213 225); /* slate-300 */
+      --btnSecBd:     rgb(51 65 85);    /* slate-700 */
+      --btnOlFg:      rgb(203 213 225); /* slate-300 */
+      --btnOlBd:      rgb(51 65 85);    /* slate-700 */
+    }
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      padding:.55rem .9rem; border-radius:.6rem; font-weight:600;
+      border:1px solid var(--btnSecBd); transition:filter .15s ease,opacity .15s;
+    }
+    .btn:hover{ filter:brightness(0.97); }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; }
+    .btn-primary{ background:var(--btnPrimaryBg); color:#fff; border-color:var(--btnPrimaryBg); }
+    .btn-secondary{ background:var(--btnSecBg); color:var(--btnSecFg); border-color:var(--btnSecBd); }
+    .btn-outline{ background:transparent; color:var(--btnOlFg); border-color:var(--btnOlBd); }
+    .btn-danger{ background:var(--btnDangerBg); color:#fff; border-color:var(--btnDangerBg); }
+    .btn-ghost{ background:transparent; border-color:transparent; }
+
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
@@ -76,8 +107,8 @@
       </div>
       <div id="modalBody" class="px-4 py-3 text-sm"></div>
       <div class="px-4 py-3 flex justify-end gap-2">
-        <button id="modalCancel" class="sm-btn">Cancel</button>
-        <button id="modalOk" class="sm-btn bg-rose-600 text-white border-rose-600">Confirm</button>
+        <button id="modalCancel" class="btn btn-outline">Cancel</button>
+        <button id="modalOk" class="btn btn-primary">Confirm</button>
       </div>
     </div>
   </div>
@@ -125,7 +156,8 @@
               <input id="athleteId" type="number" value="0" class="inp dark"/>
             </label>
             <div class="flex items-end">
-              <button id="newWeekBtn" class="w-full rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 font-medium">Clear week</button>
+              <button id="newWeekBtn" class="btn btn-secondary w-full">Clear week</button>
+
             </div>
           </div>
         </div>
@@ -147,7 +179,7 @@
               <div id="templateDesc" class="mt-1 text-xs text-slate-500"></div>
             </label>
             <div class="flex items-end">
-              <button id="loadTemplateBtn" class="w-full rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Load template</button>
+              <button id="loadTemplateBtn" class="btn btn-primary w-full">Load template</button>
             </div>
           </div>
         </div>
@@ -163,9 +195,9 @@
             <button class="sm-btn" data-daytab="5">Sat</button>
             <button class="sm-btn" data-daytab="6">Sun</button>
             <div class="ml-auto flex gap-2">
-              <button class="sm-btn" id="copyPrevDayBtn">Copy prev</button>
-              <button class="sm-btn" id="clearDayBtn">Clear day</button>
-              <button class="px-3 py-2 rounded-lg bg-indigo-600 text-white text-sm" id="addRowBtn">Add workout</button>
+              <button class="btn btn-outline" id="copyPrevDayBtn">Copy prev</button>
+              <button class="btn btn-outline" id="clearDayBtn">Clear day</button>
+              <button class="btn btn-primary" id="addRowBtn">Add workout</button>
             </div>
           </div>
           <div class="p-4" id="dayEditor"><!-- rows render here --></div>
@@ -196,12 +228,12 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
             <h3 class="text-lg font-semibold mb-3">Save current plan to repo</h3>
-            <button id="saveRepoBtn" class="rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 font-medium">Save to repo</button>
-          </div>
+            <button id="saveRepoBtn" class="btn btn-primary">Save to repo</button>
+       </div>
           <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
             <h3 class="text-lg font-semibold mb-3">Export / Import</h3>
             <div class="flex gap-2">
-              <button id="exportBtn" class="rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 font-medium">Export JSON</button>
+              <button id="exportBtn" class="btn btn-secondary">Export JSON</button>
               <label class="field">
                 <span class="lbl">Import JSON</span>
                 <input id="importFile" type="file" accept="application/json" class="text-sm"/>
@@ -214,14 +246,14 @@
           <div class="flex items-center justify-between">
             <h3 class="text-lg font-semibold">Load a plan from repo</h3>
             <div class="flex gap-2">
-              <button id="testGhBtn" class="sm-btn">Test GitHub</button>
-              <button id="refreshPlansBtn" class="sm-btn">Refresh</button>
+              <button id="testGhBtn" class="btn btn-outline">Test GitHub</button>
+              <button id="refreshPlansBtn" class="btn btn-outline">Refresh</button>
             </div>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-3">
             <select id="loadPlanSelect" class="sm:col-span-3 inp dark"><option value="">— select plan —</option></select>
-            <button id="loadPlanBtn" class="rounded-lg bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 text-sm">Load</button>
-            <a id="openPlanLink" href="#" target="_blank" class="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 text-center">Open on GitHub</a>
+              <button id="loadPlanBtn" class="btn btn-primary">Load</button>
+            <a id="openPlanLink" href="#" target="_blank" class="btn btn-outline">Open on GitHub</a>
           </div>
           <div id="loadPlanMsg" class="text-xs text-slate-500 mt-2"></div>
         </div>
@@ -239,8 +271,9 @@
         <div class="mb-3 flex flex-wrap gap-3 items-center">
           <label class="inline-flex items-center gap-2">
             <input id="upSelectAll" type="checkbox" class="h-4 w-4" checked>
-            <button id="upWeekdays" class="sm-btn">Weekdays</button>
-            <button id="upWeekend"  class="sm-btn">Weekend</button>
+              <button id="upWeekdays" class="btn btn-outline">Weekdays</button>
+              <button id="upWeekend"  class="btn btn-outline">Weekend</button>
+
             <span>Select all</span>
           </label>
           <div class="flex flex-wrap gap-3">
@@ -267,10 +300,7 @@
             </label>
           </div>
         </div>
-
-        <button id="uploadIntervalsBtn" class="rounded-lg bg-rose-600 hover:bg-rose-500 text-white px-3 py-2 font-medium">
-          Upload to Intervals
-        </button>
+       <button id="uploadIntervalsBtn" class="btn btn-primary">Upload to Intervals</button>
         <div class="text-xs text-slate-500 mt-3" id="uploadHint"></div>
       </div>
     </section>
@@ -288,9 +318,9 @@
             <label class="field"><span class="lbl">Path prefix</span><input id="ghPrefix" value="plans" class="inp dark"/></label>
           </div>
           <div class="flex items-center gap-2 mt-3">
-            <button id="saveGhCfg" class="sm-btn">Save settings</button>
+            <button id="saveGhCfg" class="btn btn-primary">Save settings</button>
             <span id="saveGhMsg" class="text-xs text-emerald-500"></span>
-            <button id="clearGhCfg" class="ml-auto sm-btn border-rose-300 dark:border-rose-700">Clear token</button>
+            <button id="clearGhCfg" class="btn btn-danger">Clear token</button>
           </div>
         </div>
       </section>
@@ -331,9 +361,9 @@
       </div>
 
       <div class="mt-3 flex flex-wrap gap-2 justify-end">
-        <button class="sm-btn" data-design-btn>Design</button>
-        <button class="sm-btn" data-zwo>ZWO</button>
-        <button class="sm-btn border-rose-300 text-rose-600" data-del>Delete</button>
+        <button class="btn btn-outline" data-design-btn>Design</button>
+        <button class="btn btn-secondary" data-zwo>ZWO</button>
+        <button class="btn btn-danger" data-del>Delete</button>
       </div>
 
       <!-- DESIGN panel -->
@@ -356,9 +386,9 @@
           <label class="field col-span-3"><span class="lbl">ERG</span><input type="checkbox" class="h-5 w-5 mt-2" data-d-erg checked></label>
         </div>
         <div class="mt-2 flex gap-2 justify-end">
-          <button class="sm-btn" data-design-cancel>Close</button>
-          <button class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs" data-design-save>Save</button>
-        </div>
+          <button class="btn btn-outline" data-design-cancel>Close</button>
+          <button class="btn btn-primary" data-design-save>Save</button>
+       </div>
       </div>
     </div>
   </template>
