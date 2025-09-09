@@ -7,6 +7,81 @@
   <meta name="color-scheme" content="light dark"/>
   <link rel="stylesheet" href="assets/tw.css?v=2"/>
   <style>
+/* ==== unified tokens ==== */
+:root{
+  /* tabs/panel (light) */
+  --panelBg: #fff;
+  --tabBorder: rgb(203 213 225);      /* slate-300 */
+  --tabInactiveBg: rgb(248 250 252);  /* slate-50 */
+  --tabInactiveFg: rgb(71 85 105);    /* slate-600 */
+
+  /* inputs (light) */
+  --inputBg: #fff;
+  --inputFg: rgb(15 23 42);           /* slate-900 */
+  --inputBd: rgb(226 232 240);        /* slate-200 */
+}
+
+/* dark scheme — matches Tailwind's media dark mode */
+@media (prefers-color-scheme: dark){
+  :root{
+    --panelBg: rgb(30 41 59);         /* slate-800 */
+    --tabBorder: rgb(51 65 85);       /* slate-700 */
+    --tabInactiveBg: rgb(30 41 59);   /* slate-800 (softer, not white) */
+    --tabInactiveFg: rgb(203 213 225);/* slate-300 */
+
+    --inputBg: rgb(15 23 42);         /* slate-900 */
+    --inputFg: rgb(226 232 240);      /* slate-200/300 */
+    --inputBd: rgb(51 65 85);         /* slate-700 */
+  }
+}
+
+/* ==== tabs look/feel ==== */
+.tabs{ border-bottom:1px solid var(--tabBorder); }
+.tab{
+  background: var(--tabInactiveBg);
+  color: var(--tabInactiveFg);
+  border:1px solid var(--tabBorder);
+  border-bottom:none;
+}
+.tab[aria-selected="true"]{
+  background: var(--panelBg);
+  color: inherit;
+  border-color: var(--tabBorder);
+  z-index:2;
+}
+.tabpanel{
+  background: var(--panelBg);
+  border:1px solid var(--tabBorder);
+  border-top:none;
+  border-bottom-left-radius:.75rem;
+  border-bottom-right-radius:.75rem;
+}
+
+/* ==== inputs/selects/textarea inside panels ==== */
+/* Use .tabpanel to add specificity and beat utility classes */
+.tabpanel input,
+.tabpanel select,
+.tabpanel textarea{
+  background: var(--inputBg) !important;
+  color: var(--inputFg) !important;
+  border: 1px solid var(--inputBd) !important;
+}
+.tabpanel input::placeholder,
+.tabpanel textarea::placeholder{ color: color-mix(in oklab, var(--inputFg) 55%, transparent); }
+.tabpanel select option{ color: initial; } /* keep native options readable */
+
+/* day pill buttons in dark mode (for consistency) */
+@media (prefers-color-scheme: dark){
+  .day-tabs button{
+    background: rgb(30 41 59);
+    color: rgb(203 213 225);
+    border-color: var(--tabBorder);
+  }
+  .day-tabs button:hover{ background: rgb(51 65 85); }
+  .day-tabs button[aria-selected="true"]{ background: var(--panelBg); color:#fff; }
+}
+
+
     :root{--ring:0 0 0 2px rgba(37,99,235,.35)}
     .card{border-radius:.75rem}
     .field{display:flex;flex-direction:column;gap:.45rem}
