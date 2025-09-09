@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write   # needed to commit the generated CSS
+  contents: write   # allow committing the generated CSS
 
 jobs:
   build:
@@ -22,22 +22,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build Tailwind
-        run: npx tailwindcss -i docs/assets/tw-input.css -o docs/assets/tw.css --minify
-
-      - name: Commit built CSS (if changed)
+      # Grab the standalone Tailwind CLI (no npm needed)
+      - name: Download Tailwind CLI (standalone)
         run: |
-          if ! git diff --quiet -- docs/assets/tw.css; then
-            git config user.name  "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add docs/assets/tw.css
+          curl -sSL -o tailwindcss https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
+          chmod +x tailwindcss
+          ./tailwindcss --help | head -n 1
+
+      - name: Build CSS
+        run: ./tailwindcss -i docs/assets/tw-input.css -o docs/assets/tw.css --minify
+
+      - name: Commit built CSS if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/assets/tw.css
+          if git diff --cached --quiet; then
+            echo "No CSS changes."
+          else
             git commit -m "build: update Tailwind CSS"
             git push
-          else
-            echo "No CSS changes."
           fi
