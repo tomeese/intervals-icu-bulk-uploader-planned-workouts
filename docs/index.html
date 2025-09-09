@@ -73,6 +73,42 @@
       --tabInactiveBg: rgb(15 23 42);  /* slate-900 */
       --tabInactiveFg: rgb(203 213 225); /* slate-300 */
     }
+/* Light defaults already set above via :root … */
+
+/* ---- Dark-mode overrides (media-based, to match Tailwind CDN) ---- */
+@media (prefers-color-scheme: dark){
+  :root{
+    /* Panels & tabs */
+    --panelBg: rgb(30 41 59);        /* slate-800 */
+    --tabBorder: rgb(51 65 85);      /* slate-700 */
+    --tabInactiveBg: rgb(15 23 42);  /* slate-900 */
+    --tabInactiveFg: rgb(203 213 225); /* slate-300 */
+
+    /* Button system */
+    --btnSecBg:  rgb(30 41 59);      /* slate-800 */
+    --btnSecFg:  rgb(203 213 225);   /* slate-300 */
+    --btnSecBd:  rgb(51 65 85);      /* slate-700 */
+    --btnOlFg:   rgb(203 213 225);   /* slate-300 */
+    --btnOlBd:   rgb(51 65 85);      /* slate-700 */
+  }
+
+  /* Top tabs & panel borders pick up dark vars automatically,
+     but ensure we don’t inherit light colors anywhere */
+  .tab{ background: var(--tabInactiveBg); color: var(--tabInactiveFg); border-color: var(--tabBorder); }
+  .tabpanel{ background: var(--panelBg); border-color: var(--tabBorder); }
+
+  /* Day tabs contrast in dark mode */
+  .day-tabs button{
+    background: rgb(30 41 59);       /* slate-800 */
+    color: rgb(203 213 225);         /* slate-300 */
+    border-color: var(--tabBorder);
+  }
+  .day-tabs button:hover{ background: rgb(51 65 85); } /* slate-700 */
+  .day-tabs button[aria-selected="true"]{
+    background: var(--panelBg);
+    color: #fff; /* or keep inherit if you prefer */
+  }
+}
 
     .tabs{
       display:flex; gap:.4rem; align-items:flex-end;
@@ -119,13 +155,7 @@
       --btnOlFg:      rgb(51 65 85);    /* slate-700 */
       --btnOlBd:      rgb(203 213 225); /* slate-300 */
     }
-    .dark{
-      --btnSecBg:     rgb(30 41 59);    /* slate-800 */
-      --btnSecFg:     rgb(203 213 225); /* slate-300 */
-      --btnSecBd:     rgb(51 65 85);    /* slate-700 */
-      --btnOlFg:      rgb(203 213 225); /* slate-300 */
-      --btnOlBd:      rgb(51 65 85);    /* slate-700 */
-    }
+    
     .btn{
       display:inline-flex; align-items:center; justify-content:center;
       padding:.55rem .9rem; border-radius:.6rem; font-weight:600;
