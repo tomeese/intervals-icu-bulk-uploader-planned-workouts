@@ -1,0 +1,31 @@
+{
+  "date": "2025-09-08",
+  "summary": {
+    "actual_time_sec": 0,
+    "actual_time_hms": "0h 00m",
+    "actual_tss": 0,
+    "planned_time_sec": 0,
+    "planned_time_hms": "0h 00m",
+    "planned_tss": 0,
+    "delta_time_sec": 0,
+    "delta_time_hms": "0h 00m",
+    "delta_tss": 0,
+    "by_type_actual": {},
+    "by_type_planned": {}
+  },
+  "advice": {
+    "tsb": 0.8,
+    "ctl": 82.3,
+    "atl": 81.6,
+    "ramp": 1.1,
+    "recommendation": "Stick to plan.",
+    "tomorrow_planned_tss": 90.0,
+    "tomorrow_suggested_tss": 90.0,
+    "adjust_pct": 0.0
+  },
+  "sessions": [],
+  "alerts": {
+    "flags": [],
+    "subject_tag": ""
+  }
+}
