@@ -802,6 +802,106 @@
       btn.disabled = nWos === 0;
       $('#uploadHint').innerHTML = nDays ? `Selected <b>${nDays}</b> day(s), <b>${nWos}</b> workout(s).` : 'No days selected.';
     }
+    // ---------- ZWO generation & download ----------
+
+    // safe file slug
+    function slug(s){
+      return String(s||'').trim()
+        .replace(/[^\w.\-]+/g, '_')      // keep letters/digits/_ . -
+        .replace(/^_+|_+$/g,'')          // trim leading/trailing _
+        .slice(0,120);
+    }
+
+    // build ZWO XML from a simple spec
+    function makeZwoXML(spec, title){
+      const esc = (t)=> String(t||'')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
+
+      const steps = [];
+      for(const seg of spec.segments){
+        if(seg.type === 'warmup'){
+          steps.push(`<Warmup Duration="${seg.seconds}" PowerLow="${seg.from_pct}" PowerHigh="${seg.to_pct}"/>`);
+        } else if(seg.type === 'repeat'){
+          steps.push(
+            `<IntervalsT Repeat="${seg.repeat}" OnDuration="${seg.work.seconds}" OffDuration="${seg.rest.seconds}" OnPower="${seg.work.pct}" OffPower="${seg.rest.pct}" Cadence="0"/>`
+          );
+        } else if(seg.type === 'cooldown'){
+          steps.push(`<Cooldown Duration="${seg.seconds}" PowerLow="${seg.to_pct}" PowerHigh="${seg.from_pct}"/>`);
+        }
+      }
+      return `<?xml version="1.0" encoding="UTF-8"?>
+    <workout_file>
+      <author>planner</author>
+      <name>${esc(title)}</name>
+      <description>Auto-generated from planner</description>
+      <sportType>bike</sportType>
+      <tags></tags>
+      <workout>
+        ${steps.join('\n    ')}
+      </workout>
+    </workout_file>
+    `;
+    }
+
+    // derive a spec from a workout + design (with safe defaults)
+    function specFromWorkout(w){
+      const d = w.design || {};
+      const warm = Math.max(60, Number(d.warmup_sec ?? 600));
+      const cool = Math.max(60, Number(d.cooldown_sec ?? 600));
+      const sets = Math.max(1,  Number(d.sets ?? 3));
+      const work = Math.max(30, Number(d.work_sec ?? 720));
+      const rest = Math.max(15, Number(d.rec_sec  ?? 300));
+      const pct  = Math.max(0.3, Math.min(1.8, Number(d.target_pct ?? 0.95)));
+
+      return {
+        name: w.name || 'Workout',
+        segments: [
+          {type:'warmup',   seconds:warm, from_pct:0.5,  to_pct:0.75},
+          {type:'repeat',   repeat:sets,  work:{type:'steady', seconds:work, pct:pct},
+                                        rest:{type:'steady', seconds:rest, pct:0.55}},
+          {type:'cooldown', seconds:cool, from_pct:0.75, to_pct:0.5}
+        ]
+      };
+    }
+
+    // save text file to browser (download)
+    function downloadTextFile(filename, text, mime='application/xml'){
+      const blob = new Blob([text], {type: mime});
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1000);
+    }
+
+    // optional: archive ZWO to repo/zwo/
+    async function maybeArchiveZwoToRepo(filename, xml){
+      const cfg = ghGetCfg();
+      if(!cfg.token || !cfg.owner || !cfg.repo) return; // no settings => skip
+      const ok = await confirmDialog({
+        title: 'Archive to repo?',
+        html: `<p>Download succeeded. Also save a copy to <code>zwo/${escHtml(filename)}</code> in your repo?</p>`
+      });
+      if(!ok) return;
+      await githubPutFile(cfg, `zwo/${filename}`, xml, `chore(zwo): add ${filename}`);
+      toast('ZWO archived to repo.', 'ok');
+    }
+
+    // main entry called from the row button
+    async function generateZWOForWorkout(iso, idx, w){
+      // guardrails
+      if(!(w && (w.type==='Virtual Ride' || w.type==='Ride'))){
+        toast('ZWO is intended for Ride/Virtual Ride.', 'warn', 2500);
+      }
+      const spec = specFromWorkout(w);
+      const xml  = makeZwoXML(spec, w.name || 'Workout');
+      const fname = `${iso}-${slug(w.name || 'workout')}.zwo`;
+
+      downloadTextFile(fname, xml, 'application/xml');
+      // optional archive:
+      try { await maybeArchiveZwoToRepo(fname, xml); } catch (e) { toast('Repo save failed: '+e.message, 'warn', 3000); }
+    }
+
 
     // ---------- Modal / toast ----------
     function confirmDialog({title, html}){
