@@ -249,35 +249,40 @@ export function inferDayType(events: WorkoutEvent[]): DayType {
 }
 
 function scoreEventHardness(e: WorkoutEvent): number {
-  const desc = (e.description || "").toLowerCase();
-  const type = e.type;
-  const load = safeInt(e.icu_training_load);
+    const desc = (e.description || "").toLowerCase();
+    const type = e.type;
+    const load = safeInt(e.icu_training_load);
+    const longByTime = (e.moving_time || 0) >= LONG_RIDE_TIME_THRESHOLD_SEC;
 
-  // Strong hard signals
-  const hardHints = [
-    "vo2", "vo₂", "anaerobic", "race", "crit", "over-under", "over under", "o/u",
-    "threshold", "sweet spot", "ss", "climb repeats", "sprint", "attacks",
-    "@ 1.0", "@1.0", "% of ftp", "120%", "110%", "105%",
-  ];
-  if (hardHints.some((h) => desc.includes(h))) return 3;
+    // 1) Hard hints = hard
+    const hardHints = ["vo2","vo₂","anaerobic","race","crit","over-under","over under","o/u",
+                        "threshold","sweet spot","ss","climb repeats","sprint","attacks",
+                        "@ 1.0","@1.0","% of ftp","120%","110%","105%"];
+    if (hardHints.some(h => desc.includes(h))) return 3;
 
-  // Moderate hard via load or workout type
-  if (type === "Workout" && load >= 70) return 3;
-  if (load >= 100) return 3; // heavy day by load alone
+    // 2) Long ride => endurance (volume ≠ intensity)
+    const longRideHints = ["long ride", " lr ", " lr:", "endurance long ride"];
+    const isLongRide = longByTime || longRideHints.some(h => desc.includes(h));
+    if (isLongRide) return 2;
 
-  // Endurance signals
-  const enduHints = ["endurance", "z2", "zone 2", "aerobic", "base", "tempo", "grp ride", "group ride"];
-  if (enduHints.some((h) => desc.includes(h))) return 2;
+    // 3) Explicit workouts with meaningful load are hard
+    if (type === "Workout" && load >= 70) return 3;
 
-  // Recovery signals
-  const recHints = ["recovery", "z1", "easy", "spin"];
-  if (recHints.some((h) => desc.includes(h))) return 1;
+    // 4) Really heavy non-long days count as hard by load alone
+    if (load >= 120) return 3;
 
-  // Fallback by activity type
-  if (type === "Ride" || type === "Gravel Ride" || type === "Virtual Ride") return 2; // endurance default
-  if (type === "Workout") return 3; // workouts skew hard
+    // 5) Endurance / recovery keywords
+    const enduHints = ["endurance","z2","zone 2","aerobic","base","tempo","grp ride","group ride"];
+    if (enduHints.some(h => desc.includes(h))) return 2;
 
-  return 2; // general default to endurance
+    const recHints = ["recovery","z1","easy","spin"];
+    if (recHints.some(h => desc.includes(h))) return 1;
+
+    // 6) Fallback by type
+    if (type === "Ride" || type === "Gravel Ride" || type === "Virtual Ride") return 2;
+    if (type === "Workout") return 3;
+
+    return 2;
 }
 
 function hardnessToDayType(score: number): DayType {
