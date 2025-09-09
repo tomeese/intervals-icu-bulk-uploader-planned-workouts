@@ -204,6 +204,11 @@
       z-index: 20;      /* above content, below modal */
     }
 
+    /* Wider, usable duration inputs */
+    .duration-group input{ width:100%; }
+    .duration-group [data-k="dur_h"]{ min-width:7rem; }  /* ~2× */
+    .duration-group [data-k="dur_m"]{ min-width:10rem; } /* ~3× */
+
 </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
@@ -579,7 +584,8 @@
               </select>
             </label>
 
-            <div class="grid grid-cols-2 gap-2">
+            <!-- WIDER duration inputs -->
+            <div class="duration-group grid grid-cols-2 gap-2 md:col-span-2">
               <label class="field">
                 <span class="text-xs text-slate-500">Hours</span>
                 <input data-k="dur_h" type="number" min="0" value="${h}" class="rounded-lg px-2.5 py-1.5"/>
@@ -604,11 +610,10 @@
           </div>
 
           <div class="mt-2 flex gap-2 justify-end">
-            <button class="btn btn-outline" data-design-btn>Design ZWO</button>
+            <button class="btn btn-outline" data-design-btn>Design</button>
             <button class="btn btn-danger"  data-del>Delete</button>
           </div>
 
-          <!-- Design panel (collapsed by default) -->
           <div class="mt-3 hidden" data-design-panel>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
               <label class="field"><span class="text-xs text-slate-500">Target %FTP</span>
@@ -639,44 +644,33 @@
         `;
         root.appendChild(row);
 
-        // Field changes
+        // bindings
         row.querySelectorAll('[data-k]').forEach(inp=>{
           inp.addEventListener('input', ()=>{
             const k = inp.getAttribute('data-k');
-            if (k === 'name') w.name = inp.value;
-            else if (k === 'type') w.type = inp.value;
-            else if (k === 'indoor') w.indoor = (inp.value === 'true');
-            else if (k === 'tss') w.tss = Number(inp.value || 0);
-            else if (k === 'dur_h' || k === 'dur_m') {
-              const hh = Number(row.querySelector('[data-k="dur_h"]').value || 0);
-              const mm = Number(row.querySelector('[data-k="dur_m"]').value || 0);
-              w.duration_sec = secFromHM(hh, mm);
+            if (k==='name') w.name = inp.value;
+            else if (k==='type') w.type = inp.value;
+            else if (k==='indoor') w.indoor = (inp.value==='true');
+            else if (k==='tss') w.tss = Number(inp.value||0);
+            else if (k==='dur_h' || k==='dur_m'){
+              const hh = Number(row.querySelector('[data-k="dur_h"]').value||0);
+              const mm = Number(row.querySelector('[data-k="dur_m"]').value||0);
+              w.duration_sec = hh*3600 + mm*60;
             }
-            updateTotals();
-            updateUploadHint();
+            updateTotals(); updateUploadHint();
           });
         });
-        row.querySelector('[textarea][data-k="notes"]')?.addEventListener('input', e => { w.notes = e.target.value; });
         const notesEl = row.querySelector('[data-k="notes"]');
         if (notesEl) notesEl.addEventListener('input', e => { w.notes = e.target.value; });
 
-        // Row actions
         row.querySelector('[data-del]').addEventListener('click', ()=>{
-          list.splice(idx, 1);
-          renderDay(iso);
-          updateTotals();
-          updateUploadHint();
+          list.splice(idx,1); renderDay(iso); updateTotals(); updateUploadHint();
         });
 
-        // Design panel toggle & actions
         const panel = row.querySelector('[data-design-panel]');
-        row.querySelector('[data-design-btn]').addEventListener('click', ()=> {
-          panel.classList.toggle('hidden');
-        });
-        row.querySelector('[data-design-cancel]').addEventListener('click', ()=> {
-          panel.classList.add('hidden');
-        });
-        row.querySelector('[data-design-save]').addEventListener('click', ()=> {
+        row.querySelector('[data-design-btn]').addEventListener('click', ()=> panel.classList.toggle('hidden'));
+        row.querySelector('[data-design-cancel]').addEventListener('click', ()=> panel.classList.add('hidden'));
+        row.querySelector('[data-design-save]').addEventListener('click', ()=>{
           const d = w.design || (w.design = {});
           row.querySelectorAll('[data-d]').forEach(inp=>{
             const key = inp.getAttribute('data-d');
@@ -686,7 +680,6 @@
           toast('Design saved.','ok',1500);
         });
 
-        // Generate ZWO (now inside the design panel)
         row.querySelector('[data-zwo]').addEventListener('click', ()=>{
           if (typeof generateZWOForWorkout === 'function') {
             generateZWOForWorkout(iso, idx, w);
@@ -696,7 +689,6 @@
         });
       });
 
-      // Day-level toolbar
       document.getElementById('addRowBtn').onclick = ()=>{
         list.push({name:'', type:'Ride', indoor:false, duration_sec:0, tss:0, notes:''});
         renderDay(iso); updateTotals(); updateUploadHint();
