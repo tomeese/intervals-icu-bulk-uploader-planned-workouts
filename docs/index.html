@@ -806,7 +806,7 @@
       const nWos = countFilteredWorkouts(dates);
       const nDays = dates.length;
       const btn = $('#uploadIntervalsBtn');
-      btn.textContent = nWos ? `Upload to Intervals (${nWos})` : 'Upload to Intervals';
+      btn.textContent = nWos ? `Upload Plan to Intervals (${nWos})` : 'Upload Plan to Intervals';
       btn.disabled = nWos === 0;
       $('#uploadHint').innerHTML = nDays ? `Selected <b>${nDays}</b> day(s), <b>${nWos}</b> workout(s).` : 'No days selected.';
     }
