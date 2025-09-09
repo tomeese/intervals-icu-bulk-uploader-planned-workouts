@@ -209,6 +209,17 @@
     .duration-group [data-k="dur_h"]{ min-width:7rem; }  /* ~2× */
     .duration-group [data-k="dur_m"]{ min-width:10rem; } /* ~3× */
 
+    /* Prevent grid inputs from forcing overflow */
+    .field input,
+    .field select,
+    .field textarea { width:100%; min-width:0; }
+
+    /* Wider, usable duration inputs (still responsive) */
+    .duration-group input{ width:100%; min-width:0; }
+    .duration-group [data-k="dur_h"]{ min-width:7rem; }  /* ~2× */
+    .duration-group [data-k="dur_m"]{ min-width:10rem; } /* ~3× */
+
+
 </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
