@@ -197,6 +197,13 @@
       display: none;                  /* WebKit/Blink */
     }
 
+    /* Keep the Totals card visible while scrolling */
+    .totals-sticky{
+      position: sticky;
+      top: 0.75rem;     /* nudge down from the top bar */
+      z-index: 20;      /* above content, below modal */
+    }
+
 </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
@@ -215,78 +222,87 @@
     </nav>
 
     <!-- PLAN -->
-    <section id="tab-plan" role="tabpanel" class="tabpanel p-4 space-y-6">
-      <!-- plan header / template -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
-          <h3 class="text-lg font-semibold mb-3">Week</h3>
-          <div class="field">
-            <label class="text-xs text-slate-500">Week start (Monday)</label>
-            <input id="weekStart" type="date" class="rounded-lg px-2.5 py-1.5"/>
-          </div>
-          <div class="field mt-2">
-            <label class="text-xs text-slate-500">Template</label>
-            <select id="templateSelect" class="rounded-lg px-2.5 py-1.5">
-              <option value="">— Select —</option>
-              <option value="base-build">Base · Build week</option>
-              <option value="base-recovery">Base · Recovery week</option>
-              <option value="build-threshold">Build · Threshold focus</option>
-              <option value="specialty-vo2">Specialty · VO₂Max focus</option>
-            </select>
-          </div>
-          <div class="mt-3 grid grid-cols-2 gap-2">
-            <button id="loadTemplateBtn" class="btn btn-primary">Load template</button>
-            <button id="newWeekBtn" class="btn btn-secondary">Clear week</button>
-          </div>
-        </div>
+<section id="tab-plan" role="tabpanel" class="tabpanel p-4 space-y-6">
 
-        <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 md:col-span-2">
-          <h3 class="text-lg font-semibold">Edit days</h3>
+  <!-- Totals FIRST (sticky) -->
+  <section class="totals-card totals-sticky space-y-4" id="totals">
+    <h3 class="text-lg font-semibold">Totals</h3>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div class="text-xs text-slate-500">Planned Time</div>
+        <div id="totPlannedTime" class="text-base font-semibold">0h 00m</div>
+      </div>
+      <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div class="text-xs text-slate-500">Planned TSS</div>
+        <div id="totPlannedTss" class="text-base font-semibold">0</div>
+      </div>
+      <div class="md:col-span-1 col-span-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        <div class="text-xs text-slate-500 mb-1">By Type</div>
+        <div id="totByType" class="text-sm leading-6">—</div>
+      </div>
+    </div>
+  </section>
 
-          <!-- Day tabs header -->
-          <div class="p-3">
-            <div class="day-tabs" role="tablist" aria-label="Weekdays">
-              <button class="day-tab" data-day="0" aria-selected="true">Mon</button>
-              <button class="day-tab" data-day="1" aria-selected="false">Tue</button>
-              <button class="day-tab" data-day="2" aria-selected="false">Wed</button>
-              <button class="day-tab" data-day="3" aria-selected="false">Thu</button>
-              <button class="day-tab" data-day="4" aria-selected="false">Fri</button>
-              <button class="day-tab" data-day="5" aria-selected="false">Sat</button>
-              <button class="day-tab" data-day="6" aria-selected="false">Sun</button>
-            </div>
-          </div>
+  <!-- Week + Edit days grid -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-          <!-- Connected panel -->
-          <div class="day-tabpanel space-y-4">
-            <div class="flex items-center gap-2 justify-end">
-              <button class="btn btn-outline" id="copyPrevDayBtn">Copy prev</button>
-              <button class="btn btn-outline" id="clearDayBtn">Clear day</button>
-              <button class="btn btn-primary" id="addRowBtn">Add workout</button>
-            </div>
-            <div id="dayEditor"><!-- rows render here --></div>
-          </div>
+    <!-- Week card -->
+    <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
+      <h3 class="text-lg font-semibold mb-3">Week</h3>
+
+      <div class="field">
+        <label class="text-xs text-slate-500">Week start (Monday)</label>
+        <input id="weekStart" type="date" class="rounded-lg px-2.5 py-1.5"/>
+      </div>
+
+      <div class="field mt-2">
+        <label class="text-xs text-slate-500">Template</label>
+        <select id="templateSelect" class="rounded-lg px-2.5 py-1.5">
+          <option value="">— Select —</option>
+          <option value="base-build">Base · Build week</option>
+          <option value="base-recovery">Base · Recovery week</option>
+          <option value="build-threshold">Build · Threshold focus</option>
+          <option value="specialty-vo2">Specialty · VO₂Max focus</option>
+        </select>
+      </div>
+
+      <div class="mt-3 grid grid-cols-2 gap-2">
+        <button id="loadTemplateBtn" class="btn btn-primary">Load template</button>
+        <button id="newWeekBtn" class="btn btn-secondary">Clear week</button>
+      </div>
+    </div>
+
+    <!-- Edit days card -->
+    <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4 md:col-span-2">
+      <h3 class="text-lg font-semibold">Edit days</h3>
+
+      <!-- Day tabs -->
+      <div class="p-3">
+        <div class="day-tabs" role="tablist" aria-label="Weekdays">
+          <button class="day-tab" data-day="0" aria-selected="true">Mon</button>
+          <button class="day-tab" data-day="1" aria-selected="false">Tue</button>
+          <button class="day-tab" data-day="2" aria-selected="false">Wed</button>
+          <button class="day-tab" data-day="3" aria-selected="false">Thu</button>
+          <button class="day-tab" data-day="4" aria-selected="false">Fri</button>
+          <button class="day-tab" data-day="5" aria-selected="false">Sat</button>
+          <button class="day-tab" data-day="6" aria-selected="false">Sun</button>
         </div>
       </div>
 
-      <!-- Totals (separate card) -->
-      <section class="totals-card space-y-4" id="totals">
-        <h3 class="text-lg font-semibold">Totals</h3>
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div class="text-xs text-slate-500">Planned Time</div>
-            <div id="totPlannedTime" class="text-base font-semibold">0h 00m</div>
-          </div>
-          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div class="text-xs text-slate-500">Planned TSS</div>
-            <div id="totPlannedTss" class="text-base font-semibold">0</div>
-          </div>
-          <div class="md:col-span-1 col-span-2 p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div class="text-xs text-slate-500 mb-1">By Type</div>
-            <div id="totByType" class="text-sm leading-6">—</div>
-          </div>
+      <!-- Connected day panel -->
+      <div class="day-tabpanel space-y-4">
+        <div class="flex items-center gap-2 justify-end">
+          <button class="btn btn-outline" id="copyPrevDayBtn">Copy prev</button>
+          <button class="btn btn-outline" id="clearDayBtn">Clear day</button>
+          <button class="btn btn-primary" id="addRowBtn">Add workout</button>
         </div>
-      </section>
-    </section>
+        <div id="dayEditor"><!-- rows render here --></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
 
     <!-- LOAD & SAVE -->
     <section id="tab-loadsave" role="tabpanel" class="tabpanel p-4 space-y-6" hidden>
