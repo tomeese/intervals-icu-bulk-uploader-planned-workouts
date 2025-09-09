@@ -1,0 +1,43 @@
+name: Build Tailwind CSS
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/**/*.html'
+      - 'docs/**/*.js'
+      - 'docs/assets/tw-input.css'
+      - 'tailwind.config.js'
+      - '.github/workflows/build-tailwind.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to commit the generated CSS
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Tailwind
+        run: npx tailwindcss -i docs/assets/tw-input.css -o docs/assets/tw.css --minify
+
+      - name: Commit built CSS (if changed)
+        run: |
+          if ! git diff --quiet -- docs/assets/tw.css; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add docs/assets/tw.css
+            git commit -m "build: update Tailwind CSS"
+            git push
+          else
+            echo "No CSS changes."
+          fi
