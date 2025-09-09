@@ -185,7 +185,19 @@
     }
     .tabpanel input::placeholder,
     .tabpanel textarea::placeholder{ color: color-mix(in oklab, var(--inputFg) 55%, transparent); }
-  </style>
+
+    /* Tab strips: hide overlay scrollbars, avoid vertical bars */
+    .tabs, .day-tabs{
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;          /* Firefox */
+    }
+    .tabs::-webkit-scrollbar,
+    .day-tabs::-webkit-scrollbar{
+      display: none;                  /* WebKit/Blink */
+    }
+
+</style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
   <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -521,12 +533,12 @@
 
     function renderDay(iso){
       const list = ensureDay(iso);
-      const root = $('#dayEditor');
+      const root = document.getElementById('dayEditor');
       root.innerHTML = '';
 
-      // each workout row
-      list.forEach((w,idx)=>{
-        const {h,m} = hmsFromSec(w.duration_sec);
+      list.forEach((w, idx) => {
+        const { h, m } = hmsFromSec(w.duration_sec);
+
         const row = document.createElement('div');
         row.className = 'p-3 border border-slate-200 dark:border-slate-800 rounded-lg';
         row.innerHTML = `
@@ -535,12 +547,14 @@
               <span class="text-xs text-slate-500">Name</span>
               <input data-k="name" value="${escHtml(w.name||'')}" class="rounded-lg px-2.5 py-1.5"/>
             </label>
+
             <label class="field">
               <span class="text-xs text-slate-500">Type</span>
               <select data-k="type" class="rounded-lg px-2.5 py-1.5">
-                ${['Ride','Gravel Ride','Virtual Ride'].map(t=>`<option ${w.type===t?'selected':''}>${t}</option>`).join('')}
+                ${['Ride','Gravel Ride','Virtual Ride'].map(t => `<option ${w.type===t?'selected':''}>${t}</option>`).join('')}
               </select>
             </label>
+
             <label class="field">
               <span class="text-xs text-slate-500">Indoor</span>
               <select data-k="indoor" class="rounded-lg px-2.5 py-1.5">
@@ -548,6 +562,7 @@
                 <option value="true"  ${ w.indoor?'selected':''}>Yes</option>
               </select>
             </label>
+
             <div class="grid grid-cols-2 gap-2">
               <label class="field">
                 <span class="text-xs text-slate-500">Hours</span>
@@ -558,91 +573,127 @@
                 <input data-k="dur_m" type="number" min="0" max="59" value="${m}" class="rounded-lg px-2.5 py-1.5"/>
               </label>
             </div>
+
             <label class="field">
               <span class="text-xs text-slate-500">TSS</span>
               <input data-k="tss" type="number" min="0" value="${Number(w.tss||0)}" class="rounded-lg px-2.5 py-1.5"/>
             </label>
           </div>
+
           <div class="mt-2 grid grid-cols-1 gap-2">
             <label class="field">
               <span class="text-xs text-slate-500">Notes</span>
               <textarea data-k="notes" rows="2" class="rounded-lg px-2.5 py-1.5">${escHtml(w.notes||'')}</textarea>
             </label>
           </div>
+
           <div class="mt-2 flex gap-2 justify-end">
             <button class="btn btn-outline" data-design-btn>Design</button>
-            <button class="btn btn-secondary" data-zwo>Generate ZWO</button>
-            <button class="btn btn-danger" data-del>Delete</button>
+            <button class="btn btn-danger"  data-del>Delete</button>
           </div>
-          <div class="mt-2 hidden" data-design-panel>
+
+          <!-- Design panel (collapsed by default) -->
+          <div class="mt-3 hidden" data-design-panel>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
-              <label class="field"><span class="text-xs text-slate-500">Target %FTP</span><input data-d="target_pct" type="number" step="0.01" value="${w.design?.target_pct ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
-              <label class="field"><span class="text-xs text-slate-500">Sets</span><input data-d="sets" type="number" value="${w.design?.sets ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
-              <label class="field"><span class="text-xs text-slate-500">Work (sec)</span><input data-d="work_sec" type="number" value="${w.design?.work_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
-              <label class="field"><span class="text-xs text-slate-500">Recovery (sec)</span><input data-d="rec_sec" type="number" value="${w.design?.rec_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
-              <label class="field"><span class="text-xs text-slate-500">Warmup (sec)</span><input data-d="warmup_sec" type="number" value="${w.design?.warmup_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
-              <label class="field"><span class="text-xs text-slate-500">Cooldown (sec)</span><input data-d="cooldown_sec" type="number" value="${w.design?.cooldown_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/></label>
+              <label class="field"><span class="text-xs text-slate-500">Target %FTP</span>
+                <input data-d="target_pct" type="number" step="0.01" value="${w.design?.target_pct ?? ''}" class="rounded-lg px-2.5 py-1.5"/>
+              </label>
+              <label class="field"><span class="text-xs text-slate-500">Sets</span>
+                <input data-d="sets" type="number" value="${w.design?.sets ?? ''}" class="rounded-lg px-2.5 py-1.5"/>
+              </label>
+              <label class="field"><span class="text-xs text-slate-500">Work (sec)</span>
+                <input data-d="work_sec" type="number" value="${w.design?.work_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/>
+              </label>
+              <label class="field"><span class="text-xs text-slate-500">Recovery (sec)</span>
+                <input data-d="rec_sec" type="number" value="${w.design?.rec_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/>
+              </label>
+              <label class="field"><span class="text-xs text-slate-500">Warmup (sec)</span>
+                <input data-d="warmup_sec" type="number" value="${w.design?.warmup_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/>
+              </label>
+              <label class="field"><span class="text-xs text-slate-500">Cooldown (sec)</span>
+                <input data-d="cooldown_sec" type="number" value="${w.design?.cooldown_sec ?? ''}" class="rounded-lg px-2.5 py-1.5"/>
+              </label>
             </div>
-            <div class="mt-2 flex gap-2 justify-end">
-              <button class="btn btn-outline" data-design-cancel>Close</button>
-              <button class="btn btn-primary" data-design-save>Save</button>
+            <div class="mt-3 flex gap-2 justify-end">
+              <button class="btn btn-outline"  data-design-cancel>Close</button>
+              <button class="btn btn-secondary" data-zwo>Generate ZWO</button>
+              <button class="btn btn-primary"   data-design-save>Save</button>
             </div>
           </div>
         `;
         root.appendChild(row);
 
-        // handlers
+        // Field changes
         row.querySelectorAll('[data-k]').forEach(inp=>{
           inp.addEventListener('input', ()=>{
             const k = inp.getAttribute('data-k');
-            if(k==='name') w.name = inp.value;
-            else if(k==='type') w.type = inp.value;
-            else if(k==='indoor') w.indoor = (inp.value==='true');
-            else if(k==='tss') w.tss = Number(inp.value||0);
-            else if(k==='dur_h' || k==='dur_m'){
-              const hh = Number(row.querySelector('[data-k="dur_h"]').value||0);
-              const mm = Number(row.querySelector('[data-k="dur_m"]').value||0);
-              w.duration_sec = secFromHM(hh,mm);
+            if (k === 'name') w.name = inp.value;
+            else if (k === 'type') w.type = inp.value;
+            else if (k === 'indoor') w.indoor = (inp.value === 'true');
+            else if (k === 'tss') w.tss = Number(inp.value || 0);
+            else if (k === 'dur_h' || k === 'dur_m') {
+              const hh = Number(row.querySelector('[data-k="dur_h"]').value || 0);
+              const mm = Number(row.querySelector('[data-k="dur_m"]').value || 0);
+              w.duration_sec = secFromHM(hh, mm);
             }
             updateTotals();
             updateUploadHint();
           });
         });
-        row.querySelector('[data-k="notes"]').addEventListener('input', e=>{ w.notes = e.target.value; });
+        row.querySelector('[textarea][data-k="notes"]')?.addEventListener('input', e => { w.notes = e.target.value; });
+        const notesEl = row.querySelector('[data-k="notes"]');
+        if (notesEl) notesEl.addEventListener('input', e => { w.notes = e.target.value; });
 
+        // Row actions
         row.querySelector('[data-del]').addEventListener('click', ()=>{
-          list.splice(idx,1); renderDay(iso); updateTotals(); updateUploadHint();
+          list.splice(idx, 1);
+          renderDay(iso);
+          updateTotals();
+          updateUploadHint();
         });
-        row.querySelector('[data-design-btn]').addEventListener('click', ()=>{
-          row.querySelector('[data-design-panel]').classList.toggle('hidden');
+
+        // Design panel toggle & actions
+        const panel = row.querySelector('[data-design-panel]');
+        row.querySelector('[data-design-btn]').addEventListener('click', ()=> {
+          panel.classList.toggle('hidden');
         });
-        row.querySelector('[data-design-cancel]').addEventListener('click', ()=>{
-          row.querySelector('[data-design-panel]').classList.add('hidden');
+        row.querySelector('[data-design-cancel]').addEventListener('click', ()=> {
+          panel.classList.add('hidden');
         });
-        row.querySelector('[data-design-save]').addEventListener('click', ()=>{
-          const d = w.design || (w.design={});
+        row.querySelector('[data-design-save]').addEventListener('click', ()=> {
+          const d = w.design || (w.design = {});
           row.querySelectorAll('[data-d]').forEach(inp=>{
-            const k = inp.getAttribute('data-d');
-            const v = inp.value;
-            d[k] = v==='' ? undefined : Number(v);
+            const key = inp.getAttribute('data-d');
+            const val = inp.value;
+            d[key] = val === '' ? undefined : Number(val);
           });
           toast('Design saved.','ok',1500);
         });
+
+        // Generate ZWO (now inside the design panel)
+        row.querySelector('[data-zwo]').addEventListener('click', ()=>{
+          if (typeof generateZWOForWorkout === 'function') {
+            generateZWOForWorkout(iso, idx, w);
+          } else {
+            toast(`Generate ZWO requested for "${w.name||'Workout'}".`, 'ok', 1800);
+          }
+        });
       });
 
-      // add-row button
-      $('#addRowBtn').onclick = ()=>{
-        list.push({name:'',type:'Ride',indoor:false,duration_sec:0,tss:0,notes:''});
+      // Day-level toolbar
+      document.getElementById('addRowBtn').onclick = ()=>{
+        list.push({name:'', type:'Ride', indoor:false, duration_sec:0, tss:0, notes:''});
         renderDay(iso); updateTotals(); updateUploadHint();
       };
-      $('#clearDayBtn').onclick = ()=>{
-        if(!confirm('Clear all workouts for this day?')) return;
-        state.days[iso] = []; renderDay(iso); updateTotals(); updateUploadHint();
+      document.getElementById('clearDayBtn').onclick = ()=>{
+        if (!confirm('Clear all workouts for this day?')) return;
+        state.days[iso] = [];
+        renderDay(iso); updateTotals(); updateUploadHint();
       };
-      $('#copyPrevDayBtn').onclick = ()=>{
-        const prev = isoForDayIndex(state.selectedDay-1);
-        if(!prev) return;
-        state.days[iso] = (state.days[prev]||[]).map(x=>({...x}));
+      document.getElementById('copyPrevDayBtn').onclick = ()=>{
+        const prevIso = isoForDayIndex(state.selectedDay - 1);
+        if (!prevIso) return;
+        state.days[iso] = (state.days[prevIso] || []).map(x => ({...x}));
         renderDay(iso); updateTotals(); updateUploadHint();
       };
     }
