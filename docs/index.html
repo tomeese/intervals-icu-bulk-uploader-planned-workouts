@@ -344,6 +344,28 @@
       padding:1rem;
       margin-top:1rem;
     }
+/* Dark-mode contrast fix for outline buttons */
+@media (prefers-color-scheme: dark){
+  .btn-outline{
+    background: rgba(148, 163, 184, 0.10) !important; /* slate-400 @10% */
+    color: rgb(226, 232, 240) !important;              /* slate-200 */
+    border-color: rgb(71, 85, 105) !important;         /* slate-600 */
+  }
+  .btn-outline:hover{
+    background: rgba(148, 163, 184, 0.18) !important;  /* a bit more fill */
+    border-color: rgb(100, 116, 139) !important;       /* slate-500 */
+    filter: none;                                       /* skip generic dim */
+  }
+  .btn-outline:active{
+    background: rgba(148, 163, 184, 0.24) !important;
+    border-color: rgb(148, 163, 184) !important;       /* slate-400 */
+  }
+  .btn-outline:focus-visible{
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, .45);     /* blue-400 ring */
+    border-color: rgb(96, 165, 250) !important;
+  }
+}
 
 
   </style>
