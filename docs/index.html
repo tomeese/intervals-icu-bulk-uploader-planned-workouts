@@ -255,6 +255,43 @@
   color: inherit !important; /* or #fff if you prefer */
   border-color: var(--tabBorder) !important;
 }
+/* ---- Stronger active-tab styling ---- */
+:root{
+  /* brand accent (light) */
+  --tabActiveAccent: rgb(37 99 235);   /* blue-600 */
+  --tabActiveText:   rgb(30 64 175);   /* blue-800 */
+}
+@media (prefers-color-scheme: dark){
+  /* brighter accent for dark backgrounds */
+  --tabActiveAccent: rgb(96 165 250);  /* blue-400 */
+  --tabActiveText:   rgb(191 219 254); /* blue-200 */
+}
+
+/* Base tab colors already set; make active tab stand out */
+.tabs .tab[aria-selected="true"]{
+  background: var(--panelBg) !important;                 /* keep connected look */
+  color: var(--tabActiveText) !important;                /* colored label */
+  font-weight: 700;                                      /* bolder text */
+  border-color: var(--tabBorder) !important;
+  border-top: 3px solid var(--tabActiveAccent) !important; /* accent bar */
+  padding-top: calc(.55rem - 2px);                       /* compensate for thicker top */
+  box-shadow: 0 1px 0 0 var(--panelBg);                  /* clean edge to panel */
+}
+
+/* Slight tint on hover for any tab */
+.tabs .tab:hover{
+  /* subtle tint; falls back to no tint if color-mix unsupported */
+  background: color-mix(in oklab, var(--panelBg) 94%, var(--tabActiveAccent)) !important;
+}
+
+/* Keep inactive tabs soft in dark mode */
+@media (prefers-color-scheme: dark){
+  .tabs .tab[aria-selected="false"]{
+    background: var(--tabInactiveBg) !important;
+    color: var(--tabInactiveFg) !important;
+    border-color: var(--tabBorder) !important;
+  }
+}
 
   </style>
 </head>
