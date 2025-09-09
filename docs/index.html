@@ -60,6 +60,55 @@
     #modal{position:fixed;inset:0;z-index:50;display:none}
     #modal.show{display:block}
 
+    /* ===== Top Nav Tabs ===== */
+    :root{
+      --panelBg: #fff;
+      --tabBorder: rgb(203 213 225);   /* slate-300 */
+      --tabInactiveBg: rgb(248 250 252); /* slate-50 */
+      --tabInactiveFg: rgb(71 85 105);   /* slate-600 */
+    }
+    .dark{
+      --panelBg: rgb(30 41 59);        /* slate-800 */
+      --tabBorder: rgb(51 65 85);      /* slate-700 */
+      --tabInactiveBg: rgb(15 23 42);  /* slate-900 */
+      --tabInactiveFg: rgb(203 213 225); /* slate-300 */
+    }
+
+    .tabs{
+      display:flex; gap:.4rem; align-items:flex-end;
+      border-bottom:1px solid var(--tabBorder);
+      overflow-x:auto; -webkit-overflow-scrolling:touch;
+      padding:0 .25rem;
+    }
+    .tabs::-webkit-scrollbar{ height:6px }
+    .tabs::-webkit-scrollbar-thumb{ background:rgba(100,116,139,.35); border-radius:9999px }
+
+    .tab{
+      position:relative; top:1px; /* lift onto the panel border */
+      padding:.55rem .9rem; font-weight:600;
+      border:1px solid var(--tabBorder); border-bottom:none;
+      border-top-left-radius:.6rem; border-top-right-radius:.6rem;
+      background:var(--tabInactiveBg); color:var(--tabInactiveFg);
+      transition: filter .15s ease, background .15s ease, color .15s ease;
+      white-space:nowrap;
+    }
+    .tab:hover{ filter:brightness(.98) }
+    .tab:focus{ outline: none; box-shadow: 0 0 0 2px rgba(37,99,235,.35); border-color: rgba(37,99,235,.55); }
+
+    /* Active tab sits “on” the panel */
+    .tab[aria-selected="true"]{
+      background:var(--panelBg); color:inherit;
+      z-index:2;
+    }
+
+    /* Panel that sits under tabs */
+    .tabpanel{
+      background:var(--panelBg);
+      border:1px solid var(--tabBorder);
+      border-top:none; /* connect to the active tab edge */
+      border-bottom-left-radius:.75rem; border-bottom-right-radius:.75rem;
+    }
+
     /* ---------- Unified button system ---------- */
     :root{
       --btnPrimaryBg: rgb(37 99 235);   /* blue-600 */
@@ -129,17 +178,16 @@
     <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800">
       <!-- Tab headers -->
       <div class="px-3 pt-2">
-        <nav class="flex flex-wrap gap-2" role="tablist" aria-label="Planner tabs">
-          <button class="sm-btn" role="tab" data-tab="plan"      aria-selected="true">Plan</button>
-          <button class="sm-btn" role="tab" data-tab="loadsave"  aria-selected="false">Load & Save</button>
-          <button class="sm-btn" role="tab" data-tab="upload"    aria-selected="false">Intervals Upload</button>
-          <button class="sm-btn" role="tab" data-tab="settings"  aria-selected="false">Settings</button>
+        <nav class="tabs" role="tablist" aria-label="Planner tabs">
+          <button class="tab" role="tab" data-tab="plan"      aria-selected="true">Plan</button>
+          <button class="tab" role="tab" data-tab="loadsave"  aria-selected="false">Load & Save</button>
+          <button class="tab" role="tab" data-tab="upload"    aria-selected="false">Intervals Upload</button>
+          <button class="tab" role="tab" data-tab="settings"  aria-selected="false">Settings</button>
         </nav>
       </div>
-      <div class="border-t border-slate-200 dark:border-slate-700"></div>
 
       <!-- Tab: Plan -->
-      <section id="tab-plan" role="tabpanel" class="p-4 space-y-6">
+      <section id="tab-plan" role="tabpanel" class="tabpanel p-4 space-y-6">
         <!-- Week toolbar -->
         <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
           <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
@@ -224,7 +272,8 @@
       </section>
 
       <!-- Tab: Load & Save -->
-      <section id="tab-loadsave" role="tabpanel" class="hidden p-4 space-y-6">
+      <section id="tab-loadsave" role="tabpanel" class="tabpanel p-4 space-y-6">
+        
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
             <h3 class="text-lg font-semibold mb-3">Save current plan to repo</h3>
@@ -260,7 +309,8 @@
       </section>
 
       <!-- Tab: Intervals Upload -->
-     <section id="tab-upload" role="tabpanel" class="hidden p-4 space-y-4">
+     <section id="tab-upload" role="tabpanel" class="tabpanel p-4 space-y-6">
+
       <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
         <h3 class="text-lg font-semibold mb-2">Upload this week’s plan</h3>
         <p class="text-sm text-slate-500 mb-4">
@@ -307,7 +357,7 @@
 
 
       <!-- Tab: Settings -->
-      <section id="tab-settings" role="tabpanel" class="hidden p-4 space-y-4">
+      <section id="tab-settings" role="tabpanel" class="tabpanel p-4 space-y-6">
         <div class="card border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 p-4">
           <h3 class="text-lg font-semibold mb-3">GitHub settings</h3>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
