@@ -975,6 +975,20 @@
       container.appendChild(empty);
     }
   }
+    function bindDayTabs(){
+    const tabs = Array.from(document.querySelectorAll('.day-tab'));
+    tabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.day, 10);
+        tabs.forEach(b => b.setAttribute('aria-selected', b === btn ? 'true' : 'false'));
+        // your function that updates state + re-renders the day:
+        setSelectedDay(idx);        // <-- keep your existing name here
+        // make sure totals & hints reflect the change:
+        if (typeof updateTotals === 'function') updateTotals();
+        if (typeof updateUploadHint === 'function') updateUploadHint();
+      });
+    });
+  }
 
   // ---------- Render a workout row ----------
   function renderRow(iso,w){
@@ -1316,7 +1330,7 @@
       });
 
       updateUploadHint();
-
+      bindDayTabs();
 
     }catch(e){ showErr(e.message||e); }
   })();
