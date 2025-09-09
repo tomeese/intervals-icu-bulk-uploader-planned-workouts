@@ -1216,6 +1216,51 @@
     updateUploadHint();
   }
 
+  // Compute ISO date (YYYY-MM-DD) from weekStart + day index (0=Mon … 6=Sun)
+function isoForDayIndex(idx){
+  if (!state.weekStart) return null;
+  const d = new Date(state.weekStart + 'T00:00:00'); // safe, no TZ shift at midnight
+  d.setDate(d.getDate() + Number(idx || 0));
+  return d.toISOString().slice(0,10);
+}
+
+function ensureDay(iso){
+  if (!state.days) state.days = {};
+  if (!state.days[iso]) state.days[iso] = [];
+  return state.days[iso];
+}
+
+// Main: switch the selected day and re-render
+function setSelectedDay(idx){
+  if (idx == null) return;
+  state.selectedDay = Number(idx);
+  const iso = isoForDayIndex(state.selectedDay);
+  if (!iso) return;
+  ensureDay(iso);
+
+  // Update the day tab buttons
+  const tabs = document.querySelectorAll('.day-tab');
+  tabs.forEach((b,i)=> b.setAttribute('aria-selected', i === state.selectedDay ? 'true' : 'false'));
+
+  // Re-render the day editor using your existing function if available
+  if (typeof renderDay === 'function') {
+    renderDay(iso);                 // preferred: if you already have it
+  } else if (typeof renderDayEditor === 'function') {
+    renderDayEditor(iso);           // alt name we’ve used before
+  } else {
+    // Minimal fallback so you see *something* even without the app’s renderer
+    const el = document.getElementById('dayEditor');
+    if (el) el.innerHTML = `<div class="text-sm text-slate-500">
+      Selected <b>${iso}</b> — ${state.days[iso].length} workout(s).
+    </div>`;
+  }
+
+  // Refresh totals / upload widgets if present
+  if (typeof updateTotals === 'function') updateTotals();
+  if (typeof updateUploadHint === 'function') updateUploadHint();
+}
+
+
   (function boot(){
     try{
       // Tab wiring
@@ -1331,6 +1376,7 @@
 
       updateUploadHint();
       bindDayTabs();
+      if (state.weekStart) setSelectedDay(state.selectedDay ?? 0);
 
     }catch(e){ showErr(e.message||e); }
   })();
