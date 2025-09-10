@@ -75,9 +75,7 @@ function historyActualsBaseline560(): HistoryInputs {
 
 export default function DemoGuardrails() {
   const [mode, setMode] = useState<"safe" | "spicy">("safe");
-  //  const week = useMemo(() => (mode === "safe" ? weekSafe() : weekSpicy()), [mode]);
-
-  const [week, setWeek] = useState<WeekPlan>(mode === "safe" ? weekSafe() : weekSpicy());
+  const [week, setWeek] = useState<WeekPlan>(weekSafe());
 
   // when mode changes, reset the scenario:
   useEffect(() => { setWeek(mode === "safe" ? weekSafe() : weekSpicy()); }, [mode]);
