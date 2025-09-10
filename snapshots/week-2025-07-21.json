@@ -1,53 +1,67 @@
+
+Scale to % of current
+110
+%
+Respect capsLock rest daysPreview
+Current Week
+Planned586Baseline560Ramp+4.6%Slight ↑
+Click Preview to see the effect.
+Apply changesReset preview
+Notes: Caps include hard/endurance/recovery and the long‑ride cap. Rest days remain untouched when locked. Min step: 2.
+
+Scenario:Safe (≈ at baseline)Spicy (above baseline)
+Download JSON
+Week Inputs
 {
   "week_start": "2025-07-21",
   "events": [
     {
-      "external_id": "2025-07-22-120-3600",
+      "external_id": "2025-07-22-150-4200",
       "start_date_local": "2025-07-22T08:00",
       "type": "Workout",
       "category": "WORKOUT",
-      "moving_time": 3600,
-      "icu_training_load": 120,
-      "name": "VO2 5x3' @120%",
-      "description": "VO2 5x3' @120%"
+      "moving_time": 4200,
+      "icu_training_load": 140,
+      "name": "Threshold 4x10' @100%",
+      "description": "Threshold 4x10' @100%"
     },
     {
-      "external_id": "2025-07-23-35-1800",
+      "external_id": "2025-07-23-70-4800",
       "start_date_local": "2025-07-23T08:00",
       "type": "Ride",
       "category": "WORKOUT",
-      "moving_time": 1800,
-      "icu_training_load": 35,
-      "name": "Recovery spin z1",
-      "description": "Recovery spin z1"
-    },
-    {
-      "external_id": "2025-07-24-80-5400",
-      "start_date_local": "2025-07-24T08:00",
-      "type": "Ride",
-      "category": "WORKOUT",
-      "moving_time": 5400,
+      "moving_time": 4800,
       "icu_training_load": 80,
       "name": "Endurance z2",
       "description": "Endurance z2"
     },
     {
-      "external_id": "2025-07-26-170-14400",
+      "external_id": "2025-07-24-130-5400",
+      "start_date_local": "2025-07-24T08:00",
+      "type": "Workout",
+      "category": "WORKOUT",
+      "moving_time": 5400,
+      "icu_training_load": 140,
+      "name": "Sweet spot 3x20' @ 90%",
+      "description": "Sweet spot 3x20' @ 90%"
+    },
+    {
+      "external_id": "2025-07-26-200-14400",
       "start_date_local": "2025-07-26T08:00",
       "type": "Ride",
       "category": "WORKOUT",
       "moving_time": 14400,
-      "icu_training_load": 170,
+      "icu_training_load": 90,
       "name": "Endurance long ride",
       "description": "Endurance long ride"
     },
     {
-      "external_id": "2025-07-27-110-5400",
+      "external_id": "2025-07-27-120-5400",
       "start_date_local": "2025-07-27T08:00",
       "type": "Ride",
       "category": "WORKOUT",
       "moving_time": 5400,
-      "icu_training_load": 110,
+      "icu_training_load": 136,
       "name": "Endurance tempo",
       "description": "Endurance tempo"
     }
