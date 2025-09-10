@@ -115,4 +115,9 @@ export default function DemoGuardrails() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl borde
+    <div className="rounded-2xl border border-slate-200 bg-slate-50/50">
+      <div className="px-3 py-2 border-b border-slate-200 text-sm text-slate-600">{title}</div>
+      <div className="p-2">{children}</div>
+    </div>
+  );
+}
