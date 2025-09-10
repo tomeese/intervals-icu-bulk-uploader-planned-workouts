@@ -1,0 +1,31 @@
+name: Upload to Intervals
+
+on:
+  workflow_dispatch:
+    inputs:
+      payload_path:
+        description: 'Path to JSON in repo (e.g., snapshots/week-2025-09-22.json)'
+        required: true
+  # Optional: auto-run when you push a JSON under snapshots/
+  push:
+    paths:
+      - 'snapshots/*.json'
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Upload to Intervals
+        env:
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+        run: |
+          python scripts/upload_intervals.py "${{ github.event.inputs.payload_path || 'snapshots/auto.json' }}"

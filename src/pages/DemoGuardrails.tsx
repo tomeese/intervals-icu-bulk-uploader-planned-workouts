@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import TotalsPanel from "../components/TotalsPanel";
 import type { WeekPlan, WorkoutEvent, HistoryInputs } from "../lib/guardrails";
 import { computeGuardrails } from "../lib/guardrails";
+import ExportButton from "../components/ExportButton";
 
 // --- helpers to build mock data ---
 function makeEvent(
@@ -95,7 +96,9 @@ export default function DemoGuardrails() {
             Spicy (above baseline)
           </button>
         </div>
-
+        <div className="ml-auto">
+            <ExportButton week={week} />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card title="Week Inputs">
             <pre className="text-xs overflow-auto p-3 bg-white rounded-xl border border-slate-200">{JSON.stringify(week, null, 2)}</pre>
