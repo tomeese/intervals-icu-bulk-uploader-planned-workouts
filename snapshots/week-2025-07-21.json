@@ -1,0 +1,49 @@
+{
+  "events": [
+    {
+      "external_id": "2025-07-22-120-3600",
+      "start_date_local": "2025-07-22T08:00",
+      "type": "Workout",
+      "category": "WORKOUT",
+      "moving_time": 3600,
+      "icu_training_load": 120,
+      "description": "VO2 5x3' @120%"
+    },
+    {
+      "external_id": "2025-07-23-35-1800",
+      "start_date_local": "2025-07-23T08:00",
+      "type": "Ride",
+      "category": "WORKOUT",
+      "moving_time": 1800,
+      "icu_training_load": 35,
+      "description": "Recovery spin z1"
+    },
+    {
+      "external_id": "2025-07-24-80-5400",
+      "start_date_local": "2025-07-24T08:00",
+      "type": "Ride",
+      "category": "WORKOUT",
+      "moving_time": 5400,
+      "icu_training_load": 80,
+      "description": "Endurance z2"
+    },
+    {
+      "external_id": "2025-07-26-170-14400",
+      "start_date_local": "2025-07-26T08:00",
+      "type": "Ride",
+      "category": "WORKOUT",
+      "moving_time": 14400,
+      "icu_training_load": 170,
+      "description": "Endurance long ride"
+    },
+    {
+      "external_id": "2025-07-27-110-5400",
+      "start_date_local": "2025-07-27T08:00",
+      "type": "Ride",
+      "category": "WORKOUT",
+      "moving_time": 5400,
+      "icu_training_load": 110,
+      "description": "Endurance tempo"
+    }
+  ]
+}
