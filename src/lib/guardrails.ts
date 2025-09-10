@@ -21,6 +21,7 @@ export interface WorkoutEvent {
   category: "WORKOUT"; // constant for planned
   moving_time: number; // planned duration in seconds
   icu_training_load: number; // planned load (int)
+  name?: string;    //name of the event       
   description?: string; // may include "TSS N" line
 }
 

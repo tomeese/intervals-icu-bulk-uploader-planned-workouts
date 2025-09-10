@@ -4,7 +4,13 @@ import type { WeekPlan, WorkoutEvent, HistoryInputs } from "../lib/guardrails";
 import { computeGuardrails } from "../lib/guardrails";
 import ExportButton from "../components/ExportButton";
 
-// --- helpers to build mock data ---
+function labelFrom(desc?: string, type?: WorkoutEvent["type"], load?: number, secs?: number) {
+  if (desc && desc.trim()) return desc.split("\n")[0].slice(0, 80);
+  if (type === "Workout" && load) return `Workout – ${load} TSS`;
+  if (secs) return `Endurance Ride – ${(secs/3600).toFixed(1)}h`;
+  return type || "Workout";
+}
+
 function makeEvent(
   date: string,
   load: number,
@@ -19,6 +25,7 @@ function makeEvent(
     category: "WORKOUT",
     moving_time: secs,
     icu_training_load: load,
+    name: labelFrom(desc, type, load, secs),   // ⬅️ set name
     description: desc,
   };
 }

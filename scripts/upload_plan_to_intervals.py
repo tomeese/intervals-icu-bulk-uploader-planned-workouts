@@ -17,34 +17,31 @@ Notes:
 - Leaves start_date_local as-is if it's already "YYYY-MM-DDTHH:MM".
   If it's only "YYYY-MM-DD", fills time with --default-start.
   Removes any trailing 'Z' (Intervals expects *local* time, no timezone suffix).
-- Ensures category=WORKOUT, integer numeric fields, and a safe type whitelist.
+- Ensures category=WORKOUT, integer numeric fields, and a safe type allowlist.
 - If external_id is missing, generates a deterministic one from date, type, load, and moving_time.
 - Prints the Intervals response JSON (created/updated counts).
 """
 
-import argparse
-import os
-import sys
-import json
-import re
-from typing import List, Dict, Any
+#!/usr/bin/env python3
+"""
+Upload planned workouts to Intervals.icu via bulk upsert.
+"""
 
+import argparse, os, sys, json, re
+from typing import List, Dict, Any
 import requests
 from requests.auth import HTTPBasicAuth
 
-
-WHITELIST_TYPES = {"Ride", "Gravel Ride", "Virtual Ride", "Run", "Swim", "Workout"}
-
+ALLOWLIST_TYPES = {"Ride", "Gravel Ride", "Virtual Ride", "Run", "Swim", "Workout"}
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
-    p.add_argument("--plan", required=True, help="Path to JSON file")
-    p.add_argument("--athlete-id", type=int, default=0, help="Intervals athlete id (0 = me)")
-    p.add_argument("--tz", default="America/Los_Angeles", help="Timezone label (used only for filling times)")
-    p.add_argument("--default-start", default="06:00", help="Default HH:MM for events missing a time")
-    p.add_argument("--dry-run", action="store_true", help="Do not POST; just show normalized payload")
+    p.add_argument("--plan", required=True)
+    p.add_argument("--athlete-id", type=int, default=0)   # 0 = "me"
+    p.add_argument("--tz", default="America/Los_Angeles")
+    p.add_argument("--default-start", default="06:00")
+    p.add_argument("--dry-run", action="store_true")
     return p.parse_args()
-
 
 def load_events_any_shape(path: str) -> List[Dict[str, Any]]:
     with open(path, "r", encoding="utf-8") as f:
@@ -55,28 +52,20 @@ def load_events_any_shape(path: str) -> List[Dict[str, Any]]:
         return data
     raise ValueError("Payload must be a list of events or an object with an 'events' array")
 
-
 def ensure_time(date_or_dt: str, default_hhmm: str) -> str:
-    """
-    Accepts 'YYYY-MM-DD' or 'YYYY-MM-DDTHH:MM' (optionally with trailing Z).
-    Returns 'YYYY-MM-DDTHH:MM' with no trailing Z.
-    """
     s = str(date_or_dt).strip()
     s = re.sub(r"Z$", "", s)
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}$", s):
         return f"{s}T{default_hhmm}"
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$", s):
         return s
-    # Be forgiving: try to trim seconds or Z if present
     m = re.match(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(:\d{2})?Z?$", s)
     if m:
         return m.group(1)
-    # Last resort: extract date and bolt on default time
     m = re.match(r"^(\d{4}-\d{2}-\d{2})", s)
     if m:
         return f"{m.group(1)}T{default_hhmm}"
-    return s  # give up; let API complain rather than guessing
-
+    return s
 
 def to_int(n: Any) -> int:
     try:
@@ -85,20 +74,25 @@ def to_int(n: Any) -> int:
     except Exception:
         return 0
 
-
 def gen_external_id(ev: Dict[str, Any]) -> str:
     date = str(ev.get("start_date_local", ""))[:10] or "0000-00-00"
     typ = str(ev.get("type") or "Ride").lower().replace(" ", "-")
     load = to_int(ev.get("icu_training_load"))
     mov = to_int(ev.get("moving_time"))
-    # stable but readable
     return f"{date}-{typ}-{load}-{mov}"
 
+def short_from_desc(desc: str) -> str:
+    d = (desc or "").strip()
+    if not d:
+        return ""
+    # first sentence-ish or up to 40 chars
+    d = d.split("\n", 1)[0]
+    return d[:80]
 
 def sanitize_event(ev: Dict[str, Any], default_hhmm: str) -> Dict[str, Any]:
     out = dict(ev)
 
-    # start_date_local: local time without timezone suffix
+    # time
     if out.get("start_date_local"):
         out["start_date_local"] = ensure_time(out["start_date_local"], default_hhmm)
     elif out.get("date"):
@@ -106,11 +100,11 @@ def sanitize_event(ev: Dict[str, Any], default_hhmm: str) -> Dict[str, Any]:
     else:
         raise ValueError("Event missing 'start_date_local' or 'date'")
 
-    # type whitelist
-    if out.get("type") not in WHITELIST_TYPES:
+    # type allowlist
+    if out.get("type") not in ALLOWLIST_TYPES:
         out["type"] = "Ride"
 
-    # category must be WORKOUT for planned events
+    # required category for planned
     out["category"] = "WORKOUT"
 
     # numeric fields
@@ -119,12 +113,29 @@ def sanitize_event(ev: Dict[str, Any], default_hhmm: str) -> Dict[str, Any]:
     if "icu_training_load" in out:
         out["icu_training_load"] = to_int(out["icu_training_load"])
 
-    # external_id
+    # external_id (stable if missing)
     if not out.get("external_id"):
         out["external_id"] = gen_external_id(out)
 
-    return out
+    # name  ⬅️  REQUIRED by Intervals; derive if missing
+    name = out.get("name")
+    if not name or not str(name).strip():
+        base = short_from_desc(out.get("description") or "")
+        if not base:
+            # fallbacks by type + metadata
+            t = out["type"]
+            tl = out.get("icu_training_load")
+            dur = out.get("moving_time")
+            if t == "Workout" and tl:
+                base = f"Workout – {tl} TSS"
+            elif t in {"Ride", "Gravel Ride", "Virtual Ride"} and dur:
+                hours = round(dur / 3600, 1)
+                base = f"Endurance Ride – {hours}h"
+            else:
+                base = t
+        out["name"] = base[:80]
 
+    return out
 
 def main() -> int:
     args = parse_args()
@@ -155,7 +166,6 @@ def main() -> int:
         return 0
 
     url = f"https://intervals.icu/api/v1/athlete/{args.athlete_id}/events/bulk?upsert=true"
-
     try:
         resp = requests.post(url, auth=HTTPBasicAuth("API_KEY", api_key), json=events, timeout=60)
     except Exception as e:
@@ -169,11 +179,9 @@ def main() -> int:
 
     print(f"[response] status={resp.status_code}")
     print(json.dumps(body, indent=2))
-
     if not resp.ok:
         return 1
 
-    # Some responses include { created: N, updated: M }. Print a friendly summary if present.
     created = body.get("created") if isinstance(body, dict) else None
     updated = body.get("updated") if isinstance(body, dict) else None
     if created is not None or updated is not None:
@@ -181,6 +189,6 @@ def main() -> int:
 
     return 0
 
-
 if __name__ == "__main__":
     sys.exit(main())
+
