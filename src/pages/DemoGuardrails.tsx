@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import TotalsPanel from "../components/TotalsPanel";
 import type { WeekPlan, WorkoutEvent, HistoryInputs } from "../lib/guardrails";
 import { computeGuardrails } from "../lib/guardrails";
 import ExportButton from "../components/ExportButton";
+import WhatIfPanel from "../components/WhatIfPanel";
 
 function labelFrom(desc?: string, type?: WorkoutEvent["type"], load?: number, secs?: number) {
   if (desc && desc.trim()) return desc.split("\n")[0].slice(0, 80);
@@ -74,7 +75,13 @@ function historyActualsBaseline560(): HistoryInputs {
 
 export default function DemoGuardrails() {
   const [mode, setMode] = useState<"safe" | "spicy">("safe");
-  const week = useMemo(() => (mode === "safe" ? weekSafe() : weekSpicy()), [mode]);
+  //  const week = useMemo(() => (mode === "safe" ? weekSafe() : weekSpicy()), [mode]);
+
+  const [week, setWeek] = useState<WeekPlan>(mode === "safe" ? weekSafe() : weekSpicy());
+
+  // when mode changes, reset the scenario:
+  useEffect(() => { setWeek(mode === "safe" ? weekSafe() : weekSpicy()); }, [mode]);
+
   const history = useMemo(() => historyActualsBaseline560(), []);
 
   const summary = useMemo(() => computeGuardrails(week, history), [week, history]);
@@ -82,7 +89,7 @@ export default function DemoGuardrails() {
   return (
     <div className="min-h-screen bg-slate-50">
       <TotalsPanel week={week} history={history} />
-
+      <WhatIfPanel week={week} history={history} onApply={setWeek} />
       <div className="mx-auto max-w-6xl px-4 py-6">
         <div className="flex items-center gap-2 mb-4">
           <span className="text-slate-600 text-sm">Scenario:</span>
