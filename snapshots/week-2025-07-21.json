@@ -1,17 +1,3 @@
-
-Scale to % of current
-110
-%
-Respect capsLock rest daysPreview
-Current Week
-Planned586Baseline560Ramp+4.6%Slight ↑
-Click Preview to see the effect.
-Apply changesReset preview
-Notes: Caps include hard/endurance/recovery and the long‑ride cap. Rest days remain untouched when locked. Min step: 2.
-
-Scenario:Safe (≈ at baseline)Spicy (above baseline)
-Download JSON
-Week Inputs
 {
   "week_start": "2025-07-21",
   "events": [
