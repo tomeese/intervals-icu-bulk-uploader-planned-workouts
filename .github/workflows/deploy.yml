@@ -26,6 +26,11 @@ jobs:
       - run: npm run build
       - name: Add SPA fallback
         run: cp dist/index.html dist/404.html
+      - name: List dist contents
+        run: |
+          ls -la dist | sed -n '1,60p'
+          echo '--- 404 head ---'
+          head -n 20 dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
