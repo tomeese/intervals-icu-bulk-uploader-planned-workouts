@@ -1,0 +1,55 @@
+{
+  "week_start": "2025-07-21",
+  "events": [
+    {
+      "external_id": "2025-07-22-150-4200",
+      "start_date_local": "2025-07-22T08:00",
+      "type": "Workout",
+      "category": "WORKOUT",
+      "moving_time": 4200,
+      "icu_training_load": 140,
+      "name": "Threshold 4x10' @100%",
+      "description": "Threshold 4x10' @100%"
+    },
+    {
+      "external_id": "2025-07-23-70-4800",
+      "start_date_local": "2025-07-23T08:00",
+      "type": "Ride",
+      "category": "WORKOUT",
+      "moving_time": 4800,
+      "icu_training_load": 80,
+      "name": "Endurance z2",
+      "description": "Endurance z2"
+    },
+    {
+      "external_id": "2025-07-24-130-5400",
+      "start_date_local": "2025-07-24T08:00",
+      "type": "Workout",
+      "category": "WORKOUT",
+      "moving_time": 5400,
+      "icu_training_load": 140,
+      "name": "Sweet spot 3x20' @ 90%",
+      "description": "Sweet spot 3x20' @ 90%"
+    },
+    {
+      "external_id": "2025-07-26-200-14400",
+      "start_date_local": "2025-07-26T08:00",
+      "type": "Ride",
+      "category": "WORKOUT",
+      "moving_time": 14400,
+      "icu_training_load": 90,
+      "name": "Endurance long ride",
+      "description": "Endurance long ride"
+    },
+    {
+      "external_id": "2025-07-27-120-5400",
+      "start_date_local": "2025-07-27T08:00",
+      "type": "Ride",
+      "category": "WORKOUT",
+      "moving_time": 5400,
+      "icu_training_load": 136,
+      "name": "Endurance tempo",
+      "description": "Endurance tempo"
+    }
+  ]
+}

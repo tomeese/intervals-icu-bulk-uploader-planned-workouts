@@ -121,16 +121,23 @@ jobs:
           fi
 
       - name: Email weekly report (optional)
-        if: ${{ secrets.MAIL_HOST != '' && secrets.MAIL_TO != '' }}
+        env:
+          MAIL_HOST: ${{ secrets.MAIL_HOST }}
+          MAIL_PORT: ${{ secrets.MAIL_PORT }}
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+        if: ${{ env.MAIL_HOST != '' && env.MAIL_TO != '' }}
         uses: dawidd6/action-send-mail@v3
         with:
-          server_address: ${{ secrets.MAIL_HOST }}
-          server_port: ${{ secrets.MAIL_PORT }}
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
+          server_address: ${{ env.MAIL_HOST }}
+          server_port: ${{ env.MAIL_PORT }}
+          username: ${{ env.MAIL_USERNAME }}
+          password: ${{ env.MAIL_PASSWORD }}
           subject: "Weekly Intervals Summary – ${{ env.SUNDAY }} (types: ${{ env.TYPES_EFF }})"
-          to: ${{ secrets.MAIL_TO }}
-          from: ${{ secrets.MAIL_FROM }}
+          to: ${{ env.MAIL_TO }}
+          from: ${{ env.MAIL_FROM }}
           content_type: text/html
           html_body: |
             <p>Weekly report for <b>${{ env.SUNDAY }}</b> (types: ${{ env.TYPES_EFF }}).</p>
