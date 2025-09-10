@@ -6,14 +6,23 @@ on:
   pull_request:
 
 jobs:
-  build:
+  python:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install
-        run: pip install -e .
-      - name: Import check
-        run: python -c "import intervals_icu_uploader, sys; print(sys.version)"
+      - run: pip install -e .
+      - run: python -c "import intervals_icu_uploader, sys; print(sys.version)"
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test -- --run

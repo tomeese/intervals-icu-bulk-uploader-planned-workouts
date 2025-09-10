@@ -4,6 +4,7 @@ import type { WeekPlan, WorkoutEvent, HistoryInputs } from "../lib/guardrails";
 import { computeGuardrails } from "../lib/guardrails";
 import ExportButton from "../components/ExportButton";
 import WhatIfPanel from "../components/WhatIfPanel";
+import ExportUploadPanel from "../components/ExportUploadPanel";
 
 function labelFrom(desc?: string, type?: WorkoutEvent["type"], load?: number, secs?: number) {
   if (desc && desc.trim()) return desc.split("\n")[0].slice(0, 80);
@@ -124,6 +125,7 @@ export default function DemoGuardrails() {
           Tip: Baseline is derived from the last 28 days of actuals (80/day → 560/week). Switch scenarios to see ramp severity and cap breaches change.
         </p>
       </div>
+      <ExportUploadPanel week={week} />
     </div>
   );
 }
