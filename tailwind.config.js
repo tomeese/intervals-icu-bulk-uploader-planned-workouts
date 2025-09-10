@@ -1,12 +1,14 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'media',  // matches your current behavior
+  darkMode: 'media',
   content: [
-    "./docs/**/*.{html,js}",
-    "./docs/index.html",
+    './index.html',
+    './src/**/*.{ts,tsx,js,jsx}',
+    // keep docs if you still serve anything from there:
+    './docs/**/*.{html,js}',
+    './docs/index.html',
   ],
   safelist: [
-    // layout scaffolding used throughout the page
     'max-w-6xl','mx-auto','px-4','sm:px-6','lg:px-8','py-6',
     'grid','grid-cols-1','sm:grid-cols-2','md:grid-cols-2','xl:grid-cols-5','gap-2','gap-3','gap-4',
     'hidden','block','flex','inline-flex','items-center','justify-between',

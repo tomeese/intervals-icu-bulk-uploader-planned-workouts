@@ -29,9 +29,10 @@ export default function App() {
     <>
       <SiteNav />
       <Routes>
-        <Route path="/" element={<ExistingApp />} />
+        <Route path="/" element={<Navigate to="/demo" replace />} />
         <Route path="/demo" element={<DemoGuardrails />} />
-        <Route path="*" element={<ExistingApp />} />
+        <Route path="*" element={<Navigate to="/demo" replace />} />
+
       </Routes>
     </>
   )
