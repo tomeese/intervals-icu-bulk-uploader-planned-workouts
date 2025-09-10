@@ -1,4 +1,5 @@
 {
+  "week_start": "2025-07-21",
   "events": [
     {
       "external_id": "2025-07-22-120-3600",
@@ -7,6 +8,7 @@
       "category": "WORKOUT",
       "moving_time": 3600,
       "icu_training_load": 120,
+      "name": "VO2 5x3' @120%",
       "description": "VO2 5x3' @120%"
     },
     {
@@ -16,6 +18,7 @@
       "category": "WORKOUT",
       "moving_time": 1800,
       "icu_training_load": 35,
+      "name": "Recovery spin z1",
       "description": "Recovery spin z1"
     },
     {
@@ -25,6 +28,7 @@
       "category": "WORKOUT",
       "moving_time": 5400,
       "icu_training_load": 80,
+      "name": "Endurance z2",
       "description": "Endurance z2"
     },
     {
@@ -34,6 +38,7 @@
       "category": "WORKOUT",
       "moving_time": 14400,
       "icu_training_load": 170,
+      "name": "Endurance long ride",
       "description": "Endurance long ride"
     },
     {
@@ -43,6 +48,7 @@
       "category": "WORKOUT",
       "moving_time": 5400,
       "icu_training_load": 110,
+      "name": "Endurance tempo",
       "description": "Endurance tempo"
     }
   ]
