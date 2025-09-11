@@ -1,17 +1,20 @@
 /* src/App.tsx */
-import { Routes, Route, Navigate } from 'react-router-dom';
-import DemoGuardrails from './pages/DemoGuardrails';
-import Nav from './components/Nav';
+
+import { Routes, Route, NavLink } from 'react-router-dom'
+import Planner from './pages/Planner'
+import DemoGuardrails from './pages/DemoGuardrails'
 
 export default function App() {
   return (
     <>
-      <Nav />
+      <nav className="p-3 border-b flex gap-4">
+        <NavLink to="/" end>Planner</NavLink>
+        <NavLink to="/demo">Demo</NavLink>
+      </nav>
       <Routes>
-        <Route path="/" element={<Navigate to="/demo" replace />} />
-        <Route path="/demo" element={<DemoGuardrails />} />
-        <Route path="*" element={<Navigate to="/demo" replace />} />
+        <Route path="/" element={<Planner/>} />
+        <Route path="/demo" element={<DemoGuardrails/>} />
       </Routes>
     </>
-  );
+  )
 }

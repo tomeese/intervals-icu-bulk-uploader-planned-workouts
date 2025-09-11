@@ -2,28 +2,103 @@ name: ci
 
 on:
   push:
-    branches: [ main ]
+    branches: ['**']
   pull_request:
 
 jobs:
-  python:
+  changes:
+    name: Detect changed areas
     runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      python: ${{ steps.filter.outputs.python }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - id: filter
+        uses: dorny/paths-filter@v3
         with:
-          python-version: '3.11'
-      - run: pip install -e .
-      - run: python -c "import intervals_icu_uploader, sys; print(sys.version)"
+          filters: |
+            web:
+              - 'package.json'
+              - 'package-lock.json'
+              - 'vite.config.*'
+              - 'postcss.config.*'
+              - 'tailwind.config.*'
+              - 'tsconfig*.json'
+              - 'index.html'
+              - 'public/**'
+              - 'src/**'
+              - '.github/workflows/ci.yml'
+            python:
+              - 'pyproject.toml'
+              - 'setup.cfg'
+              - 'setup.py'
+              - 'requirements*.txt'
+              - 'scripts/**'
+              - 'intervals_icu_uploader/**'
+              - '**/*.py'
+              - '.github/workflows/ci.yml'
 
   web:
+    name: Web (React/Vite)
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
-      - run: npm ci
-      - run: npx vitest --version
-      - run: npm run test -- --run
+          cache: npm
+
+      - name: Ensure single lockfile
+        run: |
+          set -euo pipefail
+          find . -path "*/node_modules" -prune -o -name "package-lock.json" -not -path "./package-lock.json" -print -delete
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc -p tsconfig.json --noEmit
+
+      - name: Unit tests (Vitest)
+        run: npm run test -- --run
+
+      - name: Build (Vite)
+        run: npm run build
+
+  python:
+    name: Python (uploader)
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev] || pip install -e .
+
+      - name: Import smoke test
+        run: |
+          python - <<'PY'
+          import sys
+          import intervals_icu_uploader as pkg
+          print("Python:", sys.version)
+          print("Package:", getattr(pkg, "__name__", "unknown"),
+                "version:", getattr(pkg, "__version__", "unknown"))
+          PY
+
+      - name: Lint (optional)
+        if: hashFiles('pyproject.toml', 'setup.cfg', '.flake8') != ''
+        run: |
+          pip install flake8 || true
+          flake8 || true

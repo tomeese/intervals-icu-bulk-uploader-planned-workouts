@@ -3,6 +3,17 @@ name: Deploy site to GitHub Pages
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.*'
+      - 'postcss.config.*'
+      - 'tailwind.config.*'
+      - 'tsconfig*.json'
+      - 'index.html'
+      - 'public/**'
+      - 'src/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -19,20 +30,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm ci
-      - name: Set build-time env
-        run: echo "VITE_REPO_URL=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
-      - run: npm run build
+          cache: npm
+
+      - name: Ensure single lockfile
+        run: |
+          set -euo pipefail
+          find . -path "*/node_modules" -prune -o -name "package-lock.json" -not -path "./package-lock.json" -print -delete
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        env:
+          NODE_ENV: production
+        run: npm run build
+
       - name: Add SPA fallback
         run: cp dist/index.html dist/404.html
-      - name: List dist contents
-        run: |
-          ls -la dist | sed -n '1,60p'
-          echo '--- 404 head ---'
-          head -n 20 dist/404.html
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

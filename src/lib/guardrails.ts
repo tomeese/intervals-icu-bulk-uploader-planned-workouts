@@ -1,3 +1,5 @@
+/* lib/guardrails.ts */
+
 // Guardrails module
 // Purpose: compute weekly ramp severity and daily cap breaches for a WeekPlan
 // Style: pure functions, UI-agnostic, unit-test friendly

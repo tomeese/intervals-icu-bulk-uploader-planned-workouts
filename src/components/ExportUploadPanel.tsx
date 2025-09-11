@@ -1,6 +1,8 @@
+/* src/components/ExportUploadPanel.tsx */
+
 import React, { useMemo, useState } from "react";
-import type { WeekPlan } from "../lib/guardrails";
 import { zWeekPlan } from "../lib/schema";
+import type { WeekPlan } from "../lib/guardrails";
 
 function makeFilename(week: WeekPlan) {
   return `week-${week.week_start}.json`;

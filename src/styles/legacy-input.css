@@ -1,0 +1,208 @@
+/* src/styles/legacy-input.css*/
+
+/* Safety: even if Tailwind fails to load, don't fall back to Times */
+html{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";}
+
+/* ---------- Tokens ---------- */
+:root{
+    /* Panel + tabs (light) */
+    --panelBg: #fff;
+    --tabBorder: rgb(203 213 225);      /* slate-300 */
+    --tabInactiveBg: rgb(248 250 252);  /* slate-50 */
+    --tabInactiveFg: rgb(71 85 105);    /* slate-600 */
+    --tabActiveAccent: rgb(37 99 235);  /* blue-600 */
+    --tabActiveText:   rgb(100 124 201);/* preferred accent text */
+
+    /* Inputs (light) */
+    --inputBg: #fff;
+    --inputFg: rgb(15 23 42);           /* slate-900 */
+    --inputBd: rgb(226 232 240);        /* slate-200 */
+
+    /* Buttons (light) */
+    --btnPrimaryBg: rgb(37 99 235);     /* blue-600 */
+    --btnDangerBg:  rgb(220 38 38);     /* red-600  */
+    --btnSecBg:     rgb(226 232 240);   /* slate-200 */
+    --btnSecFg:     rgb(15 23 42);      /* slate-900 */
+    --btnSecBd:     rgb(203 213 225);   /* slate-300 */
+    --btnOlFg:      rgb(51 65 85);      /* slate-700 */
+    --btnOlBd:      rgb(203 213 225);   /* slate-300 */
+}
+@media (prefers-color-scheme: dark){
+    :root{
+    --panelBg: rgb(30 41 59);         /* slate-800 */
+    --tabBorder: rgb(51 65 85);       /* slate-700 */
+    --tabInactiveBg: rgb(30 41 59);   /* slate-800 */
+    --tabInactiveFg: rgb(203 213 225);/* slate-300 */
+    --tabActiveAccent: rgb(96 165 250); /* blue-400 */
+    --tabActiveText:   rgb(100 124 201); /* user preference */
+
+    --inputBg: rgb(15 23 42);         /* slate-900 */
+    --inputFg: rgb(226 232 240);      /* slate-200/300 */
+    --inputBd: rgb(51 65 85);         /* slate-700 */
+
+    --btnSecBg:  rgb(30 41 59);       /* slate-800 */
+    --btnSecFg:  rgb(203 213 225);    /* slate-300 */
+    --btnSecBd:  rgb(51 65 85);       /* slate-700 */
+    --btnOlFg:   rgb(203 213 225);    /* slate-300 */
+    --btnOlBd:   rgb(51 65 85);       /* slate-700 */
+    }
+}
+
+/* ---------- Utilities ---------- */
+[hidden]{display:none !important;}
+.card{border-radius:.75rem}
+.field{display:flex;flex-direction:column;gap:.45rem}
+
+/* ---------- Button system ---------- */
+.btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.55rem .9rem; border-radius:.6rem; font-weight:600;
+    border:1px solid var(--btnSecBd); transition:filter .15s ease,opacity .15s;
+}
+.btn:hover{ filter:brightness(0.97); }
+.btn:disabled{ opacity:.5; cursor:not-allowed; }
+.btn-primary{ background:var(--btnPrimaryBg); color:#fff; border-color:var(--btnPrimaryBg); }
+.btn-secondary{ background:var(--btnSecBg); color:var(--btnSecFg); border-color:var(--btnSecBd); }
+.btn-outline{ background:transparent; color:var(--btnOlFg); border-color:var(--btnOlBd); }
+.btn-danger{ background:var(--btnDangerBg); color:#fff; border-color:var(--btnDangerBg); }
+/* Dark-mode contrast for outline buttons */
+@media (prefers-color-scheme: dark){
+    .btn-outline{
+    background: rgba(148, 163, 184, 0.10) !important; /* slate-400 @10% */
+    color: rgb(226, 232, 240) !important;              /* slate-200 */
+    border-color: rgb(71, 85, 105) !important;         /* slate-600 */
+    }
+    .btn-outline:hover{
+    background: rgba(148, 163, 184, 0.18) !important;
+    border-color: rgb(100, 116, 139) !important;
+    filter: none;
+    }
+}
+
+/* ---------- Top nav tabs ---------- */
+.tabs{
+    display:flex; gap:.4rem; align-items:flex-end;
+    border-bottom:1px solid var(--tabBorder);
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
+    padding:0 .25rem;
+}
+.tabs::-webkit-scrollbar{ height:6px }
+.tabs::-webkit-scrollbar-thumb{ background:rgba(100,116,139,.35); border-radius:9999px }
+.tab{
+    position:relative; top:1px;
+    padding:.55rem .9rem; font-weight:600;
+    border:1px solid var(--tabBorder); border-bottom:none;
+    border-top-left-radius:.6rem; border-top-right-radius:.6rem;
+    background:var(--tabInactiveBg); color:var(--tabInactiveFg);
+    transition: filter .15s ease, background .15s ease, color .15s ease;
+    white-space:nowrap;
+}
+.tab:hover{ filter:brightness(.98) }
+.tab[aria-selected="true"]{
+    background: var(--panelBg) !important;
+    color: var(--tabActiveText) !important;
+    font-weight: 700;
+    border-color: var(--tabBorder) !important;
+    border-top: 3px solid var(--tabActiveAccent) !important;
+    padding-top: calc(.55rem - 2px);
+    z-index:2;
+    box-shadow: 0 1px 0 0 var(--panelBg);
+}
+.tabpanel{
+    background:var(--panelBg);
+    border:1px solid var(--tabBorder);
+    border-top:none;
+    border-bottom-left-radius:.75rem; border-bottom-right-radius:.75rem;
+}
+
+/* ---------- Day tabs styled like top tabs ---------- */
+.day-tabs{
+    display:flex; gap:.4rem; align-items:flex-end;
+    border-bottom:1px solid var(--tabBorder);
+    overflow-x:auto; -webkit-overflow-scrolling:touch;
+    padding:0 .25rem; margin-top:.5rem;
+}
+.day-tabs::-webkit-scrollbar{ height:6px }
+.day-tabs::-webkit-scrollbar-thumb{ background:rgba(100,116,139,.35); border-radius:9999px }
+.day-tab{
+    position:relative; top:1px;
+    padding:.5rem .8rem; font-weight:600;
+    border:1px solid var(--tabBorder); border-bottom:none;
+    border-top-left-radius:.6rem; border-top-right-radius:.6rem;
+    background:var(--tabInactiveBg); color:var(--tabInactiveFg);
+    transition: filter .15s ease, background .15s ease, color .15s ease;
+    white-space:nowrap;
+}
+.day-tab:hover{ filter:brightness(.98) }
+.day-tab[aria-selected="true"]{
+    background:var(--panelBg) !important;
+    color:var(--tabActiveText) !important;
+    font-weight:700;
+    border-color:var(--tabBorder) !important;
+    border-top:3px solid var(--tabActiveAccent) !important;
+    padding-top:calc(.5rem - 2px);
+    z-index:2;
+}
+.day-tabpanel{
+    background:var(--panelBg);
+    border:1px solid var(--tabBorder);
+    border-top:none;
+    border-bottom-left-radius:.75rem; border-bottom-right-radius:.75rem;
+    padding:1rem;
+}
+.tabs .tab{ background: var(--tabInactiveBg) !important; color: var(--tabInactiveFg) !important; border-color: var(--tabBorder) !important; }
+.tabs .tab[aria-selected="true"]{ background: var(--panelBg) !important; color: var(--tabActiveText) !important; border-color: var(--tabBorder) !important; }
+
+/* Totals as a separate card */
+.totals-card{
+    background:var(--panelBg);
+    border:1px solid var(--tabBorder);
+    border-radius:.75rem;
+    padding:1rem;
+    margin-top:1rem;
+}
+
+/* Inputs inside panels: readable in both modes */
+.tabpanel input,
+.tabpanel select,
+.tabpanel textarea{
+    background: var(--inputBg) !important;
+    color: var(--inputFg) !important;
+    border: 1px solid var(--inputBd) !important;
+}
+.tabpanel input::placeholder,
+.tabpanel textarea::placeholder{ color: color-mix(in oklab, var(--inputFg) 55%, transparent); }
+
+/* Tab strips: hide overlay scrollbars, avoid vertical bars */
+.tabs, .day-tabs{
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;          /* Firefox */
+}
+.tabs::-webkit-scrollbar,
+.day-tabs::-webkit-scrollbar{
+    display: none;                  /* WebKit/Blink */
+}
+
+/* Keep the Totals card visible while scrolling */
+.totals-sticky{
+    position: sticky;
+    top: 0.75rem;     /* nudge down from the top bar */
+    z-index: 20;      /* above content, below modal */
+}
+
+/* Wider, usable duration inputs */
+.duration-group input{ width:100%; }
+.duration-group [data-k="dur_h"]{ min-width:7rem; }  /* ~2× */
+.duration-group [data-k="dur_m"]{ min-width:10rem; } /* ~3× */
+
+/* Prevent grid inputs from forcing overflow */
+.field input,
+.field select,
+.field textarea { width:100%; min-width:0; }
+
+/* Wider, usable duration inputs (still responsive) */
+.duration-group input{ width:100%; min-width:0; }
+.duration-group [data-k="dur_h"]{ min-width:7rem; }  /* ~2× */
+.duration-group [data-k="dur_m"]{ min-width:10rem; } /* ~3× */
+
