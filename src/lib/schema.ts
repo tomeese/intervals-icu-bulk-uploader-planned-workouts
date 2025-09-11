@@ -1,5 +1,5 @@
 /* src/lib/schema.ts */
-
+/*
 import { z } from "zod";
 
 export const zPlanEvent = z.object({
@@ -26,3 +26,26 @@ export type WeekPlan  = z.infer<typeof zWeekPlan>;
 export function parseWeekPlan(input: unknown): WeekPlan {
   return zWeekPlan.parse(input);
 }
+*/
+// src/lib/schema.ts
+import { z } from "zod";
+
+export const zWorkoutEvent = z.object({
+  external_id: z.string(),
+  start_date_local: z.string(), // "YYYY-MM-DDTHH:mm"
+  type: z.enum(["Ride","Gravel Ride","Virtual Ride","Workout"]),
+  category: z.literal("WORKOUT"),
+  moving_time: z.number().int().nonnegative(),
+  icu_training_load: z.number().int().nonnegative(),
+  description: z.string().optional(),
+});
+
+export type WorkoutEvent = z.infer<typeof zWorkoutEvent>;
+
+export const zWeekPlan = z.object({
+  week_start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  events: z.array(zWorkoutEvent),
+});
+
+export type WeekPlan = z.infer<typeof zWeekPlan>;
+export type PlanEvent = z.infer<typeof zWorkoutEvent>;

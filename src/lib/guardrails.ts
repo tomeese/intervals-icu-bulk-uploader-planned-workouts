@@ -1,4 +1,4 @@
-/* lib/guardrails.ts */
+/* src/lib/guardrails.ts */
 
 // Guardrails module
 // Purpose: compute weekly ramp severity and daily cap breaches for a WeekPlan
@@ -8,6 +8,9 @@
 // Types
 // =========================
 
+import type { WeekPlan, WorkoutEvent } from "../lib/schema";
+export type { WeekPlan, WorkoutEvent };
+
 export type ActivityType =
   | "Ride"
   | "Gravel Ride"
@@ -15,23 +18,7 @@ export type ActivityType =
   | "Run"
   | "Swim"
   | "Workout";
-
-export interface WorkoutEvent {
-  external_id: string; // stable for upserts
-  start_date_local: string; // YYYY-MM-DDTHH:mm (no Z)
-  type: ActivityType; // safe whitelist
-  category: "WORKOUT"; // constant for planned
-  moving_time: number; // planned duration in seconds
-  icu_training_load: number; // planned load (int)
-  name?: string;    //name of the event       
-  description?: string; // may include "TSS N" line
-}
-
-export interface WeekPlan {
-  week_start: string; // Monday ISO date (YYYY-MM-DD)
-  events: WorkoutEvent[];
-}
-
+  
 export interface GuardrailConfig {
   ramp_warn_pct: number; // warn threshold, e.g., 8
   ramp_stop_pct: number; // stop threshold, e.g., 12
@@ -326,20 +313,3 @@ function safeInt(n: any): number {
   return Math.round(x);
 }
 
-// =========================
-// Example usage (pseudo)
-// =========================
-/*
-import { computeGuardrails, DEFAULT_GUARDRAILS } from "./guardrails";
-
-const summary = computeGuardrails(weekPlan, {
-  actualDailyLoads: [
-    { date: "2025-08-12", load: 75 },
-    // ... 27 more items
-  ],
-  previousPlannedWeeks: [lastWeek, twoWeeksAgo],
-}, DEFAULT_GUARDRAILS);
-
-// summary.rampSeverity -> "info"|"warn"|"stop"
-// summary.daily -> per-day cap breaches
-*/
