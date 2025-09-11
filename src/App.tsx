@@ -1,6 +1,6 @@
 /* src/App.tsx */
 import React from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, Link } from 'react-router-dom'
 import DemoGuardrails from './pages/DemoGuardrails'
 
 // Stub for your existing app; replace with your real root component if you have one
