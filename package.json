@@ -21,7 +21,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --base=/intervals-icu-bulk-uploader-planned-workouts/ --strictPort --port 4173",
     "test": "vitest"
   }
 }

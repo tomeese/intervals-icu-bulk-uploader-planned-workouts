@@ -1,3 +1,4 @@
+/* src/components/TotalsPanel.tsx */
 import React, { useMemo, useState } from "react";
 import type { GuardrailConfig, HistoryInputs, WeekPlan } from "../lib/guardrails";
 import { computeGuardrails, DEFAULT_GUARDRAILS } from "../lib/guardrails";

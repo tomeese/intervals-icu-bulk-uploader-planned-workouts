@@ -23,6 +23,8 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
+      - name: Set build-time env
+        run: echo "VITE_REPO_URL=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_ENV
       - run: npm run build
       - name: Add SPA fallback
         run: cp dist/index.html dist/404.html
