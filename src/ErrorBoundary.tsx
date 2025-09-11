@@ -1,4 +1,4 @@
-// src/ErrorBoundary.tsx
+/*  src/ErrorBoundary.tsx */
 import React from 'react';
 
 export default class ErrorBoundary extends React.Component<{children: React.ReactNode}, {error?: Error}> {

@@ -1,3 +1,4 @@
+/* src/App.tsx */
 import React from 'react'
 import { Routes, Route, Link } from 'react-router-dom'
 import DemoGuardrails from './pages/DemoGuardrails'
@@ -32,7 +33,6 @@ export default function App() {
         <Route path="/" element={<Navigate to="/demo" replace />} />
         <Route path="/demo" element={<DemoGuardrails />} />
         <Route path="*" element={<Navigate to="/demo" replace />} />
-
       </Routes>
     </>
   )
