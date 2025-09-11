@@ -1,316 +1,253 @@
-import React, { useMemo, useReducer, useState } from 'react'
-import { reducer, buildWeekPlan } from '../lib/planner-state'
-import type { PlannerState } from '../lib/planner-state'
-import { zWeekPlan, type WeekPlan as PlanWeek, type PlanEvent as PlanEventZ } from '../lib/schema'
-import {
-  computeGuardrails,
-  sumPlannedLoad,
-  DEFAULT_GUARDRAILS,
-  type WeekPlan as GRWeek,
-  type WorkoutEvent as GREvent,
-} from '../lib/guardrails'
-import { putFile, type GhCfg } from '../lib/github'
-import { download } from '../lib/zwo'
+// src/pages/Planner.tsx
+import React, { useMemo, useReducer, useState } from "react";
+import { reducer, type PlannerState, dayIso, inferSunday } from "../lib/planner-state";
+import type { PlanEvent } from "../lib/schema";
+import ExportUploadPanel from "../components/ExportUploadPanel";
 
-// ---------- local helpers ----------
-type PlanEvent = PlanEventZ // shorthand
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function isoOf(date: Date) {
-  return date.toISOString().slice(0, 10)
+// ---- small helpers ----
+function addDays(isoDate: string, n: number): string {
+  const d = new Date(isoDate + "T00:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
 }
-function dayIso(weekStart: string, dayIndex: number) {
-  const d = new Date(`${weekStart}T00:00:00`)
-  d.setDate(d.getDate() + dayIndex)
-  return isoOf(d)
-}
-function nextSunday(iso: string, deltaWeeks: number) {
-  const d = new Date(`${iso}T00:00:00`)
-  d.setDate(d.getDate() + 7 * deltaWeeks)
-  return isoOf(d)
-}
-function ensureHHMM(s: string) {
-  return /^\d{2}:\d{2}$/.test(s) ? s : '06:00'
-}
-function mkExternalId(dateIso: string, load: number, secs: number) {
-  return `${dateIso}-${load}-${secs}`
-}
-function toGRWeek(plan: PlanWeek): GRWeek {
-  // guardrails lib doesn’t require "name", so we can cast the shared fields across
-  return {
-    week_start: plan.week_start,
-    events: plan.events.map(e => ({
-      external_id: e.external_id,
-      start_date_local: e.start_date_local,
-      type: e.type as GREvent['type'],
-      category: 'WORKOUT',
-      moving_time: e.moving_time,
-      icu_training_load: e.icu_training_load,
-      description: e.description,
-    })),
-  }
+function prevSunday(isoDate: string): string {
+  // ensure weekStart is the Sunday of the week
+  const d = new Date(isoDate + "T00:00");
+  const dow = d.getDay(); // 0..6 (Sun..Sat)
+  d.setDate(d.getDate() - dow);
+  return d.toISOString().slice(0, 10);
 }
 
-function useInitialPlannerState(): PlannerState {
-  const today = new Date()
-  const dow = today.getDay() // Sun=0..Sat=6
-  const sunday = new Date(today)
-  sunday.setDate(today.getDate() - dow)
-  const weekStart = isoOf(sunday)
-  return {
-    weekStart,
-    selectedDay: Math.min(dow, 6),
-    tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-    days: {}, // empty week to start
-  }
-}
-
-// ---------- UI pieces ----------
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white dark:bg-slate-900">
-      <h2 className="text-lg font-semibold mb-3">{title}</h2>
-      {children}
-    </div>
-  )
-}
-
-function Field({
-  label, children,
-}: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="flex flex-col gap-1">
-      <span className="text-sm text-slate-600">{label}</span>
-      {children}
-    </label>
-  )
-}
-
-// ---------- Main component ----------
+// ---- main component ----
 export default function Planner() {
-  const [state, dispatch] = useReducer(reducer, undefined, useInitialPlannerState)
-  const [ghToken, setGhToken] = useState<string>(() => localStorage.getItem('gh_pat') || '')
-  const [ghOwner, setGhOwner] = useState<string>(() => import.meta.env.VITE_GH_OWNER || '')
-  const [ghRepo, setGhRepo] = useState<string>(() => import.meta.env.VITE_GH_REPO || '')
-  const [ghBranch, setGhBranch] = useState<string>(() => import.meta.env.VITE_GH_BRANCH || 'main')
+  const [state, dispatch] = useReducer(reducer, {
+    weekStart: inferSunday(), // default to this coming/last Sunday
+    selectedDay: 0,
+    tz: "America/Los_Angeles",
+    days: {},
+  } satisfies PlannerState);
 
-  // quick add form state (per selected day)
-  const [form, setForm] = useState({
-    time: '06:00',
-    type: 'Ride' as PlanEvent['type'],
-    name: '',
-    load: 60,
+  // local inputs for adding a custom event
+  const [custom, setCustom] = useState({
+    name: "Endurance z2",
+    type: "Ride" as PlanEvent["type"],
+    time: "06:00",
     minutes: 90,
-    description: '',
-  })
+    load: 70,
+    desc: "",
+  });
 
-  const weekPlan: PlanWeek = useMemo(() => buildWeekPlan(state), [state])
-  const guardrails = useMemo(() => computeGuardrails(toGRWeek(weekPlan), { previousPlannedWeeks: [] }, DEFAULT_GUARDRAILS), [weekPlan])
+  const selectedDate = useMemo(
+    () => dayIso(state.weekStart || inferSunday(), state.selectedDay),
+    [state.weekStart, state.selectedDay]
+  );
 
-  const total = useMemo(() => sumPlannedLoad(toGRWeek(weekPlan)), [weekPlan])
-  const days = Array.from({ length: 7 }, (_, i) => dayIso(weekPlan.week_start, i))
+  const selectedEvents: PlanEvent[] = state.days[selectedDate] || [];
 
-  function handleChangeWeek(iso: string) {
-    dispatch({ type: 'setWeekStart', weekStart: iso })
-  }
+  const setWeek = (iso: string) => dispatch({ type: "setWeekStart", weekStart: prevSunday(iso) });
+  const shiftWeek = (deltaWeeks: number) =>
+    setWeek(addDays(state.weekStart || inferSunday(), deltaWeeks * 7));
 
-  function addEvent(dateIso: string) {
-    const secs = Math.max(0, Math.round(form.minutes * 60))
-    const load = Math.max(0, Math.round(form.load))
-    const startTime = ensureHHMM(form.time)
+  const addQuick = (name: string, type: PlanEvent["type"], mins: number, load: number, time = "06:00") => {
+    addEventInternal(selectedDate, { name, type, minutes: mins, load, time, desc: name });
+  };
+
+  const addEventInternal = (
+    date: string,
+    { name, type, minutes, load, time, desc }: { name: string; type: PlanEvent["type"]; minutes: number; load: number; time: string; desc?: string }
+  ) => {
+    const secs = Math.max(0, Math.round(minutes * 60));
     const ev: PlanEvent = {
-      external_id: mkExternalId(dateIso, load, secs),
-      start_date_local: `${dateIso}T${startTime}`,
-      type: form.type,
-      category: 'WORKOUT',
+      external_id: `${date}-${load}-${secs}`,
+      start_date_local: `${date}T${time}`,
+      type,
+      category: "WORKOUT",
       moving_time: secs,
       icu_training_load: load,
-      description: form.description || (form.type === 'Workout' ? 'Structured workout' : 'Endurance'),
-      name: form.name || (form.type === 'Workout' ? 'Workout' : 'Endurance Ride'),
-    }
-    dispatch({ type: 'addEvent', date: dateIso, event: ev })
-  }
+      name,
+      description: desc || name,
+    };
+    dispatch({ type: "addEvent", date, event: ev });
+  };
 
-  function removeEvent(dateIso: string, idx: number) {
-    dispatch({ type: 'removeEvent', date: dateIso, index: idx })
-  }
-
-  function onExportJSON() {
-    const plan = buildWeekPlan(state)
-    const parsed = WeekPlanSchema.parse(plan) // throws if invalid
-    const blob = new Blob([JSON.stringify(parsed, null, 2)], { type: 'application/json' })
-    const fname = `week-${parsed.week_start}.json`
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = fname
-    a.click()
-    URL.revokeObjectURL(a.href)
-  }
-
-  async function onSaveToGitHub() {
-    try {
-      if (!ghToken || !ghOwner || !ghRepo) {
-        alert('GitHub config incomplete. Provide owner, repo, and a PAT.')
-        return
-      }
-      localStorage.setItem('gh_pat', ghToken)
-
-      const cfg: GhCfg = { token: ghToken, owner: ghOwner, repo: ghRepo, branch: ghBranch }
-      const parsed = WeekPlanSchema.parse(weekPlan)
-      const path = `snapshots/week-${parsed.week_start}.json`
-      const content = JSON.stringify(parsed, null, 2)
-      const message = `chore(snapshots): add ${path}`
-
-      await putFile(cfg, path, content, message)
-      alert(`Saved ${path} to ${ghOwner}/${ghRepo}@${ghBranch}`)
-    } catch (err: any) {
-      console.error(err)
-      alert(`Save failed: ${err?.message || err}`)
-    }
-  }
+  const removeEvent = (idx: number) => dispatch({ type: "removeEvent", date: selectedDate, index: idx });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-      <h1 className="text-2xl font-semibold">Weekly Planner</h1>
-
-      {/* Week controls */}
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          className="px-3 py-1.5 rounded border border-slate-300"
-          onClick={() => handleChangeWeek(nextSunday(weekPlan.week_start, -1))}
-          aria-label="Previous week"
-        >
-          ← Prev
-        </button>
-        <input
-          type="date"
-          className="rounded border border-slate-300 px-2 py-1"
-          value={weekPlan.week_start}
-          onChange={(e) => handleChangeWeek(e.target.value)}
-        />
-        <button
-          className="px-3 py-1.5 rounded border border-slate-300"
-          onClick={() => handleChangeWeek(nextSunday(weekPlan.week_start, +1))}
-          aria-label="Next week"
-        >
-          Next →
-        </button>
-
-        <div className="ml-auto flex gap-2">
-          <button className="px-3 py-1.5 rounded border border-slate-300" onClick={onExportJSON}>
-            Export JSON
-          </button>
-          <button className="px-3 py-1.5 rounded border border-slate-300" onClick={onSaveToGitHub}>
-            Save to GitHub (snapshots/)
-          </button>
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <header className="mb-4 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Weekly Planner</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={() => shiftWeek(-1)} className="px-2 py-1 rounded border">← Prev</button>
+          <input
+            type="date"
+            className="px-2 py-1 rounded border"
+            value={state.weekStart || ""}
+            onChange={(e) => setWeek(e.target.value)}
+          />
+          <button onClick={() => shiftWeek(+1)} className="px-2 py-1 rounded border">Next →</button>
         </div>
-      </div>
+      </header>
 
-      {/* Guardrails + Totals */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <SectionCard title="Totals">
-          <div className="text-sm space-y-1">
-            <div className="flex justify-between"><span>Planned week load</span><span className="font-medium">{total}</span></div>
-            <div className="flex justify-between"><span>Baseline weekly</span><span className="font-medium">{guardrails.baselineWeeklyLoad}</span></div>
-            <div className="flex justify-between"><span>Ramp %</span><span className="font-medium">{guardrails.rampPct.toFixed(1)}%</span></div>
-            <div className="flex justify-between"><span>Severity</span><span className="font-medium">{guardrails.rampSeverity}</span></div>
-          </div>
-        </SectionCard>
-
-        <SectionCard title="Daily caps (breaches)">
-          <ul className="list-disc pl-5 text-sm space-y-1">
-            {guardrails.daily.map((d) => {
-              const any = (d.breaches?.length || 0) > 0
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Left: planning canvas */}
+        <section className="lg:col-span-2 space-y-4">
+          {/* Day picker */}
+          <nav className="grid grid-cols-7 gap-2">
+            {DAY_LABELS.map((lab, i) => {
+              const dIso = dayIso(state.weekStart || inferSunday(), i);
+              const active = i === state.selectedDay;
               return (
-                <li key={d.date} className={any ? 'text-red-600' : 'text-slate-600'}>
-                  {d.date}: {d.dayType} {any ? `— over by ${d.overBy} (cap ${d.capApplied})` : '— ok'}
-                </li>
-              )
+                <button
+                  key={i}
+                  onClick={() => dispatch({ type: "selectDay", index: i })}
+                  className={[
+                    "rounded-md border px-2 py-2 text-sm",
+                    active ? "bg-slate-900 text-white border-slate-900" : "bg-white"
+                  ].join(" ")}
+                  title={dIso}
+                >
+                  <div className="font-medium">{lab}</div>
+                  <div className="text-xs opacity-70">{dIso.slice(5)}</div>
+                </button>
+              );
             })}
-          </ul>
-        </SectionCard>
+          </nav>
 
-        <SectionCard title="GitHub settings">
-          <div className="grid grid-cols-1 gap-2">
-            <Field label="Owner">
-              <input className="rounded border border-slate-300 px-2 py-1" value={ghOwner} onChange={e=>setGhOwner(e.target.value)} />
-            </Field>
-            <Field label="Repo">
-              <input className="rounded border border-slate-300 px-2 py-1" value={ghRepo} onChange={e=>setGhRepo(e.target.value)} />
-            </Field>
-            <Field label="Branch">
-              <input className="rounded border border-slate-300 px-2 py-1" value={ghBranch} onChange={e=>setGhBranch(e.target.value)} />
-            </Field>
-            <Field label="Personal Access Token (stored locally)">
-              <input className="rounded border border-slate-300 px-2 py-1" type="password" value={ghToken} onChange={e=>setGhToken(e.target.value)} />
-            </Field>
-          </div>
-        </SectionCard>
-      </div>
-
-      {/* Week grid */}
-      <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-        {days.map((dateIso, i) => {
-          const events = state.days[dateIso] || []
-          return (
-            <div key={dateIso} className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 bg-white dark:bg-slate-900">
-              <div className="flex items-baseline justify-between mb-2">
-                <div className="font-medium">{dateIso}</div>
-                <div className="text-xs text-slate-500">{['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][i]}</div>
+          {/* Selected day editor */}
+          <div className="rounded-xl border p-3 bg-white">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-lg font-semibold">
+                {DAY_LABELS[state.selectedDay]} <span className="font-mono text-slate-500">{selectedDate}</span>
               </div>
+              <div className="text-sm text-slate-600">TZ: <span className="font-mono">{state.tz}</span></div>
+            </div>
 
-              <ul className="space-y-2 mb-3">
-                {events.length === 0 && <li className="text-sm text-slate-500">No events</li>}
-                {events.map((e, idx) => (
-                  <li key={`${e.external_id}-${idx}`} className="text-sm rounded border border-slate-200 p-2">
-                    <div className="font-medium">{e.name || (e.type === 'Workout' ? 'Workout' : 'Endurance Ride')}</div>
-                    <div className="text-slate-600">
-                      {e.type} • TL {e.icu_training_load} • {Math.round(e.moving_time/60)} min • {e.start_date_local.slice(11,16)}
+            {/* Existing events */}
+            <ul className="space-y-2">
+              {selectedEvents.length === 0 && (
+                <li className="text-sm text-slate-500">No events yet.</li>
+              )}
+              {selectedEvents.map((e, idx) => (
+                <li key={idx} className="border rounded-md px-3 py-2 flex items-center justify-between">
+                  <div className="text-sm">
+                    <div className="font-medium">{e.name}</div>
+                    <div className="text-xs text-slate-600">
+                      {e.type} · {Math.round(e.moving_time / 60)} min · TL {e.icu_training_load} · {e.start_date_local.slice(11,16)}
                     </div>
-                    {e.description && <div className="text-xs text-slate-500 mt-1">{e.description}</div>}
-                    <div className="mt-2">
-                      <button className="text-xs px-2 py-0.5 rounded border border-slate-300" onClick={()=>removeEvent(dateIso, idx)}>Remove</button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                    {e.description && <div className="text-xs text-slate-500 mt-0.5">{e.description}</div>}
+                  </div>
+                  <button onClick={() => removeEvent(idx)} className="text-red-600 text-sm">Remove</button>
+                </li>
+              ))}
+            </ul>
 
-              {/* Quick add */}
-              <div className="space-y-2">
-                <Field label="Type">
+            {/* Quick add */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button onClick={() => addQuick("Endurance z2", "Ride", 90, 70)} className="px-2 py-1 rounded border text-sm">
+                + Endurance 90' (TL 70)
+              </button>
+              <button onClick={() => addQuick("VO2 5×3' @120%", "Workout", 60, 120)} className="px-2 py-1 rounded border text-sm">
+                + VO2 60' (TL 120)
+              </button>
+              <button onClick={() => addQuick("Recovery spin z1", "Ride", 30, 35)} className="px-2 py-1 rounded border text-sm">
+                + Recovery 30' (TL 35)
+              </button>
+              <button onClick={() => addQuick("Endurance long ride", "Ride", 240, 170)} className="px-2 py-1 rounded border text-sm">
+                + Long ride 4h (TL 170)
+              </button>
+            </div>
+
+            {/* Custom add */}
+            <div className="mt-4 border-t pt-3">
+              <div className="text-sm font-medium mb-2">Add custom</div>
+              <div className="grid grid-cols-1 sm:grid-cols-6 gap-2 items-end">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs mb-1">Name</label>
+                  <input
+                    className="w-full rounded border px-2 py-1"
+                    value={custom.name}
+                    onChange={(e) => setCustom({ ...custom, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Type</label>
                   <select
-                    className="rounded border border-slate-300 px-2 py-1"
-                    value={form.type}
-                    onChange={e=>setForm(f=>({...f, type: e.target.value as PlanEvent['type']}))}
+                    className="w-full rounded border px-2 py-1"
+                    value={custom.type}
+                    onChange={(e) => setCustom({ ...custom, type: e.target.value as PlanEvent["type"] })}
                   >
                     <option>Ride</option>
                     <option>Workout</option>
+                    <option>Run</option>
+                    <option>Virtual Ride</option>
                   </select>
-                </Field>
-                <Field label="Name (optional)">
-                  <input className="rounded border border-slate-300 px-2 py-1" value={form.name} onChange={e=>setForm(f=>({...f, name: e.target.value}))} placeholder={form.type==='Workout' ? 'VO2 5x3’ @120%' : 'Endurance'} />
-                </Field>
-                <div className="grid grid-cols-3 gap-2">
-                  <Field label="Start">
-                    <input className="rounded border border-slate-300 px-2 py-1" type="time" value={form.time} onChange={e=>setForm(f=>({...f, time: e.target.value}))} />
-                  </Field>
-                  <Field label="TL">
-                    <input className="rounded border border-slate-300 px-2 py-1" type="number" min={0} value={form.load} onChange={e=>setForm(f=>({...f, load: Number(e.target.value)}))} />
-                  </Field>
-                  <Field label="Minutes">
-                    <input className="rounded border border-slate-300 px-2 py-1" type="number" min={0} value={form.minutes} onChange={e=>setForm(f=>({...f, minutes: Number(e.target.value)}))} />
-                  </Field>
                 </div>
-                <Field label="Description (optional)">
-                  <input className="rounded border border-slate-300 px-2 py-1" value={form.description} onChange={e=>setForm(f=>({...f, description: e.target.value}))} />
-                </Field>
-                <button className="w-full mt-1 px-3 py-1.5 rounded border border-slate-300" onClick={()=>addEvent(dateIso)}>
-                  Add to {dateIso}
-                </button>
+                <div>
+                  <label className="block text-xs mb-1">Start</label>
+                  <input
+                    type="time"
+                    className="w-full rounded border px-2 py-1"
+                    value={custom.time}
+                    onChange={(e) => setCustom({ ...custom, time: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Minutes</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-full rounded border px-2 py-1"
+                    value={custom.minutes}
+                    onChange={(e) => setCustom({ ...custom, minutes: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">TL</label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-full rounded border px-2 py-1"
+                    value={custom.load}
+                    onChange={(e) => setCustom({ ...custom, load: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="sm:col-span-6">
+                  <label className="block text-xs mb-1">Notes</label>
+                  <input
+                    className="w-full rounded border px-2 py-1"
+                    value={custom.desc}
+                    onChange={(e) => setCustom({ ...custom, desc: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <button
+                    className="px-3 py-1.5 rounded border bg-slate-50 hover:bg-slate-100"
+                    onClick={() =>
+                      addEventInternal(selectedDate, {
+                        name: custom.name.trim() || "Planned workout",
+                        type: custom.type,
+                        minutes: Math.max(0, custom.minutes),
+                        load: Math.max(0, custom.load),
+                        time: custom.time || "06:00",
+                        desc: custom.desc,
+                      })
+                    }
+                  >
+                    Add event
+                  </button>
+                </div>
               </div>
             </div>
-          )
-        })}
+          </div>
+        </section>
+
+        {/* Right: export/upload */}
+        <aside>
+          <ExportUploadPanel state={state} />
+        </aside>
       </div>
     </div>
-  )
+  );
 }

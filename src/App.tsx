@@ -1,20 +1,51 @@
-/* src/App.tsx */
+import React from "react";
+import { Routes, Route, NavLink, Navigate } from "react-router-dom";
 
-import { Routes, Route, NavLink } from 'react-router-dom'
-import Planner from './pages/Planner'
-import DemoGuardrails from './pages/DemoGuardrails'
+import MainApp from "./pages/MainApp";
+import DemoGuardrails from "./pages/DemoGuardrails";
+import Planner from "./pages/Planner";
+
+function NavItem({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <NavLink
+      to={to}
+      end
+      className={({ isActive }) =>
+        [
+          "px-3 py-2 rounded-md text-sm font-medium",
+          isActive
+            ? "bg-slate-900 text-white"
+            : "text-slate-700 hover:bg-slate-100",
+        ].join(" ")
+      }
+    >
+      {children}
+    </NavLink>
+  );
+}
 
 export default function App() {
   return (
-    <>
-      <nav className="p-3 border-b flex gap-4">
-        <NavLink to="/" end>Planner</NavLink>
-        <NavLink to="/demo">Demo</NavLink>
-      </nav>
-      <Routes>
-        <Route path="/" element={<Planner/>} />
-        <Route path="/demo" element={<DemoGuardrails/>} />
-      </Routes>
-    </>
-  )
+    <div className="min-h-screen">
+      <header className="border-b">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-4">
+          <h1 className="text-lg font-semibold">Intervals Tools</h1>
+          <nav className="flex gap-2">
+            <NavItem to="/">Home</NavItem>
+            <NavItem to="/demo">Demo</NavItem>
+            <NavItem to="/planner">Planner</NavItem>
+          </nav>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+        <Routes>
+          <Route path="/" element={<MainApp />} />
+          <Route path="/demo" element={<DemoGuardrails />} />
+          <Route path="/planner" element={<Planner />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
 }
