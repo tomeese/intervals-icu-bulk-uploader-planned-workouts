@@ -52,10 +52,20 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Ensure single lockfile
+#      - name: Ensure single lockfile
+#        run: |
+#          set -euo pipefail
+#          find . -path "*/node_modules" -prune -o -name "package-lock.json" -not -path "./package-lock.json" -print -delete
+
+      - name: Clean stray lockfiles
+        shell: bash
         run: |
           set -euo pipefail
-          find . -path "*/node_modules" -prune -o -name "package-lock.json" -not -path "./package-lock.json" -print -delete
+          # Delete any package-lock.json outside the repo root, but ignore node_modules
+          find . -type f -name 'package-lock.json' \
+            ! -path './package-lock.json' \
+            ! -path './node_modules/*' \
+            -print -delete
 
       - name: Install deps
         run: npm ci

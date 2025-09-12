@@ -1,8 +1,11 @@
-// src/pages/Planner.tsx
+/* src/pages/Planner.tsx */
+
 import React, { useMemo, useReducer, useState } from "react";
 import { reducer, type PlannerState, dayIso, inferSunday } from "../lib/planner-state";
 import type { PlanEvent } from "../lib/schema";
 import ExportUploadPanel from "../components/ExportUploadPanel";
+import { DayCaps } from "../components/DayCaps";
+import { DEFAULT_GUARDRAILS as cfg } from "../lib/guardrails";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -243,10 +246,11 @@ export default function Planner() {
           </div>
         </section>
 
-        {/* Right: export/upload */}
-        <aside>
-          <ExportUploadPanel state={state} />
-        </aside>
+        {/* Right: guardrails & export */}
+      <aside className="w-full md:w-80 shrink-0 space-y-4">
+        <DayCaps cfg={cfg} />
+        <ExportUploadPanel state={state} />
+      </aside>
       </div>
     </div>
   );
