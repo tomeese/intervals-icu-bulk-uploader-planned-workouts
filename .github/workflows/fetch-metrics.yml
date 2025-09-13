@@ -7,6 +7,10 @@ on:
         description: "How many days back"
         required: false
         default: "30"
+      athlete_id:
+        description: "Intervals.icu athlete ID (overrides repo variable ATHLETE_ID)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -27,14 +31,27 @@ jobs:
       - name: Prepare output dir
         run: mkdir -p public/data
 
+      - name: Resolve configuration
+        id: cfg
+        run: |
+          # Prefer workflow input; else repo/org variable
+          AID="${{ github.event.inputs.athlete_id }}"
+          if [ -z "$AID" ]; then
+            AID="${{ vars.ATHLETE_ID }}"
+          fi
+          if [ -z "$AID" ]; then
+            echo "::error title=Missing ATHLETE_ID::Provide 'athlete_id' input or set repository variable ATHLETE_ID."
+            exit 1
+          fi
+          echo "athlete_id=$AID" >> "$GITHUB_OUTPUT"
+
       - name: Generate metrics JSON
         env:
           INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
-          ATHLETE_ID: ${{ vars.ATHLETE_ID }}
         run: |
           python scripts/fetch_metrics.py \
-            --days "${{ inputs.days }}" \
-            --athlete-id "${ATHLETE_ID}" \
+            --days "${{ github.event.inputs.days }}" \
+            --athlete-id "${{ steps.cfg.outputs.athlete_id }}" \
             > public/data/metrics-latest.json
 
       - name: Commit metrics
