@@ -18,11 +18,12 @@ export default function ExportUploadPanel({ state }: { state: PlannerState }) {
   const [athleteId, setAthleteId] = useState<number>(
     Number(localStorage.getItem("icu_athlete_id") ?? "0"),
   );
+
   const [tz, setTz] = useState(
     localStorage.getItem("icu_tz") ??
-      Intl.DateTimeFormat().resolvedOptions().timeZone ||
-      "America/Los_Angeles",
+      (Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Los_Angeles"),
   );
+    
   const [defaultStart, setDefaultStart] = useState(
     localStorage.getItem("icu_default_start") ?? "06:00",
   );
