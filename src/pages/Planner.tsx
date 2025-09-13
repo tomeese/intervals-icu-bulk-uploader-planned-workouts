@@ -4,6 +4,8 @@ import GuardrailsPanel from "../components/GuardrailsPanel";
 import { reducer, buildWeekPlan, type PlannerState } from "../lib/planner-state";
 import type { PlanEvent } from "../lib/schema";
 import { computeGuardrails, DEFAULT_GUARDRAILS } from "../lib/guardrails";
+import HistoryPanel from "../components/HistoryPanel";
+
 
 // ---------- date helpers (Mon → Sun) ----------
 function toIso(d: Date) {
@@ -233,6 +235,9 @@ export default function Planner() {
           </div>
         </div>
       </section>
+      <div className="mt-4">
+        <HistoryPanel />
+      </div>
 
       {/* Legend */}
       <div className="flex items-center gap-4 text-xs text-slate-600">

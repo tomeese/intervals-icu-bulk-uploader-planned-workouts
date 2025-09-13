@@ -1,0 +1,50 @@
+name: Fetch training metrics
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "How many days back"
+        required: false
+        default: "30"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install requests python-dateutil
+
+      - name: Prepare output dir
+        run: mkdir -p public/data
+
+      - name: Generate metrics JSON
+        env:
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+          ATHLETE_ID: ${{ vars.ATHLETE_ID }}
+        run: |
+          python scripts/fetch_metrics.py \
+            --days "${{ inputs.days }}" \
+            --athlete-id "${ATHLETE_ID}" \
+            > public/data/metrics-latest.json
+
+      - name: Commit metrics
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/data/metrics-latest.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore(metrics): refresh"
+            git push
+          fi
