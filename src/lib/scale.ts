@@ -1,3 +1,5 @@
+/* src/lib/scale.ts */
+
 // What‑If Auto‑Scale module
 // Pure functions to scale a WeekPlan's planned loads toward a target while respecting guardrails
 

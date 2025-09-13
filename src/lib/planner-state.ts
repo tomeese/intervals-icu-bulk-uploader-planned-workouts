@@ -61,14 +61,13 @@ export function initialPlannerState(
   };
 }
 
-export function buildWeekPlan(state?: PlannerState): WeekPlan {
-  const s = state ?? initialPlannerState();
+export function buildWeekPlan(state: PlannerState): WeekPlan {
   const events: PlanEvent[] = [];
-  for (const [, arr] of Object.entries(s.days || {})) {
+  for (const [_, arr] of Object.entries(state.days)) {
     for (const e of arr) events.push(e);
   }
   return {
-    week_start: s.weekStart || inferSunday(s.tz),
+    week_start: state.weekStart || inferMonday(),
     events: sortByDateTime(events),
   };
 }
@@ -81,6 +80,13 @@ export function inferSunday(tz: string = "UTC"): string {
   const sunday = new Date(now);
   sunday.setDate(now.getDate() - dow);
   return toIsoDate(sunday);
+}
+
+export function inferMonday(d = new Date()): string {
+  const day = d.getDay(); // 0=Sun..6=Sat
+  const diff = day === 0 ? -6 : 1 - day; // move to Monday
+  const mon = new Date(d); mon.setHours(0,0,0,0); mon.setDate(d.getDate() + diff);
+  return mon.toISOString().slice(0,10);
 }
 
 export function dayIso(weekStart: string, idx: number): string {
