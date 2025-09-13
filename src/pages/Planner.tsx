@@ -1,10 +1,11 @@
-import React, { useMemo, useReducer } from "react";
+import React, { useEffect, useMemo, useReducer, useState } from "react"; 
 import ExportUploadPanel from "../components/ExportUploadPanel";
 import GuardrailsPanel from "../components/GuardrailsPanel";
 import { reducer, buildWeekPlan, type PlannerState } from "../lib/planner-state";
 import type { PlanEvent } from "../lib/schema";
 import { computeGuardrails, DEFAULT_GUARDRAILS } from "../lib/guardrails";
 import HistoryPanel from "../components/HistoryPanel";
+import WeeklyHistoryStrip from "../components/WeeklyHistoryStrip";
 
 
 // ---------- date helpers (Mon → Sun) ----------
@@ -50,6 +51,8 @@ function makeEvent(
     description,
   };
 }
+type MetricsPoint = { date: string; atl: number; ctl: number; tsb: number; ramp: number };
+type MetricsData = { athlete_id: number; generated_at: string; series: MetricsPoint[] };
 
 // ---------- UI color helpers ----------
 type Kind = "endurance" | "workout" | "recovery";
@@ -156,6 +159,23 @@ export default function Planner() {
     dispatch({ type: "replaceDay", date, events: copy });
   };
 
+    // --- Metrics state & fetch ---
+  const [metrics, setMetrics] = useState<MetricsData | null>(null);
+  const [metricsErr, setMetricsErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    const url = `${import.meta.env.BASE_URL}data/metrics-latest.json`;
+    fetch(url, { cache: "no-store" })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((json: MetricsData) => setMetrics(json))
+      .catch(err => setMetricsErr(String(err)));
+  }, []);
+
+  // SAFE handles for render & memos — never destructure `metrics` directly
+  const series: MetricsPoint[] = metrics?.series ?? [];
+  const hasSeries = series.length > 0;
+
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       {/* Header */}
@@ -182,6 +202,20 @@ export default function Planner() {
           </button>
         </div>
       </div>
+
+      <section className="mb-4">
+        {hasSeries ? (
+          <WeeklyHistoryStrip series={series} />
+        ) : metricsErr ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            Couldn’t load metrics: {metricsErr}
+          </div>
+        ) : (
+          <div className="rounded-md border border-slate-200 bg-white dark:bg-slate-900 p-3 text-sm text-slate-600">
+            No metrics yet. Run <b>Fetch training metrics</b> workflow.
+          </div>
+        )}
+      </section>
 
       {/* Guardrails Summary */}
       <section
@@ -235,9 +269,7 @@ export default function Planner() {
           </div>
         </div>
       </section>
-      <div className="mt-4">
-        <HistoryPanel />
-      </div>
+
 
       {/* Legend */}
       <div className="flex items-center gap-4 text-xs text-slate-600">
