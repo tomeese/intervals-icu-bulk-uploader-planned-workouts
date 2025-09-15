@@ -23,10 +23,11 @@ export default function ExportUploadPanel({ state }: { state: PlannerState }) {
     localStorage.getItem("icu_tz") ??
       (Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Los_Angeles"),
   );
-    
+
   const [defaultStart, setDefaultStart] = useState(
     localStorage.getItem("icu_default_start") ?? "06:00",
   );
+
   const [uploadState, setUploadState] =
     useState<null | { created: number; skipped: number; errors: string[] }>(null);
   const [uploadBusy, setUploadBusy] = useState(false);
@@ -75,7 +76,8 @@ export default function ExportUploadPanel({ state }: { state: PlannerState }) {
   }
 
   async function doUpload() {
-    if (!plan || !apiKey || !athleteId) return;
+    // ★ allow athleteId === 0 (means: use athlete from API key)
+    if (!plan || !apiKey) return;
     setUploadBusy(true);
     setUploadState(null);
     try {
@@ -90,6 +92,11 @@ export default function ExportUploadPanel({ state }: { state: PlannerState }) {
       setUploadBusy(false);
     }
   }
+
+  // ★ Enable button as long as we have a plan + apiKey (athleteId can be 0)
+//  const canUpload = !!plan && !!apiKey && !uploadBusy;
+
+const canUpload = !!plan && apiKey.trim().length > 0 && !uploadBusy;
 
   return (
     <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-4 bg-white dark:bg-slate-900">
@@ -114,7 +121,7 @@ export default function ExportUploadPanel({ state }: { state: PlannerState }) {
                   onChange={(e) => setApiKey(e.target.value)}
                 />
               </label>
-              <label className="flex flex-col">Athlete ID
+              <label className="flex flex-col">Athlete ID (0 = use key’s athlete)
                 <input
                   className="border rounded px-2 py-1"
                   type="number"
@@ -140,7 +147,7 @@ export default function ExportUploadPanel({ state }: { state: PlannerState }) {
             <div className="flex gap-2">
               <button
                 onClick={doUpload}
-                disabled={uploadBusy || !apiKey || !athleteId}
+                disabled={!canUpload}
                 className="px-3 py-1.5 rounded-md border bg-slate-50 hover:bg-slate-100 disabled:opacity-50"
               >
                 {uploadBusy ? "Uploading…" : "Upload now"}

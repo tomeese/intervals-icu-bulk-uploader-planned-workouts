@@ -1,32 +1,26 @@
 // src/lib/intervals.ts
-// Browser-side uploader for Intervals.icu planned workouts
+import type { WeekPlan } from "./schema";
 
-import type { WeekPlan, PlanEvent } from "./schema";
-
-export type UploadOpts = {
+type UploadOpts = {
   apiKey: string;
-  athleteId: number;
-  defaultStart: string; // "HH:MM"
-  tz: string;           // e.g., "America/Los_Angeles"
+  athleteId?: number;      // 0 or undefined => use "me"
+  defaultStart: string;    // "HH:MM"
+  tz: string;              // IANA TZ
 };
 
-function nameFor(e: PlanEvent) {
-  const desc = (e.description || "").trim();
-  if (desc) return desc.slice(0, 120);
-  if (e.type === "Workout") return "Workout";
-  const mins = Math.round(e.moving_time / 60);
-  return `Ride ${e.icu_training_load} / ${mins}m`;
-}
+const API_BASE = "https://intervals.icu";
 
-/**
- * Uploads each event in a week as a planned workout.
- * Returns counts and any error strings (non-fatal 409s are counted as "skipped").
- */
 export async function uploadPlannedWeek(plan: WeekPlan, opts: UploadOpts) {
-  const endpoint = `https://intervals.icu/api/v1/athlete/${opts.athleteId}/planned`;
+  const { apiKey, athleteId, defaultStart, tz } = opts;
+
+  // 0 or undefined -> use the API-key’s athlete
+  const idSeg = (athleteId === 0 || athleteId == null) ? "me" : String(athleteId);
+  const url = `${API_BASE}/api/v1/athlete/${idSeg}/planned`;
+
   const headers = {
+    "Authorization": `Bearer ${apiKey}`,
     "Content-Type": "application/json",
-    Authorization: `Bearer ${opts.apiKey}`,
+    "Accept": "application/json",
   };
 
   let created = 0;
@@ -34,42 +28,37 @@ export async function uploadPlannedWeek(plan: WeekPlan, opts: UploadOpts) {
   const errors: string[] = [];
 
   for (const e of plan.events) {
-    const startLocal =
-      e.start_date_local ||
-      `${e.external_id.slice(0, 10)}T${opts.defaultStart}`;
+    // Ensure start_date_local has a time (use defaultStart if missing)
+    const hasTime = e.start_date_local.length > 10;
+    const startLocal = hasTime
+      ? e.start_date_local
+      : `${e.start_date_local}T${defaultStart}`;
 
-    const body = {
-      name: nameFor(e),
+    const payload = {
       start_date_local: startLocal,
       type: e.type,
       category: e.category,
       moving_time: e.moving_time,
       icu_training_load: e.icu_training_load,
       description: e.description ?? "",
-      external_id: e.external_id,
-      tz: opts.tz,
+      timezone: tz,
     };
 
     try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-      });
-
+      const res = await fetch(url, { method: "POST", headers, body: JSON.stringify(payload) });
       if (res.ok) {
-        created++;
-        continue;
+        created += 1;
+      } else {
+        // treat 409/422 as skipped; collect others as errors
+        if (res.status === 409 || res.status === 422) {
+          skipped += 1;
+        } else {
+          const txt = await res.text().catch(() => "");
+          errors.push(`POST ${res.status} ${url} :: ${txt || "unknown error"}`);
+        }
       }
-
-      const text = await res.text().catch(() => "");
-      if (res.status === 409 || /already exists/i.test(text)) {
-        skipped++;
-        continue;
-      }
-      errors.push(`POST ${res.status}: ${text.slice(0, 200)}`);
     } catch (err: any) {
-      errors.push(String(err));
+      errors.push(`POST error :: ${err?.message || String(err)}`);
     }
   }
 
