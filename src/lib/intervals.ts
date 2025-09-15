@@ -14,7 +14,7 @@ export async function uploadPlannedWeek(plan: WeekPlan, opts: UploadOpts) {
   const { apiKey, athleteId, defaultStart, tz } = opts;
 
   // 0 or undefined -> use the API-key’s athlete
-  const idSeg = (athleteId === 0 || athleteId == null) ? "me" : String(athleteId);
+  const idSeg = (athleteId === 0 || athleteId == null) ? "0" : String(athleteId);
   const url = `${API_BASE}/api/v1/athlete/${idSeg}/planned`;
 
   const headers = {
