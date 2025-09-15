@@ -6,6 +6,8 @@ import type { PlanEvent } from "../lib/schema";
 import { computeGuardrails, DEFAULT_GUARDRAILS } from "../lib/guardrails";
 import HistoryPanel from "../components/HistoryPanel";
 import WeeklyHistoryStrip from "../components/WeeklyHistoryStrip";
+import MetricsPanel from "../components/MetricsPanel";  
+
 
 
 // ---------- date helpers (Mon → Sun) ----------

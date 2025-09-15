@@ -1,67 +1,34 @@
+# .github/workflows/fetch_metrics.yml
 name: Fetch training metrics
 
 on:
   workflow_dispatch:
     inputs:
       days:
-        description: "How many days back"
+        description: "Days of history"
         required: false
-        default: "30"
-      athlete_id:
-        description: "Intervals.icu athlete ID (overrides repo variable ATHLETE_ID)"
-        required: false
-        default: ""
-
-permissions:
-  contents: write
+        default: "35"
 
 jobs:
   fetch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Install deps
-        run: pip install requests python-dateutil
-
-      - name: Prepare output dir
-        run: mkdir -p public/data
-
-      - name: Resolve configuration
-        id: cfg
-        run: |
-          # Prefer workflow input; else repo/org variable
-          AID="${{ github.event.inputs.athlete_id }}"
-          if [ -z "$AID" ]; then
-            AID="${{ vars.ATHLETE_ID }}"
-          fi
-          if [ -z "$AID" ]; then
-            echo "::error title=Missing ATHLETE_ID::Provide 'athlete_id' input or set repository variable ATHLETE_ID."
-            exit 1
-          fi
-          echo "athlete_id=$AID" >> "$GITHUB_OUTPUT"
-
-      - name: Generate metrics JSON
+      - name: Fetch metrics JSON
         env:
           INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
         run: |
           python scripts/fetch_metrics.py \
-            --days "${{ github.event.inputs.days }}" \
-            --athlete-id "${{ steps.cfg.outputs.athlete_id }}" \
+            --days "${{ inputs.days }}" \
+            --athlete-id 0 \
             > public/data/metrics-latest.json
-
       - name: Commit metrics
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/data/metrics-latest.json
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "chore(metrics): refresh"
-            git push
-          fi
+          git commit -m "chore: update metrics-latest.json" || echo "no changes"
+          git push

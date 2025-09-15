@@ -1,4 +1,10 @@
+/* /src/components/WeeklyHistoryStrip.tsx */
+
 import React, { useMemo } from "react";
+import { f1, f0 } from "../lib/format";
+import { formBadge } from "../lib/colors";
+import Chip from "./Chip";
+import FormChip from "./FormChip";
 
 type SeriesPoint = { date: string; atl: number; ctl: number; tsb: number; ramp: number };
 type Weekly = {
@@ -50,7 +56,7 @@ export default function WeeklyHistoryStrip({
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm text-slate-500">Load</div>
               <div className="text-lg font-semibold tabular-nums">
-                {w.load ?? "—"}
+                {f0(w.load) ?? "—"}
               </div>
             </div>
             <div className="h-1.5 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden mb-2">
@@ -61,9 +67,9 @@ export default function WeeklyHistoryStrip({
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-sm">
-              <KV label="Fitness" value={w.fitness} />
-              <KV label="Fatigue" value={w.fatigue} />
-              <Chip label="Form" value={w.form} tone={formTone(w.form)} />
+              <KV label="Fitness" value={f1(w.fitness)} />
+              <KV label="Fatigue" value={f1(w.fatigue)} /> 
+              <FormChip value={w.form} />
               <Chip label="Ramp" value={w.ramp} tone={rampTone(w.ramp)} prefix={w.ramp > 0 ? "▲ " : w.ramp < 0 ? "▼ " : ""} />
             </div>
           </div>
@@ -171,7 +177,7 @@ function KV({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
-
+/*
 function Chip({
   label,
   value,
@@ -196,7 +202,7 @@ function Chip({
     </div>
   );
 }
-
+*/
 function formTone(tsb: number): "ok" | "warn" | "bad" {
   if (tsb <= -20 || tsb >= 16) return "bad";
   if (tsb <= -10 || tsb >= 6) return "warn";
