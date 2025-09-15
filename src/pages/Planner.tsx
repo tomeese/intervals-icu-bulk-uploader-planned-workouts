@@ -5,7 +5,9 @@ import { reducer, buildWeekPlan, type PlannerState } from "../lib/planner-state"
 import type { PlanEvent } from "../lib/schema";
 import { computeGuardrails, DEFAULT_GUARDRAILS } from "../lib/guardrails";
 import HistoryPanel from "../components/HistoryPanel";
-import WeeklyHistoryStrip, { type WeekRow } from "../components/WeeklyHistoryStrip";
+import WeeklyHistoryStrip from "../components/WeeklyHistoryStrip";
+import MetricsPanel from "../components/MetricsPanel";  
+
 
 
 // ---------- date helpers (Mon → Sun) ----------
