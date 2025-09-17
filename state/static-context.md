@@ -20,7 +20,7 @@
 
 ## 1) Output & Formatting Rules
 - Emit only valid JSON per the schema. No markdown or commentary.
-- Each event: `category`, `type`, `name`, `start_date_local`, `moving_time`, `external_id`, `description`. (`icu_training_load` recommended.)
+- Each event: `category`, `type`, `name`, `start_date_local`, `moving_time`, `icu_training_load`, `external_id`, `description`.
 - `category: "WORKOUT"`, `type: "Ride"`. `moving_time` in **seconds**.
 - **Naming** must include venue tag, e.g.:
   - `Endurance Z2 - 4h30 (OUTDOOR)`

@@ -10,11 +10,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "category","type","name",
-          "start_date_local","moving_time",
-          "external_id","description"
-        ],
+        "required": ["category","type","name","start_date_local","moving_time","icu_training_load","external_id","description"],
         "properties": {
           "category": { "type": "string", "enum": ["WORKOUT"] },
           "type":     { "type": "string", "enum": ["Ride"] },
