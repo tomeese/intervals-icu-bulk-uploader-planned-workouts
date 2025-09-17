@@ -1,0 +1,24 @@
+{
+  "events": [
+    {
+      "category": "WORKOUT",
+      "type": "Ride",
+      "name": "Tempo - 3x8' @ 80–85% (INDOOR)",
+      "start_date_local": "2025-09-16T06:30:00",
+      "moving_time": 1440,
+      "icu_training_load": 45,
+      "external_id": "2025-09-16-tempo-3x8-indoor",
+      "description": "Warm-up, 3x8' tempo intervals at 80–85% FTP, 85–95 rpm cadence, 4' easy recovery between intervals. AMBER: reduce intervals or intensity; RED: replace with 5x2' VO2-lite @110–115%. Cool-down."
+    },
+    {
+      "category": "WORKOUT",
+      "type": "Ride",
+      "name": "Endurance Z2 - 2h30 (OUTDOOR)",
+      "start_date_local": "2025-09-20T07:00:00",
+      "moving_time": 9000,
+      "icu_training_load": 120,
+      "external_id": "2025-09-20-endurance-z2-2h30-outdoor",
+      "description": "Long endurance ride at 62–71% FTP, 85–95 rpm cadence. Fuel 80–100 g carbs/hr, 700–1000 mg sodium/hr, 600–900 ml fluids/hr. Start fueling within 15–20 min. If drift >5%, reduce intensity and increase fluids/Na."
+    }
+  ]
+}
