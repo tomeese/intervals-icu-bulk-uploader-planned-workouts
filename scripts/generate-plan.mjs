@@ -1,21 +1,22 @@
 // scripts/generate-plan.mjs
-// Node 20+. ESM (.mjs). Designed for GitHub Actions or local use.
+// Node 20+. ESM (.mjs). For GitHub Actions or local use.
 //
 // Env vars (required):
 //   OPENAI_API_KEY
-//   START  (YYYY-MM-DD)   e.g., 2025-09-22
-//   END    (YYYY-MM-DD)   e.g., 2025-09-28
+//   START  (YYYY-MM-DD)
+//   END    (YYYY-MM-DD)
 //   INTENT ("build-week" | "recovery-week" | "race-week")
 // Env vars (optional):
 //   LONGRIDE_WEATHER  "dry" | "rain" | "mixed" | "auto"
 //   SEASON_HINT       "summer" | "shoulder" | "winter"
 //   MODEL             default: "gpt-4.1-mini"
-//   MONDAY_REST       "true" (default) | "false"  -> whether Monday should be excluded from DATES_TO_COVER
+//   MONDAY_REST       "true" (default) | "false"
+//   NOTES             free-form notes string (from Issue body)
 //
-// Files expected (repo-relative):
-//   schema/intervalsPlan.schema.json   // JSON Schema (Draft 2020-12)
-//   state/static-context.md            // cacheable coaching rules (weather-aware)
-//   state/athlete.json                 // tiny live state (FTP, summary, constraints)
+// Files expected:
+//   schema/intervalsPlan.schema.json
+//   state/static-context.md
+//   state/athlete.json
 //
 // Output:
 //   plans/<START>_<END>.json
@@ -24,7 +25,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-// Use Ajv 2020 build (includes draft-2020-12 support)
 import Ajv from "ajv/dist/2020.js";
 
 // ---------- helpers ----------
@@ -36,15 +36,12 @@ function env(name, { required = false, fallback = "" } = {}) {
   }
   return (v && v.trim()) || fallback;
 }
-
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
-
 function pretty(obj) {
   return JSON.stringify(obj, null, 2);
 }
-
 async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -60,9 +57,12 @@ function listIsoDatesInclusive(startStr, endStr) {
   }
   return out;
 }
+function getUTCDay(isoDate) {
+  // 0=Sun,1=Mon,..6=Sat
+  return new Date(`${isoDate}T00:00:00Z`).getUTCDay();
+}
 function isMondayUTC(isoDate) {
-  // JS: 0=Sun, 1=Mon … (use UTC to avoid TZ surprises on runners)
-  return new Date(`${isoDate}T00:00:00Z`).getUTCDay() === 1;
+  return getUTCDay(isoDate) === 1;
 }
 
 // ---------- env/config ----------
@@ -74,9 +74,8 @@ const MODEL = env("MODEL", { fallback: "gpt-4.1-mini" });
 
 const OVERRIDE_LRW = env("LONGRIDE_WEATHER", { fallback: "" }).toLowerCase();
 const OVERRIDE_SEASON = env("SEASON_HINT", { fallback: "" }).toLowerCase();
-const MONDAY_REST =
-  (env("MONDAY_REST", { fallback: "true" }).toLowerCase() || "true") !==
-  "false";
+const MONDAY_REST = (env("MONDAY_REST", { fallback: "true" }).toLowerCase() || "true") !== "false";
+const NOTES = env("NOTES", { fallback: "" });
 
 const validLRW = new Set(["dry", "rain", "mixed", "auto", ""]);
 const validSeasons = new Set(["summer", "shoulder", "winter", ""]);
@@ -102,33 +101,60 @@ const athlete = JSON.parse(fs.readFileSync(athletePath, "utf8"));
 const lrw = validLRW.has(OVERRIDE_LRW) ? OVERRIDE_LRW : "auto";
 const season = validSeasons.has(OVERRIDE_SEASON) ? OVERRIDE_SEASON : "";
 
-const longride_weather =
-  (lrw && lrw !== "" ? lrw : athlete.longride_weather) || "auto";
-const season_hint =
-  (season && season !== "" ? season : athlete.season_hint) || "summer";
+const longride_weather = (lrw && lrw !== "" ? lrw : athlete.longride_weather) || "auto";
+const season_hint = (season && season !== "" ? season : athlete.season_hint) || "summer";
 
-// ---------- AJV setup (draft-2020-12 via Ajv 2020 build) ----------
+// ---------- AJV setup ----------
 const ajv = new Ajv({ allErrors: true, strict: false });
 const validate = ajv.compile(schema);
-const NOTES = env("NOTES", { fallback: "" });
 
 // ---------- prompts ----------
-// Put long-lived, cacheable content FIRST (system + static-context.md) for prompt caching.
+// Stronger: nail start times exactly, not “suggested”.
 const systemPrompt = [
   "You are a cycling coach that outputs ONLY JSON matching the provided schema.",
   "Honor split FTPs: use ftp_indoor for INDOOR sessions, ftp_outdoor for OUTDOOR sessions.",
   "Use local ISO datetimes (YYYY-MM-DDThh:mm:ss) with NO timezone suffix (no 'Z').",
   "Durations are in seconds via moving_time.",
+  "Start times MUST be EXACT: weekdays 17:30:00, weekends 09:00:00, unless explicitly overridden.",
   "Never emit prose or markdown; JSON only."
 ].join("\n");
 
-// ---- compute DATES_TO_COVER / rule text ----
+// ---- compute DATES_TO_COVER ----
 const allDates = listIsoDatesInclusive(START, END);
 const datesToCover = allDates.filter((d) => (MONDAY_REST ? !isMondayUTC(d) : true));
 const datesRuleText = [
   `DATES_TO_COVER: ${datesToCover.join(", ")}`,
   `RULE: Create exactly one event on each listed date.`,
   `NOTE: If a Monday falls within the range, treat Monday as a rest day (no event) unless MONDAY_REST=false is supplied.`
+].join("\n");
+
+// ---- scheduling constraints (new, hard guardrails) ----
+const weekdays = datesToCover.filter((d) => {
+  const dow = getUTCDay(d);
+  return dow >= 1 && dow <= 5;
+});
+const weekends = datesToCover.filter((d) => {
+  const dow = getUTCDay(d);
+  return dow === 0 || dow === 6;
+});
+const saturday = datesToCover.find((d) => getUTCDay(d) === 6) || "";
+const sunday = datesToCover.find((d) => getUTCDay(d) === 0) || "";
+const longRidePrimary = saturday || sunday;         // prefer Saturday, else Sunday
+const longRideBackup = longRidePrimary === saturday ? (sunday || "") : (saturday || "");
+
+// weekday caps in minutes
+const WEEKDAY_MAX = 90;
+const WEEKDAY_HARD_MAX = 105;
+
+const schedulingConstraintsText = [
+  "SCHEDULING_CONSTRAINTS:",
+  `- WEEKDAY_MAX_MINUTES: ${WEEKDAY_MAX} (hard cap ${WEEKDAY_HARD_MAX})`,
+  "- RULE: On Mon–Fri, do NOT schedule moving_time > WEEKDAY_MAX_MINUTES * 60. A single 105' session is allowed at most once; otherwise keep ≤ WEEKDAY_MAX_MINUTES.",
+  "- RULE: Any session ≥ 120 minutes MUST be scheduled on Saturday or Sunday (long ride). Never place ≥120 minutes on a weekday.",
+  `- LONG_RIDE_PRIMARY_DATE: ${longRidePrimary || "(none in range)"}`,
+  `- LONG_RIDE_BACKUP_DATE: ${longRideBackup || "(none)"}`,
+  "- RULE: Place the long endurance ride on the primary date; if constraints force a swap, use the backup date.",
+  "- START_TIMES: Use exactly 17:30:00 for weekdays and 09:00:00 for weekends; do not invent other times."
 ].join("\n");
 
 // Keep the changing state small and LAST (prompt caching friendly).
@@ -149,6 +175,9 @@ REQUEST:
 - output: Intervals.icu events (Ride only)
 
 ${datesRuleText}
+
+${schedulingConstraintsText}
+
 ${NOTES ? `NOTES:\n${NOTES}\n` : ""}
 `;
 
@@ -172,11 +201,7 @@ async function callOpenAI({ prompt, errorListJson = "" }) {
     temperature: 0.2,
     response_format: {
       type: "json_schema",
-      json_schema: {
-        name: "IntervalsPlan",
-        schema,
-        strict: true
-      }
+      json_schema: { name: "IntervalsPlan", schema, strict: true }
     }
   };
 
@@ -196,10 +221,8 @@ async function callOpenAI({ prompt, errorListJson = "" }) {
         const text = await resp.text();
         if (resp.status === 429 || (resp.status >= 500 && resp.status <= 599)) {
           lastErr = new Error(`OpenAI HTTP ${resp.status}: ${text}`);
-          const backoff = 500 * Math.pow(2, attempt - 1); // 500ms, 1s, 2s
-          console.warn(
-            `OpenAI transient error (attempt ${attempt}/3). Backoff ${backoff}ms...`
-          );
+          const backoff = 500 * Math.pow(2, attempt - 1);
+          console.warn(`OpenAI transient error (attempt ${attempt}/3). Backoff ${backoff}ms...`);
           await sleep(backoff);
           continue;
         }
@@ -211,9 +234,7 @@ async function callOpenAI({ prompt, errorListJson = "" }) {
     } catch (e) {
       lastErr = e;
       const backoff = 500 * Math.pow(2, attempt - 1);
-      console.warn(
-        `Fetch error (attempt ${attempt}/3): ${e?.message || e}. Backoff ${backoff}ms...`
-      );
+      console.warn(`Fetch error (attempt ${attempt}/3): ${e?.message || e}. Backoff ${backoff}ms...`);
       await sleep(backoff);
     }
   }
@@ -246,14 +267,11 @@ function writeOutputs(obj) {
       data = {};
     }
 
-    // Validate; if invalid, send AJV errors for a repair pass
+    // Validate; if invalid, send AJV errors back for a repair pass
     if (!validate(data)) {
       const errs = JSON.stringify(validate.errors, null, 2);
       console.warn("Schema validation failed; attempting repair pass...");
-      const second = await callOpenAI({
-        prompt: liveState,
-        errorListJson: errs
-      });
+      const second = await callOpenAI({ prompt: liveState, errorListJson: errs });
       try {
         data = JSON.parse(second);
       } catch {
@@ -261,10 +279,7 @@ function writeOutputs(obj) {
         process.exit(1);
       }
       if (!validate(data)) {
-        console.error(
-          "Model failed schema after repair pass:\n",
-          JSON.stringify(validate.errors, null, 2)
-        );
+        console.error("Model failed schema after repair pass:\n", JSON.stringify(validate.errors, null, 2));
         process.exit(1);
       }
     }
