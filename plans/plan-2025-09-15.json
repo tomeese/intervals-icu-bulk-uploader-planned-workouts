@@ -1,0 +1,64 @@
+{
+  "events": [
+    {
+      "category": "WORKOUT",
+      "type": "Ride",
+      "name": "Tempo - 3x8 @ 80–85% (INDOOR)",
+      "start_date_local": "2025-09-16T17:30:00",
+      "moving_time": 4500,
+      "icu_training_load": 60,
+      "external_id": "2025-09-16-tempo-3x8",
+      "description": "INDOOR (FTP 314). 3x8' @ 251–267 W (80–85%), 4' easy. 15–20' warm-up, cool to ~75'. Keep it smooth."
+    },
+    {
+      "category": "WORKOUT",
+      "type": "Ride",
+      "name": "Recovery - 50 min (INDOOR)",
+      "start_date_local": "2025-09-17T17:30:00",
+      "moving_time": 3000,
+      "icu_training_load": 25,
+      "external_id": "2025-09-17-recovery-50m",
+      "description": "INDOOR (FTP 314). 50' @ 140–170 W. Cadence 85–95. No surges."
+    },
+    {
+      "category": "WORKOUT",
+      "type": "Ride",
+      "name": "Endurance Z2 - 90 min (INDOOR)",
+      "start_date_local": "2025-09-18T17:30:00",
+      "moving_time": 5400,
+      "icu_training_load": 50,
+      "external_id": "2025-09-18-endurance-z2-90m",
+      "description": "INDOOR (FTP 314). 90' @ 195–223 W (62–71%). Keep decoupling <5%."
+    },
+    {
+      "category": "WORKOUT",
+      "type": "Ride",
+      "name": "Recovery - 45 min (INDOOR)",
+      "start_date_local": "2025-09-19T17:30:00",
+      "moving_time": 2700,
+      "icu_training_load": 23,
+      "external_id": "2025-09-19-recovery-45m",
+      "description": "INDOOR (FTP 314). 45' @ 140–170 W. If tired, cut to 30'."
+    },
+    {
+      "category": "WORKOUT",
+      "type": "Ride",
+      "name": "Openers + Sweet Spot - 2x6 (INDOOR)",
+      "start_date_local": "2025-09-20T09:00:00",
+      "moving_time": 4500,
+      "icu_training_load": 65,
+      "external_id": "2025-09-20-openers-ss-2x6",
+      "description": "INDOOR (FTP 314). 2x6' @ 276–289 W (SS 88–92%), 6' easy. Add 3x30s spin-ups. Keep RPE moderate."
+    },
+    {
+      "category": "WORKOUT",
+      "type": "Ride",
+      "name": "Endurance Z2 - 2h (OUTDOOR)",
+      "start_date_local": "2025-09-21T09:00:00",
+      "moving_time": 7200,
+      "icu_training_load": 72,
+      "external_id": "2025-09-21-endurance-z2-2h",
+      "description": "OUTDOOR (FTP 324). 2h @ 200–220 W. Conversational pace. Keep it chill to close the week."
+    }
+  ]
+}
