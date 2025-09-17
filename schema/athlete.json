@@ -1,0 +1,10 @@
+{
+  "ftp_indoor": 314,
+  "ftp_outdoor": 324,
+  "timezone": "America/Los_Angeles",
+  "week_goal": "Recovery (~300 TSS).",
+  "recent_summary": "…",
+  "constraints": "Thu usually outdoor; can swap weekend days.",
+  "longride_weather": "dry",        
+  "season_hint": "summer"           
+}
