@@ -23,8 +23,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-// ⬇️ Use Ajv 2020 build (has draft-2020-12 baked in)
-import Ajv from "ajv/dist/2020";
+import Ajv from "ajv/dist/2020.js"
 
 // ---------- helpers ----------
 function env(name, { required = false, fallback = "" } = {}) {
