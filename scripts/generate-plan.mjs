@@ -3,18 +3,19 @@
 //
 // Env vars (required):
 //   OPENAI_API_KEY
-//   START  (YYYY-MM-DD)
-//   END    (YYYY-MM-DD)
+//   START  (YYYY-MM-DD)   e.g., 2025-09-22
+//   END    (YYYY-MM-DD)   e.g., 2025-09-28
 //   INTENT ("build-week" | "recovery-week" | "race-week")
 // Env vars (optional):
 //   LONGRIDE_WEATHER  "dry" | "rain" | "mixed" | "auto"
 //   SEASON_HINT       "summer" | "shoulder" | "winter"
 //   MODEL             default: "gpt-4.1-mini"
+//   MONDAY_REST       "true" (default) | "false"  -> whether Monday should be excluded from DATES_TO_COVER
 //
-// Files expected:
-//   schema/intervalsPlan.schema.json
-//   state/static-context.md
-//   state/athlete.json
+// Files expected (repo-relative):
+//   schema/intervalsPlan.schema.json   // JSON Schema (Draft 2020-12)
+//   state/static-context.md            // cacheable coaching rules (weather-aware)
+//   state/athlete.json                 // tiny live state (FTP, summary, constraints)
 //
 // Output:
 //   plans/<START>_<END>.json
@@ -23,7 +24,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import Ajv from "ajv/dist/2020.js"
+// Use Ajv 2020 build (includes draft-2020-12 support)
+import Ajv from "ajv/dist/2020.js";
 
 // ---------- helpers ----------
 function env(name, { required = false, fallback = "" } = {}) {
@@ -47,6 +49,22 @@ async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// ---- date helpers (UTC-safe, day-only) ----
+function listIsoDatesInclusive(startStr, endStr) {
+  const out = [];
+  const start = new Date(`${startStr}T00:00:00Z`);
+  const end = new Date(`${endStr}T00:00:00Z`);
+  if (isNaN(start) || isNaN(end)) throw new Error("Invalid START/END date.");
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    out.push(d.toISOString().slice(0, 10)); // YYYY-MM-DD
+  }
+  return out;
+}
+function isMondayUTC(isoDate) {
+  // JS: 0=Sun, 1=Mon … (use UTC to avoid TZ surprises on runners)
+  return new Date(`${isoDate}T00:00:00Z`).getUTCDay() === 1;
+}
+
 // ---------- env/config ----------
 const OPENAI_API_KEY = env("OPENAI_API_KEY", { required: true });
 const START = env("START", { required: true });
@@ -56,6 +74,10 @@ const MODEL = env("MODEL", { fallback: "gpt-4.1-mini" });
 
 const OVERRIDE_LRW = env("LONGRIDE_WEATHER", { fallback: "" }).toLowerCase();
 const OVERRIDE_SEASON = env("SEASON_HINT", { fallback: "" }).toLowerCase();
+const MONDAY_REST =
+  (env("MONDAY_REST", { fallback: "true" }).toLowerCase() || "true") !==
+  "false";
+
 const validLRW = new Set(["dry", "rain", "mixed", "auto", ""]);
 const validSeasons = new Set(["summer", "shoulder", "winter", ""]);
 
@@ -90,6 +112,7 @@ const ajv = new Ajv({ allErrors: true, strict: false });
 const validate = ajv.compile(schema);
 
 // ---------- prompts ----------
+// Put long-lived, cacheable content FIRST (system + static-context.md) for prompt caching.
 const systemPrompt = [
   "You are a cycling coach that outputs ONLY JSON matching the provided schema.",
   "Honor split FTPs: use ftp_indoor for INDOOR sessions, ftp_outdoor for OUTDOOR sessions.",
@@ -98,7 +121,16 @@ const systemPrompt = [
   "Never emit prose or markdown; JSON only."
 ].join("\n");
 
-// Keep the changing state small and last (prompt caching friendly).
+// ---- compute DATES_TO_COVER / rule text ----
+const allDates = listIsoDatesInclusive(START, END);
+const datesToCover = allDates.filter((d) => (MONDAY_REST ? !isMondayUTC(d) : true));
+const datesRuleText = [
+  `DATES_TO_COVER: ${datesToCover.join(", ")}`,
+  `RULE: Create exactly one event on each listed date.`,
+  `NOTE: If a Monday falls within the range, treat Monday as a rest day (no event) unless MONDAY_REST=false is supplied.`
+].join("\n");
+
+// Keep the changing state small and LAST (prompt caching friendly).
 const liveState = `
 ATHLETE_STATE:
 ftp_indoor: ${athlete.ftp_indoor}
@@ -114,6 +146,8 @@ REQUEST:
 - date_range: ${START}..${END}
 - intent: ${INTENT}
 - output: Intervals.icu events (Ride only)
+
+${datesRuleText}
 `;
 
 // ---------- OpenAI call (native fetch with retries) ----------
@@ -160,7 +194,7 @@ async function callOpenAI({ prompt, errorListJson = "" }) {
         const text = await resp.text();
         if (resp.status === 429 || (resp.status >= 500 && resp.status <= 599)) {
           lastErr = new Error(`OpenAI HTTP ${resp.status}: ${text}`);
-          const backoff = 500 * Math.pow(2, attempt - 1);
+          const backoff = 500 * Math.pow(2, attempt - 1); // 500ms, 1s, 2s
           console.warn(
             `OpenAI transient error (attempt ${attempt}/3). Backoff ${backoff}ms...`
           );
@@ -197,7 +231,7 @@ function writeOutputs(obj) {
 (async () => {
   try {
     console.log(
-      `Generating plan ${START}..${END} intent=${INTENT} weather=${longride_weather} season=${season_hint} model=${MODEL}`
+      `Generating plan ${START}..${END} intent=${INTENT} weather=${longride_weather} season=${season_hint} model=${MODEL} monday_rest=${MONDAY_REST}`
     );
 
     // First pass
