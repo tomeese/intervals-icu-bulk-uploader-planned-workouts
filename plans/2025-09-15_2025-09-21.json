@@ -3,62 +3,62 @@
     {
       "category": "WORKOUT",
       "type": "Ride",
-      "name": "Endurance Z2 - 2h30 (OUTDOOR)",
-      "start_date_local": "2025-09-16T08:00:00",
-      "moving_time": 9000,
-      "icu_training_load": 120,
-      "external_id": "2025-09-16-endurance-z2-2h30-outdoor",
-      "description": "Steady Z2 ride at 62-71% FTP (~200-230W). Cadence 85-95 rpm. Fuel early and regularly: 40-50g carbs/hr, 350-450mg sodium/hr, 300-450ml fluid/hr."
+      "name": "Tempo - 3x8' @ 80–85% (INDOOR)",
+      "start_date_local": "2025-09-16T06:30:00",
+      "moving_time": 1440,
+      "icu_training_load": 45,
+      "external_id": "2025-09-16-tempo-3x8-indoor",
+      "description": "Warm-up, 3x8' tempo intervals at 80–85% FTP, 85–95 rpm cadence, easy spins between. AMBER/RED fallback: VO2-lite 5x2'. Keep cadence smooth."
+    },
+    {
+      "category": "WORKOUT",
+      "type": "Ride",
+      "name": "Endurance Z2 - 90 min (INDOOR)",
+      "start_date_local": "2025-09-17T06:30:00",
+      "moving_time": 5400,
+      "icu_training_load": 90,
+      "external_id": "2025-09-17-endurance-z2-90min-indoor",
+      "description": "Steady Z2 at 62–71% FTP, 85–95 rpm cadence. Fuel early, maintain hydration. AMBER/RED fallback: shorter duration or lower intensity."
     },
     {
       "category": "WORKOUT",
       "type": "Ride",
       "name": "Recovery - 45 min (INDOOR)",
-      "start_date_local": "2025-09-17T18:00:00",
+      "start_date_local": "2025-09-18T06:30:00",
       "moving_time": 2700,
-      "icu_training_load": 30,
-      "external_id": "2025-09-17-recovery-45min-indoor",
-      "description": "Easy recovery ride at 45-55% FTP (~140-170W). Cadence 85-95 rpm. AMBER/RED fallback: tempo 3x8' @ 80-85% FTP or VO2-lite 5x2' @ 110-115% FTP."
-    },
-    {
-      "category": "WORKOUT",
-      "type": "Ride",
-      "name": "Recovery - 45 min (INDOOR)",
-      "start_date_local": "2025-09-18T18:00:00",
-      "moving_time": 2700,
-      "icu_training_load": 30,
+      "icu_training_load": 20,
       "external_id": "2025-09-18-recovery-45min-indoor",
-      "description": "Easy recovery ride at 45-55% FTP (~140-170W). Cadence 85-95 rpm. AMBER/RED fallback: tempo 3x8' @ 80-85% FTP or VO2-lite 5x2' @ 110-115% FTP."
+      "description": "Easy spinning at 45–55% FTP, focus on recovery and smooth pedal stroke. AMBER/RED fallback: keep easy pace."
     },
     {
       "category": "WORKOUT",
       "type": "Ride",
       "name": "Endurance Z2 - 2h30 (OUTDOOR)",
-      "start_date_local": "2025-09-19T07:30:00",
+      "start_date_local": "2025-09-19T07:00:00",
       "moving_time": 9000,
-      "icu_training_load": 120,
+      "icu_training_load": 150,
       "external_id": "2025-09-19-endurance-z2-2h30-outdoor",
-      "description": "Steady Z2 ride at 62-71% FTP (~200-230W). Cadence 85-95 rpm. Fuel early and regularly: 40-50g carbs/hr, 350-450mg sodium/hr, 300-450ml fluid/hr."
+      "description": "Long Z2 ride at 62–71% FTP, 85–95 rpm cadence. Start fueling within 15 min, 80–100 g carbs/hr, 700–1000 mg sodium/hr, 600–900 ml fluid/hr. AMBER/RED fallback: indoor option if weather worsens."
+    },
+    {
+      "category": "WORKOUT",
+      "type": "Ride",
+      "name": "Endurance Z2 - 90 min (INDOOR)",
+      "start_date_local": "2025-09-20T06:30:00",
+      "moving_time": 5400,
+      "icu_training_load": 90,
+      "external_id": "2025-09-20-endurance-z2-90min-indoor",
+      "description": "Steady Z2 at 62–71% FTP, 85–95 rpm cadence. Fuel early, maintain hydration. AMBER/RED fallback: shorter duration or lower intensity."
     },
     {
       "category": "WORKOUT",
       "type": "Ride",
       "name": "Recovery - 45 min (INDOOR)",
-      "start_date_local": "2025-09-20T18:00:00",
+      "start_date_local": "2025-09-21T06:30:00",
       "moving_time": 2700,
-      "icu_training_load": 30,
-      "external_id": "2025-09-20-recovery-45min-indoor",
-      "description": "Easy recovery ride at 45-55% FTP (~140-170W). Cadence 85-95 rpm. AMBER/RED fallback: tempo 3x8' @ 80-85% FTP or VO2-lite 5x2' @ 110-115% FTP."
-    },
-    {
-      "category": "WORKOUT",
-      "type": "Ride",
-      "name": "Endurance Z2 - 2h30 (OUTDOOR)",
-      "start_date_local": "2025-09-21T08:00:00",
-      "moving_time": 9000,
-      "icu_training_load": 120,
-      "external_id": "2025-09-21-endurance-z2-2h30-outdoor",
-      "description": "Steady Z2 ride at 62-71% FTP (~200-230W). Cadence 85-95 rpm. Fuel early and regularly: 40-50g carbs/hr, 350-450mg sodium/hr, 300-450ml fluid/hr."
+      "icu_training_load": 20,
+      "external_id": "2025-09-21-recovery-45min-indoor",
+      "description": "Easy spinning at 45–55% FTP, focus on recovery and smooth pedal stroke. AMBER/RED fallback: keep easy pace."
     }
   ]
 }
