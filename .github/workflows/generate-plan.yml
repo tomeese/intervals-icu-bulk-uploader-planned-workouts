@@ -42,7 +42,7 @@ jobs:
         with: { node-version: 20 }
 
       - name: Install deps
-        run: npm i openai ajv
+        run: npm i ajv
 
       - name: Compute inputs
         id: inputs
