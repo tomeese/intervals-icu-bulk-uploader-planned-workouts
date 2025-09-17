@@ -44,6 +44,11 @@ jobs:
       - name: Install deps
         run: npm i ajv
 
+      - name: Inject build env
+        run: |
+          echo "VITE_GH_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
+          echo "VITE_GH_REPO=${{ github.event.repository.name }}" >> $GITHUB_ENV
+
       - name: Compute inputs
         id: inputs
         shell: bash
@@ -54,18 +59,25 @@ jobs:
             echo "intent=${{ inputs.intent }}" >> $GITHUB_OUTPUT
             echo "longride_weather=${{ inputs.longride_weather }}" >> $GITHUB_OUTPUT
             echo "season_hint=${{ inputs.season_hint }}" >> $GITHUB_OUTPUT
+            echo "monday_rest=${{ inputs.monday_rest }}" >> $GITHUB_OUTPUT
+            echo "notes=" >> $GITHUB_OUTPUT
           else
             body="${{ github.event.issue.body }}"
-            start=$(grep -iE '^\s*start:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/ /,"",$2); print $2}')
-            end=$(grep -iE '^\s*end:\s*' <<< "$body"   | head -1 | awk -F: '{gsub(/ /,"",$2); print $2}')
-            intent=$(grep -iE '^\s*intent:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/ /,"",$2); print $2}')
-            lrw=$(grep -iE '^\s*longride_weather:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/ /,"",$2); print $2}')
-            shint=$(grep -iE '^\s*season_hint:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/ /,"",$2); print $2}')
+            start=$(grep -iE '^\s*start:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
+            end=$(grep -iE '^\s*end:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
+            intent=$(grep -iE '^\s*intent:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
+            lrw=$(grep -iE '^\s*longride_weather:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
+            shint=$(grep -iE '^\s*season_hint:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
+            mrest=$(grep -iE '^\s*monday_rest:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
+            # Capture fenced notes block after a line 'notes:' delimited by ```
+            notes=$(awk '/^ *notes: *$/{flag=1;next} flag&&/^```$/{flag=0;exit} flag{print}' <<< "$body")
             echo "start=$start" >> $GITHUB_OUTPUT
             echo "end=$end" >> $GITHUB_OUTPUT
             echo "intent=${intent:-recovery-week}" >> $GITHUB_OUTPUT
             echo "longride_weather=${lrw:-auto}" >> $GITHUB_OUTPUT
             echo "season_hint=$shint" >> $GITHUB_OUTPUT
+            echo "monday_rest=${mrest:-true}" >> $GITHUB_OUTPUT
+            printf "notes<<EOF\n%s\nEOF\n" "$notes" >> $GITHUB_OUTPUT
           fi
 
       - name: Generate plan
@@ -76,6 +88,8 @@ jobs:
           INTENT: ${{ steps.inputs.outputs.intent }}
           LONGRIDE_WEATHER: ${{ steps.inputs.outputs.longride_weather }}
           SEASON_HINT: ${{ steps.inputs.outputs.season_hint }}
+          MONDAY_REST: ${{ steps.inputs.outputs.monday_rest }}
+          NOTES: ${{ steps.inputs.outputs.notes }}
         run: node scripts/generate-plan.mjs
 
       - name: Commit plan

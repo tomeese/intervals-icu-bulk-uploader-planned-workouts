@@ -80,6 +80,7 @@ const MONDAY_REST =
 
 const validLRW = new Set(["dry", "rain", "mixed", "auto", ""]);
 const validSeasons = new Set(["summer", "shoulder", "winter", ""]);
+const NOTES = env("NOTES", { fallback: "" });
 
 // ---------- file paths ----------
 const schemaPath = "schema/intervalsPlan.schema.json";
@@ -148,6 +149,7 @@ REQUEST:
 - output: Intervals.icu events (Ride only)
 
 ${datesRuleText}
+${NOTES ? `NOTES:\n${NOTES}\n` : ""}
 `;
 
 // ---------- OpenAI call (native fetch with retries) ----------
