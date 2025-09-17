@@ -11,12 +11,14 @@
 //   SEASON_HINT       "summer" | "shoulder" | "winter"
 //   MODEL             default: "gpt-4.1-mini"
 //   MONDAY_REST       "true" (default) | "false"
-//   NOTES             free-form notes string (from Issue body)
+//   NOTES             free-form notes (from Issue UI)
 //
-// Files expected:
-//   schema/intervalsPlan.schema.json
-//   state/static-context.md
-//   state/athlete.json
+// Files expected (repo-relative):
+//   schema/intervalsPlan.schema.json   // plan JSON Schema (Draft 2020-12)
+//   state/static-context.md            // durable narrative rules
+//   state/athlete.json                 // live athlete state
+//   config/rules.json                  // tunable policy knobs (durations, caps, times)
+//   schema/rules.schema.json           // (optional) schema for rules.json
 //
 // Output:
 //   plans/<START>_<END>.json
@@ -25,6 +27,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+// Ajv 2020 build has draft-2020-12 baked in
 import Ajv from "ajv/dist/2020.js";
 
 // ---------- helpers ----------
@@ -58,11 +61,28 @@ function listIsoDatesInclusive(startStr, endStr) {
   return out;
 }
 function getUTCDay(isoDate) {
-  // 0=Sun,1=Mon,..6=Sat
+  // Sun=0 .. Sat=6
   return new Date(`${isoDate}T00:00:00Z`).getUTCDay();
 }
-function isMondayUTC(isoDate) {
-  return getUTCDay(isoDate) === 1;
+function isWeekend(iso) {
+  const dow = getUTCDay(iso);
+  return dow === 0 || dow === 6;
+}
+function isWeekday(iso) {
+  const dow = getUTCDay(iso);
+  return dow >= 1 && dow <= 5;
+}
+function findDay(dates, dow) {
+  return dates.find((d) => getUTCDay(d) === dow) || "";
+}
+function datePart(localIso) {
+  return localIso.slice(0, 10);
+}
+function timePart(localIso) {
+  return localIso.slice(11);
+}
+function minutes(sec) {
+  return Math.round((sec || 0) / 60);
 }
 
 // ---------- env/config ----------
@@ -81,12 +101,14 @@ const validLRW = new Set(["dry", "rain", "mixed", "auto", ""]);
 const validSeasons = new Set(["summer", "shoulder", "winter", ""]);
 
 // ---------- file paths ----------
-const schemaPath = "schema/intervalsPlan.schema.json";
+const planSchemaPath = "schema/intervalsPlan.schema.json";
 const staticCtxPath = "state/static-context.md";
 const athletePath = "state/athlete.json";
+const rulesPath = "config/rules.json";
+const rulesSchemaPath = "schema/rules.schema.json"; // optional
 
 // ---------- existence checks ----------
-for (const p of [schemaPath, staticCtxPath, athletePath]) {
+for (const p of [planSchemaPath, staticCtxPath, athletePath, rulesPath]) {
   if (!fs.existsSync(p)) {
     console.error(`Required file missing: ${p}`);
     process.exit(1);
@@ -94,70 +116,75 @@ for (const p of [schemaPath, staticCtxPath, athletePath]) {
 }
 
 // ---------- load resources ----------
-const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+const planSchema = JSON.parse(fs.readFileSync(planSchemaPath, "utf8"));
 const staticContext = fs.readFileSync(staticCtxPath, "utf8");
 const athlete = JSON.parse(fs.readFileSync(athletePath, "utf8"));
-
-const lrw = validLRW.has(OVERRIDE_LRW) ? OVERRIDE_LRW : "auto";
-const season = validSeasons.has(OVERRIDE_SEASON) ? OVERRIDE_SEASON : "";
-
-const longride_weather = (lrw && lrw !== "" ? lrw : athlete.longride_weather) || "auto";
-const season_hint = (season && season !== "" ? season : athlete.season_hint) || "summer";
+const rules = JSON.parse(fs.readFileSync(rulesPath, "utf8"));
 
 // ---------- AJV setup ----------
 const ajv = new Ajv({ allErrors: true, strict: false });
-const validate = ajv.compile(schema);
+const validatePlan = ajv.compile(planSchema);
 
-// ---------- prompts ----------
-// Stronger: nail start times exactly, not “suggested”.
+// Optional: validate rules.json if a schema is present
+if (fs.existsSync(rulesSchemaPath)) {
+  const rulesSchema = JSON.parse(fs.readFileSync(rulesSchemaPath, "utf8"));
+  const validateRules = ajv.compile(rulesSchema);
+  if (!validateRules(rules)) {
+    console.error("rules.json failed validation:", pretty(validateRules.errors));
+    process.exit(1);
+  }
+}
+
+// ---------- derive weather/season ----------
+const lrw = validLRW.has(OVERRIDE_LRW) ? OVERRIDE_LRW : "auto";
+const season = validSeasons.has(OVERRIDE_SEASON) ? OVERRIDE_SEASON : "";
+const longride_weather = (lrw && lrw !== "" ? lrw : athlete.longride_weather) || "auto";
+const season_hint = (season && season !== "" ? season : athlete.season_hint) || "summer";
+
+// ---------- DATES_TO_COVER ----------
+const allDates = listIsoDatesInclusive(START, END);
+const datesToCover = allDates.filter((d) => (MONDAY_REST ? !isMondayUTC(d) : true));
+function isMondayUTC(isoDate) { return getUTCDay(isoDate) === 1; }
+
+// ---------- weekend dates & long-ride target ----------
+const saturday = findDay(allDates, 6);
+const sunday = findDay(allDates, 0);
+const longRidePrimary =
+  (rules.long_ride.primary_day === "SAT" ? saturday : sunday) || "";
+const longRideBackup =
+  (rules.long_ride.backup_day === "SAT" ? saturday : sunday) || "";
+
+// ---------- build prompts ----------
 const systemPrompt = [
   "You are a cycling coach that outputs ONLY JSON matching the provided schema.",
   "Honor split FTPs: use ftp_indoor for INDOOR sessions, ftp_outdoor for OUTDOOR sessions.",
   "Use local ISO datetimes (YYYY-MM-DDThh:mm:ss) with NO timezone suffix (no 'Z').",
   "Durations are in seconds via moving_time.",
-  "Start times MUST be EXACT: weekdays 17:30:00, weekends 09:00:00, unless explicitly overridden.",
+  `Start times MUST match config: weekdays ${rules.times.weekday_start}, weekends ${rules.times.weekend_start}.`,
   "Never emit prose or markdown; JSON only."
 ].join("\n");
 
-// ---- compute DATES_TO_COVER ----
-const allDates = listIsoDatesInclusive(START, END);
-const datesToCover = allDates.filter((d) => (MONDAY_REST ? !isMondayUTC(d) : true));
 const datesRuleText = [
   `DATES_TO_COVER: ${datesToCover.join(", ")}`,
   `RULE: Create exactly one event on each listed date.`,
   `NOTE: If a Monday falls within the range, treat Monday as a rest day (no event) unless MONDAY_REST=false is supplied.`
 ].join("\n");
 
-// ---- scheduling constraints (new, hard guardrails) ----
-const weekdays = datesToCover.filter((d) => {
-  const dow = getUTCDay(d);
-  return dow >= 1 && dow <= 5;
-});
-const weekends = datesToCover.filter((d) => {
-  const dow = getUTCDay(d);
-  return dow === 0 || dow === 6;
-});
-const saturday = datesToCover.find((d) => getUTCDay(d) === 6) || "";
-const sunday = datesToCover.find((d) => getUTCDay(d) === 0) || "";
-const longRidePrimary = saturday || sunday;         // prefer Saturday, else Sunday
-const longRideBackup = longRidePrimary === saturday ? (sunday || "") : (saturday || "");
-
-// weekday caps in minutes
-const WEEKDAY_MAX = 90;
-const WEEKDAY_HARD_MAX = 105;
+const sc = rules.weekday_caps;
+const lr = rules.long_ride;
+const timesCfg = rules.times;
 
 const schedulingConstraintsText = [
   "SCHEDULING_CONSTRAINTS:",
-  `- WEEKDAY_MAX_MINUTES: ${WEEKDAY_MAX} (hard cap ${WEEKDAY_HARD_MAX})`,
-  "- RULE: On Mon–Fri, do NOT schedule moving_time > WEEKDAY_MAX_MINUTES * 60. A single 105' session is allowed at most once; otherwise keep ≤ WEEKDAY_MAX_MINUTES.",
-  "- RULE: Any session ≥ 120 minutes MUST be scheduled on Saturday or Sunday (long ride). Never place ≥120 minutes on a weekday.",
+  `- START_TIMES: Weekdays ${timesCfg.weekday_start}, Weekends ${timesCfg.weekend_start}; use exactly these unless explicitly overridden.`,
+  `- WEEKDAY_MAX_MINUTES: ${sc.max_minutes} (hard cap ${sc.hard_max_minutes}); allow_single_105=${sc.allow_single_105}`,
+  `- RULE: Mon–Fri sessions must be ≤ ${sc.max_minutes}'; a single ${sc.hard_max_minutes}' day is allowed only if allow_single_105=true; never ≥ ${lr.min_minutes_for_weekend}' on weekdays.`,
+  `- RULE: Any session ≥ ${lr.min_minutes_for_weekend} minutes MUST be on Saturday or Sunday (long ride).`,
   `- LONG_RIDE_PRIMARY_DATE: ${longRidePrimary || "(none in range)"}`,
   `- LONG_RIDE_BACKUP_DATE: ${longRideBackup || "(none)"}`,
-  "- RULE: Place the long endurance ride on the primary date; if constraints force a swap, use the backup date.",
-  "- START_TIMES: Use exactly 17:30:00 for weekdays and 09:00:00 for weekends; do not invent other times."
+  `- RULE: Place long ride on primary; if constraints force a swap, use backup; if neither exists in range and require_weekend_for_long=${lr.require_weekend_for_long}, omit the long ride rather than violating weekday caps.`
 ].join("\n");
 
-// Keep the changing state small and LAST (prompt caching friendly).
 const liveState = `
 ATHLETE_STATE:
 ftp_indoor: ${athlete.ftp_indoor}
@@ -182,13 +209,14 @@ ${NOTES ? `NOTES:\n${NOTES}\n` : ""}
 `;
 
 // ---------- OpenAI call (native fetch with retries) ----------
-async function callOpenAI({ prompt, errorListJson = "" }) {
+async function callOpenAI({ prompt, errorListJson = "", ruleErrorsText = "" }) {
   const messages = [
     { role: "system", content: systemPrompt + "\n\n" + staticContext },
     {
       role: "user",
       content:
         prompt +
+        (ruleErrorsText ? `\n\nVALIDATION_ERRORS:\n${ruleErrorsText}\n` : "") +
         (errorListJson
           ? `\n\nFIX_TO_SCHEMA_ERRORS:\n${errorListJson}\nReturn ONLY valid JSON that conforms to the schema.`
           : "")
@@ -199,10 +227,7 @@ async function callOpenAI({ prompt, errorListJson = "" }) {
     model: MODEL,
     messages,
     temperature: 0.2,
-    response_format: {
-      type: "json_schema",
-      json_schema: { name: "IntervalsPlan", schema, strict: true }
-    }
+    response_format: { type: "json_schema", json_schema: { name: "IntervalsPlan", schema: planSchema, strict: true } }
   };
 
   let lastErr;
@@ -241,6 +266,70 @@ async function callOpenAI({ prompt, errorListJson = "" }) {
   throw lastErr || new Error("OpenAI request failed after retries.");
 }
 
+// ---------- rule checker ----------
+function checkAgainstRules(plan, datesToCover, rules) {
+  const errs = [];
+  const sc = rules.weekday_caps;
+  const lr = rules.long_ride;
+  const timesCfg = rules.times;
+
+  // One event per date, and no duplicate dates
+  const byDate = new Map();
+  for (const ev of plan.events || []) {
+    const d = datePart(ev.start_date_local || "");
+    if (!d) { errs.push(`Missing or invalid start_date_local on an event.`); continue; }
+    byDate.set(d, (byDate.get(d) || 0) + 1);
+  }
+  for (const d of datesToCover) {
+    if (!byDate.has(d)) errs.push(`Missing event for ${d}.`);
+    if ((byDate.get(d) || 0) > 1) errs.push(`Multiple events scheduled on ${d}; exactly one required.`);
+  }
+
+  // Weekday caps & long-ride on weekends only
+  let used105 = 0;
+  for (const ev of plan.events || []) {
+    const d = datePart(ev.start_date_local);
+    const t = timePart(ev.start_date_local);
+    const mins = minutes(ev.moving_time);
+    // Start time must match config
+    const expectedStart = isWeekend(d) ? timesCfg.weekend_start : timesCfg.weekday_start;
+    if (t !== expectedStart) {
+      errs.push(`${d} uses start time ${t}, expected ${expectedStart} per config.`);
+    }
+    if (isWeekday(d)) {
+      if (mins > sc.hard_max_minutes) {
+        errs.push(`${d} exceeds hard weekday cap (${mins}' > ${sc.hard_max_minutes}').`);
+      } else if (mins > sc.max_minutes) {
+        if (sc.allow_single_105 && mins === sc.hard_max_minutes && used105 === 0) {
+          used105++;
+        } else {
+          errs.push(`${d} exceeds weekday cap (${mins}' > ${sc.max_minutes}').`);
+        }
+      }
+      if (mins >= lr.min_minutes_for_weekend) {
+        errs.push(`${d} has a ≥${lr.min_minutes_for_weekend}' session on a weekday (long rides are weekend-only).`);
+      }
+    } else {
+      // Weekend: ok to be long. No additional checks here.
+    }
+  }
+
+  // If require_weekend_for_long and there is no weekend in range, ensure no long ride is scheduled
+  if (rules.long_ride.require_weekend_for_long) {
+    const hasWeekend = datesToCover.some(isWeekend);
+    if (!hasWeekend) {
+      for (const ev of plan.events || []) {
+        const mins = minutes(ev.moving_time);
+        if (mins >= lr.min_minutes_for_weekend) {
+          errs.push(`Long ride scheduled (${mins}') but range has no weekend; omit the long ride.`);
+        }
+      }
+    }
+  }
+
+  return errs;
+}
+
 // ---------- write outputs ----------
 function writeOutputs(obj) {
   ensureDir("plans");
@@ -257,7 +346,7 @@ function writeOutputs(obj) {
       `Generating plan ${START}..${END} intent=${INTENT} weather=${longride_weather} season=${season_hint} model=${MODEL} monday_rest=${MONDAY_REST}`
     );
 
-    // First pass
+    // First attempt
     const first = await callOpenAI({ prompt: liveState });
     let data;
     try {
@@ -267,19 +356,36 @@ function writeOutputs(obj) {
       data = {};
     }
 
-    // Validate; if invalid, send AJV errors back for a repair pass
-    if (!validate(data)) {
-      const errs = JSON.stringify(validate.errors, null, 2);
-      console.warn("Schema validation failed; attempting repair pass...");
-      const second = await callOpenAI({ prompt: liveState, errorListJson: errs });
+    // Validate against schema and rules
+    let ruleViolations = [];
+    if (validatePlan(data)) {
+      ruleViolations = checkAgainstRules(data, datesToCover, rules);
+    }
+
+    if (!validatePlan(data) || ruleViolations.length) {
+      const ajvErrs = validatePlan.errors ? JSON.stringify(validatePlan.errors, null, 2) : "[]";
+      const ruleErrsText = ruleViolations.length ? ruleViolations.map(e => `- ${e}`).join("\n") : "";
+      console.warn("Schema or rule violations; attempting repair pass...");
+      const second = await callOpenAI({
+        prompt: liveState,
+        errorListJson: ajvErrs,
+        ruleErrorsText: ruleErrsText
+      });
       try {
         data = JSON.parse(second);
       } catch {
         console.error("Repair pass still not JSON. Aborting.");
         process.exit(1);
       }
-      if (!validate(data)) {
-        console.error("Model failed schema after repair pass:\n", JSON.stringify(validate.errors, null, 2));
+      // Re-validate after repair
+      const ruleViolations2 = validatePlan(data) ? checkAgainstRules(data, datesToCover, rules) : ["(schema invalid)"];
+      if (!validatePlan(data) || ruleViolations2.length) {
+        console.error(
+          "Model failed after repair pass.\nSchema errors:",
+          pretty(validatePlan.errors || []),
+          "\nRule violations:",
+          pretty(ruleViolations2)
+        );
         process.exit(1);
       }
     }

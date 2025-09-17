@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["times","weekday_caps","long_ride","weather_durations"],
+  "properties": {
+    "times": {
+      "type": "object",
+      "required": ["weekday_start","weekend_start"],
+      "properties": {
+        "weekday_start": { "type": "string", "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$" },
+        "weekend_start": { "type": "string", "pattern": "^[0-9]{2}:[0-9]{2}:[0-9]{2}$" }
+      }
+    },
+    "weekday_caps": {
+      "type": "object",
+      "required": ["max_minutes","hard_max_minutes","allow_single_105"],
+      "properties": {
+        "max_minutes": { "type": "integer", "minimum": 30 },
+        "hard_max_minutes": { "type": "integer", "minimum": 30 },
+        "allow_single_105": { "type": "boolean" }
+      }
+    },
+    "long_ride": {
+      "type": "object",
+      "required": ["min_minutes_for_weekend","primary_day","backup_day","require_weekend_for_long"],
+      "properties": {
+        "min_minutes_for_weekend": { "type": "integer", "minimum": 90 },
+        "primary_day": { "type": "string", "enum": ["SAT","SUN"] },
+        "backup_day": { "type": "string", "enum": ["SAT","SUN"] },
+        "require_weekend_for_long": { "type": "boolean" }
+      }
+    },
+    "weather_durations": { "type": "object" }
+  },
+  "additionalProperties": false
+}
