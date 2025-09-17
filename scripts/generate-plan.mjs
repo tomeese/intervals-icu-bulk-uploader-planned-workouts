@@ -29,7 +29,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import Ajv from "ajv";
+import Ajv from "ajv";ajv.addMetaSchema(draft2020);
+import draft2020 from "ajv/dist/refs/json-schema-2020-12.json" assert { type: "json" };
 
 // ---------- helpers ----------
 function env(name, { required = false, fallback = "" } = {}) {
@@ -93,6 +94,7 @@ const season_hint =
 
 // ---------- AJV setup ----------
 const ajv = new Ajv({ allErrors: true, strict: false });
+ajv.addMetaSchema(draft2020);
 const validate = ajv.compile(schema);
 
 // ---------- prompts ----------
