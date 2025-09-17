@@ -1,0 +1,37 @@
+{
+  "date": "2025-09-16",
+  "summary": {
+    "actual_time_sec": 0,
+    "actual_time_hms": "0h 00m",
+    "actual_tss": 0,
+    "planned_time_sec": 4500,
+    "planned_time_hms": "1h 15m",
+    "planned_tss": 60.0,
+    "delta_time_sec": -4500,
+    "delta_time_hms": "1h 15m",
+    "delta_tss": -60.0,
+    "by_type_actual": {},
+    "by_type_planned": {
+      "ride": {
+        "time_sec": 4500,
+        "time_hms": "1h 15m",
+        "tss": 60.0
+      }
+    }
+  },
+  "advice": {
+    "tsb": 0.5,
+    "ctl": 82.7,
+    "atl": 82.3,
+    "ramp": -0.1,
+    "recommendation": "Stick to plan.",
+    "tomorrow_planned_tss": 25.0,
+    "tomorrow_suggested_tss": 25.0,
+    "adjust_pct": 0.0
+  },
+  "sessions": [],
+  "alerts": {
+    "flags": [],
+    "subject_tag": ""
+  }
+}
