@@ -65,17 +65,37 @@ jobs:
             echo "longride_weather=${{ inputs.longride_weather }}" >> $GITHUB_OUTPUT
             echo "season_hint=${{ inputs.season_hint }}" >> $GITHUB_OUTPUT
             echo "monday_rest=${{ inputs.monday_rest }}" >> $GITHUB_OUTPUT
-            echo "notes=" >> $GITHUB_OUTPUT
+            printf "notes<<EOF\n\nEOF\n" >> $GITHUB_OUTPUT
           else
-            body="${{ github.event.issue.body }}"
-            start=$(grep -iE '^\s*start:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
-            end=$(grep -iE '^\s*end:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
-            intent=$(grep -iE '^\s*intent:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
-            lrw=$(grep -iE '^\s*longride_weather:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
-            shint=$(grep -iE '^\s*season_hint:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
-            mrest=$(grep -iE '^\s*monday_rest:\s*' <<< "$body" | head -1 | awk -F: '{gsub(/^[[:space:]]*/,"",$2); print $2}')
-            # Capture fenced notes block after a line 'notes:' delimited by ```
-            notes=$(awk '/^ *notes: *$/{flag=1;next} flag&&/^```$/{flag=0;exit} flag{print}' <<< "$body")
+            # Read the issue body LITERALLY so backticks aren't executed
+            read -r -d '' body <<'BODY'
+            ${{ github.event.issue.body }}
+            BODY
+
+            # Parse simple key: value fields
+            start=$(grep -iE '^\s*start:\s*' <<< "$body"  | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            end=$(grep   -iE '^\s*end:\s*'   <<< "$body"  | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            intent=$(grep -iE '^\s*intent:\s*' <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            lrw=$(grep   -iE '^\s*longride_weather:\s*' <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            shint=$(grep  -iE '^\s*season_hint:\s*' <<< "$body"     | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            mrest=$(grep  -iE '^\s*monday_rest:\s*' <<< "$body"     | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+
+            # Extract fenced notes block after the line 'notes:'
+            notes=$(awk '
+              /^ *notes: *$/ { notes=1; next }
+              notes && /^``` *$/ { if (fence) { exit } else { fence=1; next } }
+              notes && fence { print }
+            ' <<< "$body")
+
+            # Fallback: support ~~~ fences too
+            if [ -z "$notes" ]; then
+              notes=$(awk '
+                /^ *notes: *$/ { notes=1; next }
+                notes && /^~~~ *$/ { if (fence) { exit } else { fence=1; next } }
+                notes && fence { print }
+              ' <<< "$body")
+            fi
+
             echo "start=$start" >> $GITHUB_OUTPUT
             echo "end=$end" >> $GITHUB_OUTPUT
             echo "intent=${intent:-recovery-week}" >> $GITHUB_OUTPUT
@@ -84,7 +104,7 @@ jobs:
             echo "monday_rest=${mrest:-true}" >> $GITHUB_OUTPUT
             printf "notes<<EOF\n%s\nEOF\n" "$notes" >> $GITHUB_OUTPUT
           fi
-
+  
       - name: Generate plan
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

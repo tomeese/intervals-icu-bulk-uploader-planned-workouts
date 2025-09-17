@@ -80,7 +80,6 @@ const MONDAY_REST =
 
 const validLRW = new Set(["dry", "rain", "mixed", "auto", ""]);
 const validSeasons = new Set(["summer", "shoulder", "winter", ""]);
-const NOTES = env("NOTES", { fallback: "" });
 
 // ---------- file paths ----------
 const schemaPath = "schema/intervalsPlan.schema.json";
@@ -111,6 +110,7 @@ const season_hint =
 // ---------- AJV setup (draft-2020-12 via Ajv 2020 build) ----------
 const ajv = new Ajv({ allErrors: true, strict: false });
 const validate = ajv.compile(schema);
+const NOTES = env("NOTES", { fallback: "" });
 
 // ---------- prompts ----------
 // Put long-lived, cacheable content FIRST (system + static-context.md) for prompt caching.
