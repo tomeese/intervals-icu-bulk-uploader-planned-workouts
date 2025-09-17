@@ -67,27 +67,25 @@ jobs:
             echo "monday_rest=${{ inputs.monday_rest }}" >> $GITHUB_OUTPUT
             printf "notes<<EOF\n\nEOF\n" >> $GITHUB_OUTPUT
           else
-            # Read the issue body LITERALLY so backticks aren't executed
-            read -r -d '' body <<'BODY'
-            ${{ github.event.issue.body }}
-            BODY
+            # Read the issue body literally from the event payload (no here-docs needed)
+            body=$(jq -r '.issue.body // empty' "$GITHUB_EVENT_PATH")
+            # Normalize line endings (in case someone pasted CRLF)
+            body=$(printf '%s\n' "$body" | sed 's/\r//g')
 
             # Parse simple key: value fields
-            start=$(grep -iE '^\s*start:\s*' <<< "$body"  | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
-            end=$(grep   -iE '^\s*end:\s*'   <<< "$body"  | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
-            intent=$(grep -iE '^\s*intent:\s*' <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
-            lrw=$(grep   -iE '^\s*longride_weather:\s*' <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
-            shint=$(grep  -iE '^\s*season_hint:\s*' <<< "$body"     | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
-            mrest=$(grep  -iE '^\s*monday_rest:\s*' <<< "$body"     | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            start=$(awk -F: '/^[[:space:]]*start:[[:space:]]*/{print $2; exit}' <<< "$body" | xargs)
+            end=$(awk   -F: '/^[[:space:]]*end:[[:space:]]*/{print $2; exit}'   <<< "$body" | xargs)
+            intent=$(awk -F: '/^[[:space:]]*intent:[[:space:]]*/{print $2; exit}' <<< "$body" | xargs)
+            lrw=$(awk    -F: '/^[[:space:]]*longride_weather:[[:space:]]*/{print $2; exit}' <<< "$body" | xargs)
+            shint=$(awk  -F: '/^[[:space:]]*season_hint:[[:space:]]*/{print $2; exit}' <<< "$body" | xargs)
+            mrest=$(awk  -F: '/^[[:space:]]*monday_rest:[[:space:]]*/{print $2; exit}' <<< "$body" | xargs)
 
-            # Extract fenced notes block after the line 'notes:'
+            # Extract fenced notes after the line 'notes:' (supports ```; fallback to ~~~)
             notes=$(awk '
               /^ *notes: *$/ { notes=1; next }
               notes && /^``` *$/ { if (fence) { exit } else { fence=1; next } }
               notes && fence { print }
             ' <<< "$body")
-
-            # Fallback: support ~~~ fences too
             if [ -z "$notes" ]; then
               notes=$(awk '
                 /^ *notes: *$/ { notes=1; next }
