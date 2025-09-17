@@ -3,13 +3,14 @@
 //
 // Env vars (required):
 //   OPENAI_API_KEY
-//   START  (YYYY-MM-DD)   e.g., 2025-09-22
-//   END    (YYYY-MM-DD)   e.g., 2025-09-28
-//   INTENT (e.g., "build-week" | "recovery-week" | "race-week")
+//   START  (YYYY-MM-DD)
+//   END    (YYYY-MM-DD)
+//   INTENT ("build-week" | "recovery-week" | "race-week")
 // Env vars (optional):
-//   LONGRIDE_WEATHER      "dry" | "rain" | "mixed" | "auto"
-//   SEASON_HINT           "summer" | "shoulder" | "winter"
-//   MODEL                 default: "gpt-4.1-mini"
+//   LONGRIDE_WEATHER  "dry" | "rain" | "mixed" | "auto"
+//   SEASON_HINT       "summer" | "shoulder" | "winter"
+//   MODEL             default: "gpt-4.1-mini"
+//
 // Files expected:
 //   schema/intervalsPlan.schema.json
 //   state/static-context.md
@@ -18,19 +19,12 @@
 // Output:
 //   plans/<START>_<END>.json
 //   plans/latest.json
-//
-// Strategy notes:
-// - Place long-lived instructions FIRST (system + static-context.md) to benefit from prompt caching.
-// - Append tiny, frequently-changing state LAST (athlete.json + inputs).
-// - Use Structured Outputs (response_format.json_schema) with strict validation.
-// - Validate with AJV; if invalid, send one repair pass including AJV errors.
-// - Retry on 429/5xx up to 3 times with exponential backoff.
 
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import Ajv from "ajv";ajv.addMetaSchema(draft2020);
-import draft2020 from "ajv/dist/refs/json-schema-2020-12.json" assert { type: "json" };
+// ⬇️ Use Ajv 2020 build (has draft-2020-12 baked in)
+import Ajv from "ajv/dist/2020";
 
 // ---------- helpers ----------
 function env(name, { required = false, fallback = "" } = {}) {
@@ -92,13 +86,11 @@ const longride_weather =
 const season_hint =
   (season && season !== "" ? season : athlete.season_hint) || "summer";
 
-// ---------- AJV setup ----------
+// ---------- AJV setup (draft-2020-12 via Ajv 2020 build) ----------
 const ajv = new Ajv({ allErrors: true, strict: false });
-ajv.addMetaSchema(draft2020);
 const validate = ajv.compile(schema);
 
 // ---------- prompts ----------
-// Put long-lived, cacheable content FIRST.
 const systemPrompt = [
   "You are a cycling coach that outputs ONLY JSON matching the provided schema.",
   "Honor split FTPs: use ftp_indoor for INDOOR sessions, ftp_outdoor for OUTDOOR sessions.",
@@ -107,6 +99,7 @@ const systemPrompt = [
   "Never emit prose or markdown; JSON only."
 ].join("\n");
 
+// Keep the changing state small and last (prompt caching friendly).
 const liveState = `
 ATHLETE_STATE:
 ftp_indoor: ${athlete.ftp_indoor}
@@ -124,7 +117,7 @@ REQUEST:
 - output: Intervals.icu events (Ride only)
 `;
 
-// ---------- OpenAI call (native fetch) ----------
+// ---------- OpenAI call (native fetch with retries) ----------
 async function callOpenAI({ prompt, errorListJson = "" }) {
   const messages = [
     { role: "system", content: systemPrompt + "\n\n" + staticContext },
@@ -152,7 +145,6 @@ async function callOpenAI({ prompt, errorListJson = "" }) {
     }
   };
 
-  // Retry on 429/5xx up to 3 attempts
   let lastErr;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -167,12 +159,11 @@ async function callOpenAI({ prompt, errorListJson = "" }) {
 
       if (!resp.ok) {
         const text = await resp.text();
-        // Retry on 429/5xx only
         if (resp.status === 429 || (resp.status >= 500 && resp.status <= 599)) {
           lastErr = new Error(`OpenAI HTTP ${resp.status}: ${text}`);
-          const backoff = 500 * Math.pow(2, attempt - 1); // 500ms, 1s, 2s
+          const backoff = 500 * Math.pow(2, attempt - 1);
           console.warn(
-            `OpenAI transient error (attempt ${attempt}/3). Backing off ${backoff}ms...`
+            `OpenAI transient error (attempt ${attempt}/3). Backoff ${backoff}ms...`
           );
           await sleep(backoff);
           continue;
@@ -220,7 +211,7 @@ function writeOutputs(obj) {
       data = {};
     }
 
-    // Validate; if invalid, send AJV errors back for a repair pass
+    // Validate; if invalid, send AJV errors for a repair pass
     if (!validate(data)) {
       const errs = JSON.stringify(validate.errors, null, 2);
       console.warn("Schema validation failed; attempting repair pass...");
@@ -230,7 +221,7 @@ function writeOutputs(obj) {
       });
       try {
         data = JSON.parse(second);
-      } catch (e) {
+      } catch {
         console.error("Repair pass still not JSON. Aborting.");
         process.exit(1);
       }
