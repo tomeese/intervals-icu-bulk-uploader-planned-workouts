@@ -8,11 +8,11 @@
       "moving_time": 0,
       "icu_training_load": 0,
       "external_id": "2025-09-29-rest-day",
-      "description": "Rest day, no workout.\n(Ref: FTP 314 W OUTDOOR)"
+      "description": "(Ref: FTP 314 W OUTDOOR)"
     },
     {
       "category": "WORKOUT",
-      "type": "Ride",
+      "type": "Virtual Ride",
       "name": "High-Intensity Intervals (INDOOR)",
       "start_date_local": "2025-09-30T06:30",
       "moving_time": 5400,
@@ -22,17 +22,17 @@
     },
     {
       "category": "WORKOUT",
-      "type": "Ride",
-      "name": "Recovery Spin (INDOOR)",
+      "type": "Workout",
+      "name": "Recovery Spin",
       "start_date_local": "2025-10-01T06:30",
-      "moving_time": 1800,
-      "icu_training_load": 15,
+      "moving_time": 3600,
+      "icu_training_load": 20,
       "external_id": "2025-10-01-recovery-spin",
-      "description": "Easy spin, low intensity, focus on recovery.\n(Ref: FTP 314 W INDOOR)"
+      "description": "Easy spin, low cadence, keep HR in Zone 1.\n(Ref: FTP 314 W OUTDOOR)"
     },
     {
       "category": "WORKOUT",
-      "type": "Ride",
+      "type": "Virtual Ride",
       "name": "Tempo/Threshold Intervals (INDOOR)",
       "start_date_local": "2025-10-02T06:30",
       "moving_time": 5400,
@@ -42,33 +42,33 @@
     },
     {
       "category": "WORKOUT",
-      "type": "Ride",
-      "name": "Recovery Spin (INDOOR)",
+      "type": "Workout",
+      "name": "Recovery Spin",
       "start_date_local": "2025-10-03T06:30",
-      "moving_time": 1800,
-      "icu_training_load": 15,
+      "moving_time": 3600,
+      "icu_training_load": 20,
       "external_id": "2025-10-03-recovery-spin",
-      "description": "Easy spin, low intensity, focus on recovery.\n(Ref: FTP 314 W INDOOR)"
+      "description": "Easy spin, low cadence, keep HR in Zone 1.\n(Ref: FTP 314 W OUTDOOR)"
     },
     {
       "category": "WORKOUT",
-      "type": "Ride",
-      "name": "Long Endurance Ride (OUTDOOR)",
+      "type": "Virtual Ride",
+      "name": "Long Endurance Ride (INDOOR)",
       "start_date_local": "2025-10-04T07:00",
       "moving_time": 7200,
       "icu_training_load": 60,
       "external_id": "2025-10-04-long-endurance",
-      "description": "Z2 ride, focus on endurance, hydration and fueling for 2-3 hours.\n(Ref: FTP 324 W OUTDOOR)"
+      "description": "2-3h Z2 ride, focus on steady effort, hydrate well.\n(Ref: FTP 314 W INDOOR)"
     },
     {
       "category": "WORKOUT",
-      "type": "Ride",
-      "name": "Threshold/SS/Tempo Focus (OUTDOOR)",
+      "type": "Virtual Ride",
+      "name": "Threshold/SS/Tempo Focus (INDOOR)",
       "start_date_local": "2025-10-05T07:00",
       "moving_time": 5400,
       "icu_training_load": 50,
       "external_id": "2025-10-05-threshold-ss-tempo",
-      "description": "Focus on threshold and sweet spot efforts, 90 min ride.\n(Ref: FTP 324 W OUTDOOR)"
+      "description": "90 min focus on threshold/SS, maintain cadence.\n(Ref: FTP 314 W INDOOR)"
     }
   ]
 }
