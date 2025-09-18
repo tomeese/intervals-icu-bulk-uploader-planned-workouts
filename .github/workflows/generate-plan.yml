@@ -2,15 +2,16 @@
 name: Generate Weekly Plan
 
 on:
+  # Only react when the label is applied, or when run manually.
   issues:
-    types: [opened, edited, labeled, reopened]
+    types: [labeled]
   workflow_dispatch:
     inputs:
       start:
-        description: "Week start (YYYY-MM-DD) — will snap to Monday"
+        description: "Week start (YYYY-MM-DD)"
         required: false
       end:
-        description: "Week end (YYYY-MM-DD) — optional; defaults to Sunday"
+        description: "Week end (YYYY-MM-DD)"
         required: false
       intent:
         description: "build-week | recovery-week | race-week"
@@ -21,25 +22,32 @@ on:
         required: false
         default: "draft"
       draft_path:
-        description: "Optional custom path for draft JSON"
+        description: "Custom path for draft JSON"
         required: false
       notes:
-        description: "Weekly notes (plain text)"
+        description: "Weekly notes"
         required: false
       daily_notes_json:
-        description: "JSON: {\"YYYY-MM-DD\": \"...\"}"
+        description: 'JSON: {"YYYY-MM-DD":"..."}'
         required: false
 
 permissions:
   contents: write
   issues: write
 
+# Prevent duplicate runs per issue/ref.
+concurrency:
+  group: generate-plan-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   generate:
+    # Run if: manual dispatch OR the issue was labeled with exactly "generate-plan"
     if: >
+      github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issues' &&
-       contains(join(github.event.issue.labels.*.name, ','), 'generate-plan'))
-      || github.event_name == 'workflow_dispatch'
+       github.event.action == 'labeled' &&
+       github.event.label.name == 'generate-plan')
     runs-on: ubuntu-latest
 
     steps:
@@ -53,11 +61,9 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            // Pull body (for issues) or inputs (for dispatch)
             const isIssue = context.eventName === 'issues';
             const body = isIssue ? (context.payload.issue?.body || '') : '';
 
-            // Helpers
             function kv(name) {
               if (!body) return '';
               const re = new RegExp(`(?:^|\\n)\\s*${name}:\\s*(.+)$`, 'im');
@@ -69,12 +75,11 @@ jobs:
               const lines = body.split('\n');
               let idx = lines.findIndex(l => l.trim().toLowerCase() === `${label.toLowerCase()}:`);
               if (idx === -1) return '';
-              // find opening fence
               let i = idx + 1, fence = null;
               for (; i < lines.length; i++) {
                 const t = lines[i].trim();
                 if (t.startsWith('```') || t.startsWith('~~~')) { fence = t.slice(0,3); i++; break; }
-                if (t) break; // non-empty non-fence line => no fenced block
+                if (t) break;
               }
               if (!fence) return '';
               const out = [];
@@ -89,7 +94,7 @@ jobs:
               if (!iso) return '';
               const [y,m,d] = iso.split('-').map(Number);
               const dt = new Date(Date.UTC(y, (m||1)-1, d||1));
-              const wd = dt.getUTCDay(); // 0 Sun..6 Sat
+              const wd = dt.getUTCDay();
               const diff = wd === 0 ? -6 : (1 - wd);
               dt.setUTCDate(dt.getUTCDate() + diff);
               return dt.toISOString().slice(0,10);
@@ -108,11 +113,10 @@ jobs:
               return sun.toISOString().slice(0,10);
             }
 
-            // Gather raw values
             let start = isIssue ? kv('start') : (core.getInput('start') || '');
-            let end = isIssue ? kv('end') : (core.getInput('end') || '');
+            let end   = isIssue ? kv('end')   : (core.getInput('end')   || '');
             let intent = isIssue ? (kv('intent') || 'recovery-week') : (core.getInput('intent') || 'recovery-week');
-            let mode = isIssue ? ((kv('mode') || 'draft').toLowerCase()) : ((core.getInput('mode') || 'draft').toLowerCase());
+            let mode   = isIssue ? ((kv('mode') || 'draft').toLowerCase()) : ((core.getInput('mode') || 'draft').toLowerCase());
             let draftPath = isIssue ? kv('draft_path') : (core.getInput('draft_path') || '');
             const notes = isIssue ? fenced('notes') : (core.getInput('notes') || '');
             const daily = isIssue ? fenced('daily_notes_json') : (core.getInput('daily_notes_json') || '');
@@ -120,15 +124,10 @@ jobs:
             if (start) start = snapMonday(start);
             if (!end && start) end = sundayOfWeek(start);
 
-            // Determine OUT path
             let out;
-            if (mode === 'draft') {
-              out = draftPath || `plans/drafts/${start}_${end}.json`;
-            } else {
-              out = `plans/${start}_${end}.json`;
-            }
+            if (mode === 'draft') out = draftPath || `plans/drafts/${start}_${end}.json`;
+            else out = `plans/${start}_${end}.json`;
 
-            // Outputs
             core.setOutput('start', start || '');
             core.setOutput('end', end || '');
             core.setOutput('intent', intent);
@@ -142,9 +141,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install deps (OpenAI + Ajv)
-        run: |
-          npm i --no-audit --no-fund --prefer-offline ajv@^8 ajv-formats@^3
+      - name: Install deps (Ajv only)
+        run: npm i --no-audit --no-fund --prefer-offline ajv@^8 ajv-formats@^3
 
       - name: Generate plan JSON
         env:
@@ -169,7 +167,6 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Stage generated files
           git add "${OUT}" || true
           git add plans/latest.json 2>/dev/null || true
 
@@ -181,29 +178,21 @@ jobs:
           msg_prefix=$([ "${MODE}" = "draft" ] && echo "Draft" || echo "Final")
           git commit -m "${msg_prefix}: add plan ${OUT}"
 
-          # Figure out the branch we’re on (issues events use default branch)
           BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
           echo "Pushing to branch: $BRANCH"
 
-          # Rebase on remote and push with exponential backoff (handles concurrent pushes)
           n=0
-          until [ $n -ge 4 ]
-          do
+          until [ $n -ge 4 ]; do
             if git pull --rebase --autostash origin "$BRANCH"; then
               if git push origin "HEAD:$BRANCH"; then
-                echo "Pushed successfully"
-                break
+                echo "Pushed successfully"; break
               fi
             fi
-            n=$((n+1))
-            delay=$((2 ** n))
-            echo "Retry $n after ${delay}s…"
-            sleep "$delay"
+            n=$((n+1)); sleep $((2 ** n))
           done
 
           if [ $n -ge 4 ]; then
-            echo "Push failed after retries. Please re-run the job."
-            exit 1
+            echo "Push failed after retries."; exit 1
           fi
 
       - name: Comment with links
@@ -218,23 +207,13 @@ jobs:
           script: |
             const owner = context.repo.owner;
             const repo  = context.repo.repo;
-
             const { OUT, START, END, MODE } = process.env;
-
-            // Use the branch name for the link (issues events run on default branch)
-            const ref = (context.ref || '').replace('refs/heads/', '') || context.payload.repository?.default_branch || 'main';
+            const ref = (context.ref || '').replace('refs/heads/','') || context.payload.repository?.default_branch || 'main';
             const url = `https://github.com/${owner}/${repo}/blob/${ref}/${OUT}`;
-
             const body = (MODE === 'draft')
               ? `✅ Draft plan written to \`${OUT}\` for **${START}..${END}**.\n\n[View file](${url})`
               : `✅ Final plan written to \`${OUT}\` for **${START}..${END}**.\n\n[View file](${url})`;
-
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number: context.issue.number,
-              body
-            });
+            await github.rest.issues.createComment({ owner, repo, issue_number: context.issue.number, body });
 
       - name: Close issue (final only)
         if: github.event_name == 'issues' && steps.parse.outputs.mode != 'draft'
