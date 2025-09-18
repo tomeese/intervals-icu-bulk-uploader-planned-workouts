@@ -159,24 +159,52 @@ jobs:
           PLAN_RULES: ./config/plan-rules.json
         run: node scripts/generate-plan.mjs
 
-      - name: Commit plan file
+      - name: Commit & push plan file (rebase + retry)
         shell: bash
         env:
           OUT: ${{ steps.parse.outputs.out }}
           MODE: ${{ steps.parse.outputs.mode }}
         run: |
-          set -e
+          set -euo pipefail
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Stage generated files
           git add "${OUT}" || true
           git add plans/latest.json 2>/dev/null || true
+
           if git diff --staged --quiet; then
             echo "No changes to commit."
             exit 0
           fi
+
           msg_prefix=$([ "${MODE}" = "draft" ] && echo "Draft" || echo "Final")
           git commit -m "${msg_prefix}: add plan ${OUT}"
-          git push
+
+          # Figure out the branch we’re on (issues events use default branch)
+          BRANCH="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          echo "Pushing to branch: $BRANCH"
+
+          # Rebase on remote and push with exponential backoff (handles concurrent pushes)
+          n=0
+          until [ $n -ge 4 ]
+          do
+            if git pull --rebase --autostash origin "$BRANCH"; then
+              if git push origin "HEAD:$BRANCH"; then
+                echo "Pushed successfully"
+                break
+              fi
+            fi
+            n=$((n+1))
+            delay=$((2 ** n))
+            echo "Retry $n after ${delay}s…"
+            sleep "$delay"
+          done
+
+          if [ $n -ge 4 ]; then
+            echo "Push failed after retries. Please re-run the job."
+            exit 1
+          fi
 
       - name: Comment with links
         if: github.event_name == 'issues'
