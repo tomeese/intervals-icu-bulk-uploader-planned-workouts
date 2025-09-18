@@ -1,0 +1,2 @@
+date,planned_tss,actual_tss,delta_tss,planned_time_sec,actual_time_sec,delta_time_sec,ctl,atl,tsb,ramp,tomorrow_planned_tss,tomorrow_suggested_tss,adjust_pct
+2025-09-17,25.0,22.0,-3.0,3000,3101,101,81.6,76.0,5.6,-0.2,50.0,50.0,0.0
