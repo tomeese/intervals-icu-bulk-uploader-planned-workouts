@@ -1,4 +1,4 @@
-/** 
+/**
  * File: scripts/generate-plan.mjs
  * Purpose: Generate a weekly Intervals.icu plan JSON via OpenAI (Responses API) with guardrails & post-rules.
  * Inputs (ENV):
@@ -8,7 +8,7 @@
  *   INTENT           (build-week | recovery-week | race-week; default: recovery-week)
  *   NOTES            (freeform weekly notes; optional)
  *   DAILY_NOTES_JSON (JSON map: {"YYYY-MM-DD": "..."}; optional)
- *   MODEL            (default: gpt-4o-mini)  // <— changed from gpt-4.1-mini
+ *   MODEL            (default: gpt-4o-mini)
  *   OUT              (output path; default: plans/<START>_<END>.json or drafts if path includes /drafts/)
  *   STATIC_CONTEXT   (path to static-context.md; default: ./static-context.md)
  *   PLAN_RULES       (path to JSON rule config; default: ./config/plan-rules.json if present)
@@ -20,6 +20,7 @@ import process from 'node:process';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
+// ---------- helpers ----------
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const pad = (n) => String(n).padStart(2, '0');
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -66,6 +67,11 @@ const IntervalsPlanSchema = {
   }
 };
 
+// Prepare Ajv once (no duplicate declarations)
+const ajv = new Ajv2020({ allErrors: true, strict: false });
+addFormats(ajv);
+const validatePlan = ajv.compile(IntervalsPlanSchema);
+
 // ---------- Responses API call (uses text.format; with fallback for schema shape) ----------
 async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
   const base = {
@@ -89,7 +95,7 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
     }
   };
 
-  // Variant B: text.format with top-level name/schema/strict (seen in some docs/blogs)
+  // Variant B: text.format with top-level name/schema/strict
   const bodyB = {
     ...base,
     text: {
@@ -102,7 +108,6 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
     }
   };
 
-  // Try A then B
   for (const [label, body] of [['A', bodyA], ['B', bodyB]]) {
     const res = await fetch('https://api.openai.com/v1/responses', {
       method: 'POST',
@@ -111,7 +116,6 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
     });
     if (!res.ok) {
       const text = await res.text().catch(()=> '');
-      // If it's a 4xx complaining about format, fall through to next variant
       if (label === 'A' && /format|json_schema|unsupported|invalid/i.test(text)) {
         console.warn(`[responses] Variant A failed, retrying with Variant B… ${res.status}: ${text.slice(0,200)}`);
         continue;
@@ -119,7 +123,6 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
       throw new Error(`OpenAI HTTP ${res.status}: ${text.slice(0,500)}`);
     }
     const data = await res.json();
-    // Extract plain text output from Responses API
     let out = data.output_text || '';
     if (!out && Array.isArray(data.output)) {
       const pieces = [];
@@ -144,7 +147,7 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
     INTENT = 'recovery-week',
     NOTES = '',
     DAILY_NOTES_JSON = '',
-    MODEL = 'gpt-4o-mini',      // <— default changed here
+    MODEL = 'gpt-4o-mini',
     OUT,
     STATIC_CONTEXT = path.resolve('static-context.md'),
     PLAN_RULES = path.resolve('config/plan-rules.json'),
@@ -162,10 +165,6 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
   const isDraft = /\bplans\/(draft|drafts)\//i.test(outPath);
 
   console.log(`Generating plan ${startISO}..${endISO} intent=${INTENT} model=${MODEL} -> ${outPath}${isDraft ? ' (draft)' : ''}`);
-
-  if (/gpt-4\.1/i.test(MODEL)) {
-    console.warn('[warn] gpt-4.1* may not support JSON-schema structured outputs via text.format; prefer gpt-4o-mini or gpt-4o.'); // heads-up based on field reports
-  }
 
   // Load static & rules
   const staticContext = (await readIfExists(STATIC_CONTEXT)) || '';
@@ -270,10 +269,6 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
   if (!plan) { console.error('Fatal: model output is not valid JSON'); process.exit(1); }
 
   // ---------- post processing & fixes ----------
-  const ajv = new Ajv2020({ allErrors: true, strict: false });
-  addFormats(ajv);
-  const validate = ajv.compile(IntervalsPlanSchema);
-
   if (Array.isArray(plan)) plan = { events: plan };
   if (!plan.events) plan.events = [];
 
@@ -286,10 +281,9 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
     ev.icu_training_load = Number.isFinite(ev.icu_training_load) ? Math.max(0, Math.round(ev.icu_training_load)) : 0;
     if (!ev.external_id) ev.external_id = makeExternalId(ev);
 
-    // Weekday duration cap
+    // Weekday duration cap (soft)
     const dayIso = String(ev.start_date_local || '').slice(0,10);
     const isWknd = inWeekend(dayIso);
-    const weekdaySoftCapMin = planRules?.weekday_soft_cap_minutes ?? 105;
     if (!isWknd) {
       const cap = toSeconds(weekdaySoftCapMin);
       if (ev.moving_time > cap) {
@@ -302,14 +296,13 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
     const looksLong = /\b(long ride|\b(3h|4h|5h|6h|180m|240m|300m)\b)/i.test((ev.name || '') + ' ' + (ev.description || ''));
     if (looksLong && !isWknd) {
       ev.description = `${ev.description ? ev.description + '\n' : ''}(auto-adjusted: long rides only on Sat/Sun)`;
-      const weekdaySoftCapMin = planRules?.weekday_soft_cap_minutes ?? 105;
       ev.moving_time = Math.min(ev.moving_time, toSeconds(weekdaySoftCapMin));
     }
 
     // Indoors/Outdoors FTP hint
     const isIndoor = /INDOOR/i.test(ev.name) || /indoor/i.test(ev.description||'');
     const isOutdoor = /OUTDOOR/i.test(ev.name) || /outdoor/i.test(ev.description||'');
-    const ftp = isIndoor ? (planRules?.ftp?.indoor ?? 314) : isOutdoor ? (planRules?.ftp?.outdoor ?? 324) : (planRules?.ftp?.indoor ?? 314);
+    const ftp = isIndoor ? indoorFTP : isOutdoor ? outdoorFTP : indoorFTP;
     if (!/FTP/i.test(ev.description||'')) {
       ev.description = `${ev.description ? ev.description + '\n' : ''}(Ref: FTP ${ftp} W ${isIndoor? 'INDOOR':'OUTDOOR'})`;
     }
@@ -340,16 +333,13 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
     }
   }
 
-  // Sort and validate
+  // Sort and validate (use the single Ajv instance)
   plan.events.sort((a,b) => String(a.start_date_local).localeCompare(String(b.start_date_local)));
-  const ajv = new Ajv2020({ allErrors: true, strict: false });
-  addFormats(ajv);
-  const validate = ajv.compile(IntervalsPlanSchema);
-  const valid = validate(plan);
+  const valid = validatePlan(plan);
   if (!valid) {
-    console.error('Schema validation errors:', validate.errors);
+    console.error('Schema validation errors:', validatePlan.errors);
     for (const ev of plan.events) ev.start_date_local = asHHMM(ev.start_date_local);
-    if (!validate(plan)) {
+    if (!validatePlan(plan)) {
       console.error('Fatal: still invalid after fixes.');
       process.exit(1);
     }
@@ -359,6 +349,7 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
   await ensureDirFor(outPath);
   await fs.writeFile(outPath, JSON.stringify(plan, null, 2) + "\n", 'utf-8');
 
+  // Summary
   const totalEvents = plan.events.length;
   const totalLoad = plan.events.reduce((s,e)=> s + (Number(e.icu_training_load)||0), 0);
   const totalHours = Math.round((plan.events.reduce((s,e)=> s + (Number(e.moving_time)||0), 0) / 3600 + Number.EPSILON) * 10) / 10;
