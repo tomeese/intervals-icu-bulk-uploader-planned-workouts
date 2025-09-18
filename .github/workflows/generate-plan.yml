@@ -4,7 +4,31 @@ name: Generate Weekly Plan
 on:
   issues:
     types: [opened, edited, labeled, reopened]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      start:
+        description: "Week start (YYYY-MM-DD) — will snap to Monday"
+        required: false
+      end:
+        description: "Week end (YYYY-MM-DD) — optional; defaults to Sunday"
+        required: false
+      intent:
+        description: "build-week | recovery-week | race-week"
+        required: false
+        default: "recovery-week"
+      mode:
+        description: "draft | final"
+        required: false
+        default: "draft"
+      draft_path:
+        description: "Optional custom path for draft JSON"
+        required: false
+      notes:
+        description: "Weekly notes (plain text)"
+        required: false
+      daily_notes_json:
+        description: "JSON: {\"YYYY-MM-DD\": \"...\"}"
+        required: false
 
 permissions:
   contents: write
@@ -12,7 +36,6 @@ permissions:
 
 jobs:
   generate:
-    # Run for draft/final issues with the "generate-plan" label, or manual dispatch
     if: >
       (github.event_name == 'issues' &&
        contains(join(github.event.issue.labels.*.name, ','), 'generate-plan'))
@@ -25,125 +48,96 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Parse inputs (issue or dispatch)
+      - name: Parse inputs (JS, no heredocs)
         id: parse
-        shell: bash
-        env:
-          # Pass issue body to env (empty for dispatch)
-          ISSUE_BODY: ${{ github.event_name == 'issues' && github.event.issue.body || '' }}
-        run: |
-          set -euo pipefail
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const core = require('@actions/core');
 
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            # Defaults for manual runs (edit as desired)
-            start=""
-            end=""
-            intent="recovery-week"
-            mode="draft"
-            draft_path=""
-            notes=""
-            daily_json=""
-          else
-            # Read the issue body literally (don’t execute backticks)
-            read -r -d '' body <<'BODY'
-          ${ISSUE_BODY}
-          BODY
+            // Pull body (for issues) or inputs (for dispatch)
+            const isIssue = context.eventName === 'issues';
+            const body = isIssue ? (context.payload.issue?.body || '') : '';
 
-            # Simple key/value
-            start=$(grep -iE '^\s*start:\s*' <<< "$body"  | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
-            end=$(grep   -iE '^\s*end:\s*'   <<< "$body"  | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
-            intent=$(grep -iE '^\s*intent:\s*' <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
-            mode=$(grep   -iE '^\s*mode:\s*'   <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print tolower($2)}')
-            draft_path=$(grep -iE '^\s*draft_path:\s*' <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            // Helpers
+            function kv(name) {
+              if (!body) return '';
+              const re = new RegExp(`(?:^|\\n)\\s*${name}:\\s*(.+)$`, 'im');
+              const m = re.exec(body);
+              return m ? m[1].trim() : '';
+            }
+            function fenced(label) {
+              if (!body) return '';
+              const lines = body.split('\n');
+              let idx = lines.findIndex(l => l.trim().toLowerCase() === `${label.toLowerCase()}:`);
+              if (idx === -1) return '';
+              // find opening fence
+              let i = idx + 1, fence = null;
+              for (; i < lines.length; i++) {
+                const t = lines[i].trim();
+                if (t.startsWith('```') || t.startsWith('~~~')) { fence = t.slice(0,3); i++; break; }
+                if (t) break; // non-empty non-fence line => no fenced block
+              }
+              if (!fence) return '';
+              const out = [];
+              for (; i < lines.length; i++) {
+                const t = lines[i];
+                if (t.trim().startsWith(fence)) break;
+                out.push(t);
+              }
+              return out.join('\n').trim();
+            }
+            function snapMonday(iso) {
+              if (!iso) return '';
+              const [y,m,d] = iso.split('-').map(Number);
+              const dt = new Date(Date.UTC(y, (m||1)-1, d||1));
+              const wd = dt.getUTCDay(); // 0 Sun..6 Sat
+              const diff = wd === 0 ? -6 : (1 - wd);
+              dt.setUTCDate(dt.getUTCDate() + diff);
+              return dt.toISOString().slice(0,10);
+            }
+            function sundayOfWeek(iso) {
+              if (!iso) return '';
+              const [y,m,d] = iso.split('-').map(Number);
+              const dt = new Date(Date.UTC(y, (m||1)-1, d||1));
+              const wd = dt.getUTCDay();
+              const diff = wd === 0 ? -6 : (1 - wd);
+              const mon = new Date(dt);
+              mon.setUTCDate(dt.getUTCDate() + diff);
+              mon.setUTCHours(0,0,0,0);
+              const sun = new Date(mon);
+              sun.setUTCDate(mon.getUTCDate() + 6);
+              return sun.toISOString().slice(0,10);
+            }
 
-            # notes: fenced block ``` ... ``` or ~~~ ... ~~~
-            notes=$(awk '
-              /^ *notes: *$/ { n=1; next }
-              n && /^``` *$/ { if (f) { exit } else { f=1; next } }
-              n && /^~~~ *$/ { if (f) { exit } else { f=1; next } }
-              n && f { print }
-            ' <<< "$body")
+            // Gather raw values
+            let start = isIssue ? kv('start') : (core.getInput('start') || '');
+            let end = isIssue ? kv('end') : (core.getInput('end') || '');
+            let intent = isIssue ? (kv('intent') || 'recovery-week') : (core.getInput('intent') || 'recovery-week');
+            let mode = isIssue ? ((kv('mode') || 'draft').toLowerCase()) : ((core.getInput('mode') || 'draft').toLowerCase());
+            let draftPath = isIssue ? kv('draft_path') : (core.getInput('draft_path') || '');
+            const notes = isIssue ? fenced('notes') : (core.getInput('notes') || '');
+            const daily = isIssue ? fenced('daily_notes_json') : (core.getInput('daily_notes_json') || '');
 
-            # daily_notes_json: fenced block ```json ... ```
-            daily_json=$(awk '
-              /^ *daily_notes_json: *$/ { n=1; next }
-              n && /^```(json)? *$/ { if (f) { exit } else { f=1; next } }
-              n && /^~~~ *$/ { if (f) { exit } else { f=1; next } }
-              n && f { print }
-            ' <<< "$body")
-          fi
+            if (start) start = snapMonday(start);
+            if (!end && start) end = sundayOfWeek(start);
 
-          # Compute default END if missing (Sunday of the same week as START)
-          snap_to_monday() {
-            local d="$1"
-            python - <<PY
-import sys, datetime as dt
-y,m,d = map(int, sys.argv[1].split('-'))
-x = dt.date(y,m,d)
-# go to Monday of that ISO week
-delta = (x.weekday() - 0) % 7  # Monday=0
-mon = x - dt.timedelta(days=delta)
-print(mon.isoformat())
-PY
-          }
+            // Determine OUT path
+            let out;
+            if (mode === 'draft') {
+              out = draftPath || `plans/drafts/${start}_${end}.json`;
+            } else {
+              out = `plans/${start}_${end}.json`;
+            }
 
-          sunday_of_week() {
-            local d="$1"
-            python - <<PY
-import sys, datetime as dt
-y,m,d = map(int, sys.argv[1].split('-'))
-x = dt.date(y,m,d)
-delta = (x.weekday() - 0) % 7
-mon = x - dt.timedelta(days=delta)
-sun = mon + dt.timedelta(days=6)
-print(sun.isoformat())
-PY
-          }
-
-          if [[ -n "${start}" ]]; then
-            start="$(snap_to_monday "${start}")"
-          fi
-          if [[ -z "${end}" && -n "${start}" ]]; then
-            end="$(sunday_of_week "${start}")"
-          fi
-
-          # Defaults
-          intent="${intent:-recovery-week}"
-          mode="${mode:-draft}"
-
-          # Determine OUT path
-          if [[ "${mode}" == "draft" ]]; then
-            if [[ -n "${draft_path}" ]]; then
-              out="${draft_path}"
-            else
-              out="plans/drafts/${start}_${end}.json"
-            fi
-          else
-            out="plans/${start}_${end}.json"
-          fi
-
-          # Echo for debugging
-          echo "start=${start}"
-          echo "end=${end}"
-          echo "intent=${intent}"
-          echo "mode=${mode}"
-          echo "out=${out}"
-          echo "draft_path=${draft_path}"
-          if [[ -n "${notes}" ]]; then echo "notes: <<EOF"; echo "${notes}"; echo "EOF"; fi
-          if [[ -n "${daily_json}" ]]; then echo "daily_notes_json: <<EOF"; echo "${daily_json}"; echo "EOF"; fi
-
-          # Set outputs
-          {
-            echo "start=${start}"
-            echo "end=${end}"
-            echo "intent=${intent}"
-            echo "mode=${mode}"
-            echo "out=${out}"
-          } >> "$GITHUB_OUTPUT"
-
-          # Multiline outputs (notes + daily json)
-          printf "notes<<EOF\n%s\nEOF\n" "${notes}" >> "$GITHUB_OUTPUT"
-          printf "daily_notes_json<<EOF\n%s\nEOF\n" "${daily_json}" >> "$GITHUB_OUTPUT"
+            // Outputs
+            core.setOutput('start', start || '');
+            core.setOutput('end', end || '');
+            core.setOutput('intent', intent);
+            core.setOutput('mode', mode);
+            core.setOutput('out', out);
+            core.setOutput('notes', notes || '');
+            core.setOutput('daily_notes_json', daily || '');
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -165,8 +159,7 @@ PY
           OUT: ${{ steps.parse.outputs.out }}
           STATIC_CONTEXT: ./static-context.md
           PLAN_RULES: ./config/plan-rules.json
-        run: |
-          node scripts/generate-plan.mjs
+        run: node scripts/generate-plan.mjs
 
       - name: Commit plan file
         shell: bash
@@ -177,11 +170,8 @@ PY
           set -e
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add "${OUT}"
-          # Also include latest.json if it changed (final mode updates pointer)
+          git add "${OUT}" || true
           git add plans/latest.json 2>/dev/null || true
-
           if git diff --staged --quiet; then
             echo "No changes to commit."
             exit 0
@@ -193,25 +183,20 @@ PY
       - name: Comment with links
         if: github.event_name == 'issues'
         uses: actions/github-script@v7
-        env:
-          GH_OWNER: ${{ github.repository_owner }}
-          GH_REPO: ${{ github.event.repository.name }}
-          OUT: ${{ steps.parse.outputs.out }}
-          MODE: ${{ steps.parse.outputs.mode }}
-          START: ${{ steps.parse.outputs.start }}
-          END: ${{ steps.parse.outputs.end }}
         with:
           script: |
-            const { OUT, MODE, START, END } = process.env;
-            const repo = context.repo.repo;
             const owner = context.repo.owner;
-            const url = `https://github.com/${owner}/${repo}/blob/${context.ref.replace('refs/heads/','')}/${OUT}`;
-            const body = MODE === 'draft'
-              ? `✅ Draft plan written to **\`${OUT}\`** for **${START}..${END}**.\n\n[View file](${url})`
-              : `✅ Final plan written to **\`${OUT}\`** for **${START}..${END}**.\n\n[View file](${url})`;
-            await github.rest.issues.createComment({
-              owner, repo, issue_number: context.issue.number, body
-            });
+            const repo  = context.repo.repo;
+            const out   = '${{ steps.parse.outputs.out }}';
+            const start = '${{ steps.parse.outputs.start }}';
+            const end   = '${{ steps.parse.outputs.end }}';
+            const mode  = '${{ steps.parse.outputs.mode }}';
+            const ref   = context.ref.replace('refs/heads/','');
+            const url   = `https://github.com/${owner}/${repo}/blob/${ref}/${out}`;
+            const body  = mode === 'draft'
+              ? `✅ Draft plan written to **\\`${out}\\`** for **${start}..${end}**.\\n\\n[View file](${url})`
+              : `✅ Final plan written to **\\`${out}\\`** for **${start}..${end}**.\\n\\n[View file](${url})`;
+            await github.rest.issues.createComment({ owner, repo, issue_number: context.issue.number, body });
 
       - name: Close issue (final only)
         if: github.event_name == 'issues' && steps.parse.outputs.mode != 'draft'
