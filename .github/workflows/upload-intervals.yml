@@ -1,35 +1,150 @@
-# .github/workflows/upload-intervals.yml
-name: Upload to Intervals
+# File: .github/workflows/upload-intervals.yml
+name: Upload Plans to Intervals.icu
+
 on:
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      plan_glob:
+        description: "Glob of plan JSON files to upload (default: plans/*.json)"
+        required: false
+        default: "plans/*.json"
+      athlete_id:
+        description: "Intervals athlete id (0 = me)"
+        required: false
+        default: "0"
+      tz:
+        description: "Local timezone for start_date_local fallback"
+        required: false
+        default: "America/Los_Angeles"
+      default_start:
+        description: "Fallback start time if date has no time (HH:MM)"
+        required: false
+        default: "06:00"
+      dry_run:
+        description: "If true, do not POST to Intervals (just print)"
+        required: false
+        default: "false"
+
+  # Auto trigger on commits to final plans (ignore drafts)
   push:
-    branches: [ main ]
     paths:
-      - "plans/**/*.json"
-    paths-ignore:
-      - "plans/drafts/**"
+      - "plans/*.json"
+      - "plans/**/latest.json"
+
 permissions:
   contents: read
+
 jobs:
   upload:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
-      - run: pip install --upgrade requests
-      - name: Find changed plan files in this push
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Choose file set
+        id: choose
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "glob=${{ inputs.plan_glob }}" >> $GITHUB_OUTPUT
+          else
+            # On push, limit to changed final plans (exclude drafts/)
+            # Fallback: if diff is empty (e.g., first push), use plans/*.json
+            CHANGED=$(git diff --name-only ${{ github.sha }}~1 ${{ github.sha }} -- 'plans/*.json' | tr '\n' ' ' || true)
+            if [ -z "$CHANGED" ]; then
+              echo "glob=plans/*.json" >> $GITHUB_OUTPUT
+            else
+              # Write space-delimited explicit list so we don't rely on shell globbing later
+              echo "explicit=$CHANGED" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Collect plan files
         id: files
         shell: bash
         run: |
-          changed=$(git diff-tree --no-commit-id --name-only -r "${{ github.sha }}" | grep '^plans/.*\\.json$' | grep -v '^plans/drafts/' || true)
-          echo "raw<<EOF" >> "$GITHUB_OUTPUT"; echo "$changed" >> "$GITHUB_OUTPUT"; echo "EOF" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          if [ -n "${{ steps.choose.outputs.explicit }}" ]; then
+            FILES="${{ steps.choose.outputs.explicit }}"
+          else
+            FILES=$(ls -1 ${{ steps.choose.outputs.glob }} 2>/dev/null | tr '\n' ' ' || true)
+          fi
+
+          # Filter to *.json that actually exist
+          OUT=""
+          for f in $FILES; do
+            [[ -f "$f" ]] || continue
+            [[ "$f" == *.json ]] || continue
+            OUT="$OUT $f"
+          done
+          OUT="${OUT# }"
+
+          COUNT=0
+          if [ -n "$OUT" ]; then
+            for _ in $OUT; do COUNT=$((COUNT+1)); done
+          fi
+
+          echo "raw=$OUT"   >> $GITHUB_OUTPUT
+          echo "count=$COUNT" >> $GITHUB_OUTPUT
+
+      - name: Set runtime inputs
+        id: cfg
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "athlete=${{ inputs.athlete_id }}"   >> $GITHUB_OUTPUT
+            echo "tz=${{ inputs.tz }}"                 >> $GITHUB_OUTPUT
+            echo "default_start=${{ inputs.default_start }}" >> $GITHUB_OUTPUT
+            echo "dry_run=${{ inputs.dry_run }}"       >> $GITHUB_OUTPUT
+          else
+            # Sensible defaults for push
+            echo "athlete=0"                           >> $GITHUB_OUTPUT
+            echo "tz=America/Los_Angeles"             >> $GITHUB_OUTPUT
+            echo "default_start=06:00"                >> $GITHUB_OUTPUT
+            echo "dry_run=false"                      >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Python
+        if: ${{ steps.files.outputs.count != '0' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python deps
+        if: ${{ steps.files.outputs.count != '0' }}
+        run: pip install --no-input requests
+
       - name: Upload each weekly plan
-        if: steps.files.outputs.raw != ''
-        env: { INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }} }
+        if: ${{ steps.files.outputs.raw != '' }}
+        env:
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+          ATHLETE: ${{ steps.cfg.outputs.athlete }}
+          TZ: ${{ steps.cfg.outputs.tz }}
+          DEFAULT_START: ${{ steps.cfg.outputs.default_start }}
+          DRY: ${{ steps.cfg.outputs.dry_run }}
         shell: bash
         run: |
-          while IFS= read -r f; do
-            [[ -z "$f" ]] && continue
-            echo "Uploading $f ..."
-            python scripts/upload_plan_to_intervals.py --plan "$f" --athlete-id 0 --tz America/Los_Angeles --default-start 06:30
-          done <<< "${{ steps.files.outputs.raw }}"
+          set -euo pipefail
+          if [ -z "${INTERVALS_API_KEY:-}" ]; then
+            echo "ERROR: INTERVALS_API_KEY secret is not set"; exit 2
+          fi
+
+          for plan in ${{ steps.files.outputs.raw }}; do
+            echo "==> Uploading $plan"
+            if [ "${DRY}" = "true" ]; then
+              python scripts/upload_plan_to_intervals.py \
+                --plan "$plan" \
+                --athlete-id "${ATHLETE}" \
+                --tz "${TZ}" \
+                --default-start "${DEFAULT_START}" \
+                --dry-run
+            else
+              python scripts/upload_plan_to_intervals.py \
+                --plan "$plan" \
+                --athlete-id "${ATHLETE}" \
+                --tz "${TZ}" \
+                --default-start "${DEFAULT_START}"
+            fi
+          done
