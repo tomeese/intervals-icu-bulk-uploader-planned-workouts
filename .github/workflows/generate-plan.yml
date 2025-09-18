@@ -53,8 +53,6 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const core = require('@actions/core');
-
             // Pull body (for issues) or inputs (for dispatch)
             const isIssue = context.eventName === 'issues';
             const body = isIssue ? (context.payload.issue?.body || '') : '';
