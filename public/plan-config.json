@@ -1,0 +1,23 @@
+{
+  "chips": [
+    "Rest Day (no workout)",
+    "Outdoor",
+    "Indoor",
+    "High cadence",
+    "Low cadence",
+    "Pedaling drills",
+    "Shorten Z2",
+    "Extend Z2",
+    "Sprint",
+    "Anaerobic",
+    "VO2",
+    "Threshold",
+    "SS",
+    "Sweet Spot",
+    "Tempo",
+    "Endurance",
+    "Recovery"
+  ],
+  "hi_intensity_keywords": ["Sprint", "VO2", "Anaerobic", "Threshold", "SS", "Sweet Spot"],
+  "weekday_longride_regex": "(long ride|\\b(3h|4h|5h|6h|180m|240m|300m)\\b)"
+}

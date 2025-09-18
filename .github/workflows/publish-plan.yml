@@ -1,0 +1,74 @@
+# .github/workflows/publish-plan.yml
+name: Publish Draft Plan
+on:
+  workflow_dispatch:
+    inputs:
+      draft_path: { description: Path under plans/drafts/, required: true }
+  issues:
+    types: [opened, labeled, edited, reopened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  publish:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      ( github.event_name == 'issues' &&
+        contains(github.event.issue.labels.*.name, 'publish-plan') )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract draft path
+        id: inp
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "draft=${{ inputs.draft_path }}" >> "$GITHUB_OUTPUT"
+          else
+            body=${{ toJSON(github.event.issue.body) }}
+            body=$(echo -e "$body")
+            draft=$(grep -iE '^\s*draft_path:\s*' <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            echo "draft=$draft" >> "$GITHUB_OUTPUT"
+          fi
+          draft="${{ steps.inp.outputs.draft }}"
+          [[ -z "$draft" ]] && { echo "Missing draft_path"; exit 1; }
+          [[ "$draft" != plans/drafts/* ]] && { echo "draft_path must be under plans/drafts/"; exit 1; }
+
+      - name: Compute final path
+        id: out
+        shell: bash
+        run: |
+          draft="${{ steps.inp.outputs.draft }}"
+          base="${draft#plans/drafts/}"
+          echo "final=plans/${base}" >> "$GITHUB_OUTPUT"
+
+      - name: Move and commit
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          mkdir -p plans
+          git mv "${{ steps.inp.outputs.draft }}" "${{ steps.out.outputs.final }}" || {
+            # If mv fails (e.g., file exists), overwrite
+            mkdir -p "$(dirname "${{ steps.out.outputs.final }}")"
+            mv -f "${{ steps.inp.outputs.draft }}" "${{ steps.out.outputs.final }}"
+            git add -A
+          }
+          git commit -m "chore: publish draft -> ${{ steps.out.outputs.final }}"
+          git push
+          echo "final=${{ steps.out.outputs.final }}" >> "$GITHUB_OUTPUT"
+
+      - name: Comment & close
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const final = '${{ steps.out.outputs.final }}';
+            const url = `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${{ github.sha }}/${final}`;
+            const body = `🎉 Published draft to **${final}**\\n\\n${url}\\n\\n_Closing publish request._`;
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
+            await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, state: 'closed' });
