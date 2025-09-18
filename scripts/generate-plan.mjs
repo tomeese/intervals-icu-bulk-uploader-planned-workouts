@@ -1,4 +1,4 @@
-/**
+/** 
  * File: scripts/generate-plan.mjs
  * Purpose: Generate a weekly Intervals.icu plan JSON via OpenAI (Responses API) with guardrails & post-rules.
  * Inputs (ENV):
@@ -8,7 +8,7 @@
  *   INTENT           (build-week | recovery-week | race-week; default: recovery-week)
  *   NOTES            (freeform weekly notes; optional)
  *   DAILY_NOTES_JSON (JSON map: {"YYYY-MM-DD": "..."}; optional)
- *   MODEL            (default: gpt-4.1-mini)
+ *   MODEL            (default: gpt-4o-mini)  // <— changed from gpt-4.1-mini
  *   OUT              (output path; default: plans/<START>_<END>.json or drafts if path includes /drafts/)
  *   STATIC_CONTEXT   (path to static-context.md; default: ./static-context.md)
  *   PLAN_RULES       (path to JSON rule config; default: ./config/plan-rules.json if present)
@@ -20,7 +20,6 @@ import process from 'node:process';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
-// ---------- helpers ----------
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const pad = (n) => String(n).padStart(2, '0');
 const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -29,33 +28,13 @@ const mondayOfWeek = (d) => { const x = new Date(d); const wd = x.getDay(); cons
 const sundayOfWeek = (d) => { const m = mondayOfWeek(d); const s = new Date(m); s.setDate(m.getDate() + 6); return s; };
 const inWeekend = (dateIso) => { const wd = fromYMDLocal(dateIso).getDay(); return wd === 0 || wd === 6; };
 const toSeconds = (minutes) => Math.max(0, Math.round(Number(minutes) * 60));
-const escapeRe = (s) => s.replace(/[-/\\^$*+?.()|[\\]{}]/g, '\\$&');
-
 async function readIfExists(file) { try { return await fs.readFile(file, 'utf-8'); } catch { return null; } }
 async function readJsonIfExists(file, fallback = null) { try { return JSON.parse(await fs.readFile(file, 'utf-8')); } catch { return fallback; } }
 async function ensureDirFor(file) { await fs.mkdir(path.dirname(file), { recursive: true }); }
-
-function listDatesInclusive(startISO, endISO) {
-  const out = []; const s = fromYMDLocal(startISO); const e = fromYMDLocal(endISO);
-  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) out.push(iso(d));
-  return out;
-}
+function listDatesInclusive(startISO, endISO) { const out = []; const s = fromYMDLocal(startISO); const e = fromYMDLocal(endISO); for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) out.push(iso(d)); return out; }
 function sanitizeName(s) { return String(s || '').replace(/\s+/g, ' ').trim().slice(0, 100); }
-function makeExternalId(ev) {
-  const date = String(ev.start_date_local || '').slice(0,10) || '0000-00-00';
-  const typ = String(ev.type || 'Ride').toLowerCase().replace(/\s+/g, '-');
-  const load = Number(ev.icu_training_load || 0) | 0;
-  const mov = Number(ev.moving_time || 0) | 0;
-  return `${date}-${typ}-${load}-${mov}`;
-}
-function asHHMM(dtStr) {
-  // Expect YYYY-MM-DDTHH:MM; if missing time, default to 06:30 (weekend 07:00)
-  const m = String(dtStr || '').match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?$/);
-  if (!m) return dtStr;
-  const day = m[1];
-  const hhmm = m[2] || '06:30';
-  return `${day}T${hhmm}`;
-}
+function makeExternalId(ev) { const date = String(ev.start_date_local || '').slice(0,10) || '0000-00-00'; const typ = String(ev.type || 'Ride').toLowerCase().replace(/\s+/g, '-'); const load = Number(ev.icu_training_load || 0) | 0; const mov = Number(ev.moving_time || 0) | 0; return `${date}-${typ}-${load}-${mov}`; }
+function asHHMM(dtStr) { const m = String(dtStr || '').match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?$/); if (!m) return dtStr; const day = m[1]; const hhmm = m[2] || '06:30'; return `${day}T${hhmm}`; }
 
 // ---------- schema ----------
 const IntervalsPlanSchema = {
@@ -87,41 +66,73 @@ const IntervalsPlanSchema = {
   }
 };
 
-// ---------- OpenAI call (native fetch) ----------
+// ---------- Responses API call (uses text.format; with fallback for schema shape) ----------
 async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
-  const res = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      input: [
-        { role: 'system', content: sys },
-        { role: 'user', content: user },
-      ],
-      temperature: 0.2,
-      max_output_tokens: 4000,
-      response_format: { type: 'json_schema', json_schema: schemaForAPI },
-    }),
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(()=>'');
-    throw new Error(`OpenAI HTTP ${res.status}: ${text.slice(0,500)}`);
-  }
-  const data = await res.json();
-  let out = data.output_text || '';
-  if (!out && Array.isArray(data.output)) {
-    const pieces = [];
-    for (const block of data.output) {
-      for (const c of (block.content || [])) {
-        if (c.type === 'output_text' && c.text) pieces.push(c.text);
+  const base = {
+    model,
+    input: [
+      { role: 'system', content: sys },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.2,
+    max_output_tokens: 4000,
+  };
+
+  // Variant A: text.format with nested json_schema object
+  const bodyA = {
+    ...base,
+    text: {
+      format: {
+        type: 'json_schema',
+        json_schema: schemaForAPI, // { name, schema, strict }
       }
     }
-    out = pieces.join('');
+  };
+
+  // Variant B: text.format with top-level name/schema/strict (seen in some docs/blogs)
+  const bodyB = {
+    ...base,
+    text: {
+      format: {
+        type: 'json_schema',
+        name: schemaForAPI?.name || 'IntervalsPlan',
+        schema: schemaForAPI?.schema,
+        strict: schemaForAPI?.strict !== false,
+      }
+    }
+  };
+
+  // Try A then B
+  for (const [label, body] of [['A', bodyA], ['B', bodyB]]) {
+    const res = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(()=> '');
+      // If it's a 4xx complaining about format, fall through to next variant
+      if (label === 'A' && /format|json_schema|unsupported|invalid/i.test(text)) {
+        console.warn(`[responses] Variant A failed, retrying with Variant B… ${res.status}: ${text.slice(0,200)}`);
+        continue;
+      }
+      throw new Error(`OpenAI HTTP ${res.status}: ${text.slice(0,500)}`);
+    }
+    const data = await res.json();
+    // Extract plain text output from Responses API
+    let out = data.output_text || '';
+    if (!out && Array.isArray(data.output)) {
+      const pieces = [];
+      for (const block of data.output) {
+        for (const c of (block.content || [])) {
+          if (c.type === 'output_text' && c.text) pieces.push(c.text);
+        }
+      }
+      out = pieces.join('');
+    }
+    return out;
   }
-  return out;
+  throw new Error('All response variants failed');
 }
 
 // ---------- main ----------
@@ -133,7 +144,7 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
     INTENT = 'recovery-week',
     NOTES = '',
     DAILY_NOTES_JSON = '',
-    MODEL = 'gpt-4.1-mini',
+    MODEL = 'gpt-4o-mini',      // <— default changed here
     OUT,
     STATIC_CONTEXT = path.resolve('static-context.md'),
     PLAN_RULES = path.resolve('config/plan-rules.json'),
@@ -152,6 +163,10 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
 
   console.log(`Generating plan ${startISO}..${endISO} intent=${INTENT} model=${MODEL} -> ${outPath}${isDraft ? ' (draft)' : ''}`);
 
+  if (/gpt-4\.1/i.test(MODEL)) {
+    console.warn('[warn] gpt-4.1* may not support JSON-schema structured outputs via text.format; prefer gpt-4o-mini or gpt-4o.'); // heads-up based on field reports
+  }
+
   // Load static & rules
   const staticContext = (await readIfExists(STATIC_CONTEXT)) || '';
   const planRules = (await readJsonIfExists(PLAN_RULES, null));
@@ -160,7 +175,7 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
   let dailyNotes = {};
   try { dailyNotes = DAILY_NOTES_JSON ? JSON.parse(DAILY_NOTES_JSON) : {}; } catch {}
 
-  // Compose prompt constraints
+  // Compose constraints
   const weekdayCapMin = planRules?.weekday_cap_minutes ?? 90;
   const weekdaySoftCapMin = planRules?.weekday_soft_cap_minutes ?? 105;
   const indoorFTP = planRules?.ftp?.indoor ?? 314;
@@ -259,11 +274,9 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
   addFormats(ajv);
   const validate = ajv.compile(IntervalsPlanSchema);
 
-  // Ensure shape
   if (Array.isArray(plan)) plan = { events: plan };
   if (!plan.events) plan.events = [];
 
-  // Fill/clean per event
   for (const ev of plan.events) {
     ev.category = 'WORKOUT';
     ev.type = ev.type && ['Ride','Gravel Ride','Virtual Ride','Run','Swim','Workout'].includes(ev.type) ? ev.type : 'Ride';
@@ -273,13 +286,14 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
     ev.icu_training_load = Number.isFinite(ev.icu_training_load) ? Math.max(0, Math.round(ev.icu_training_load)) : 0;
     if (!ev.external_id) ev.external_id = makeExternalId(ev);
 
-    // Weekday duration cap (soft)
+    // Weekday duration cap
     const dayIso = String(ev.start_date_local || '').slice(0,10);
     const isWknd = inWeekend(dayIso);
+    const weekdaySoftCapMin = planRules?.weekday_soft_cap_minutes ?? 105;
     if (!isWknd) {
       const cap = toSeconds(weekdaySoftCapMin);
       if (ev.moving_time > cap) {
-        ev.moving_time = cap; // clamp
+        ev.moving_time = cap;
         ev.description = `${ev.description ? ev.description + '\n' : ''}(auto-adjusted: weekday cap ${weekdaySoftCapMin}min)`;
       }
     }
@@ -288,24 +302,24 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
     const looksLong = /\b(long ride|\b(3h|4h|5h|6h|180m|240m|300m)\b)/i.test((ev.name || '') + ' ' + (ev.description || ''));
     if (looksLong && !isWknd) {
       ev.description = `${ev.description ? ev.description + '\n' : ''}(auto-adjusted: long rides only on Sat/Sun)`;
+      const weekdaySoftCapMin = planRules?.weekday_soft_cap_minutes ?? 105;
       ev.moving_time = Math.min(ev.moving_time, toSeconds(weekdaySoftCapMin));
     }
 
     // Indoors/Outdoors FTP hint
     const isIndoor = /INDOOR/i.test(ev.name) || /indoor/i.test(ev.description||'');
     const isOutdoor = /OUTDOOR/i.test(ev.name) || /outdoor/i.test(ev.description||'');
-    const ftp = isIndoor ? indoorFTP : isOutdoor ? outdoorFTP : indoorFTP;
+    const ftp = isIndoor ? (planRules?.ftp?.indoor ?? 314) : isOutdoor ? (planRules?.ftp?.outdoor ?? 324) : (planRules?.ftp?.indoor ?? 314);
     if (!/FTP/i.test(ev.description||'')) {
       ev.description = `${ev.description ? ev.description + '\n' : ''}(Ref: FTP ${ftp} W ${isIndoor? 'INDOOR':'OUTDOOR'})`;
     }
   }
 
-  // Ensure coverage & honor Rest Days
+  // Honor Rest Days and ensure coverage
   const wantDates = new Set(dates);
   const restDates = new Set(Object.entries(dailyNotes).filter(([d,txt]) => /Rest Day/i.test(String(txt))).map(([d]) => d));
   plan.events = plan.events.filter(e => !restDates.has(String(e.start_date_local||'').slice(0,10)));
 
-  // Add placeholders for missing dates (simple 45' recovery or wknd 90' endurance)
   const haveDates = new Set(plan.events.map(e => String(e.start_date_local||'').slice(0,10)));
   for (const d of wantDates) {
     if (restDates.has(d)) continue;
@@ -328,6 +342,9 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
 
   // Sort and validate
   plan.events.sort((a,b) => String(a.start_date_local).localeCompare(String(b.start_date_local)));
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  addFormats(ajv);
+  const validate = ajv.compile(IntervalsPlanSchema);
   const valid = validate(plan);
   if (!valid) {
     console.error('Schema validation errors:', validate.errors);
@@ -342,7 +359,6 @@ async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
   await ensureDirFor(outPath);
   await fs.writeFile(outPath, JSON.stringify(plan, null, 2) + "\n", 'utf-8');
 
-  // Summary
   const totalEvents = plan.events.length;
   const totalLoad = plan.events.reduce((s,e)=> s + (Number(e.icu_training_load)||0), 0);
   const totalHours = Math.round((plan.events.reduce((s,e)=> s + (Number(e.moving_time)||0), 0) / 3600 + Number.EPSILON) * 10) / 10;
