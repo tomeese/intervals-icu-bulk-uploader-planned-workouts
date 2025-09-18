@@ -1,34 +1,59 @@
-name: Generate Intervals Plan
+name: Generate weekly plan
+
 on:
   workflow_dispatch:
     inputs:
       start:
-        description: "Start date (YYYY-MM-DD)"
-        required: true
+        description: "Week start (YYYY-MM-DD)"
+        required: false
+        type: string
       end:
-        description: "End date (YYYY-MM-DD)"
-        required: true
+        description: "Week end (YYYY-MM-DD)"
+        required: false
+        type: string
       intent:
         description: "build-week | recovery-week | race-week"
-        required: true
+        required: false
         default: "recovery-week"
+        type: choice
+        options: [build-week, recovery-week, race-week]
       longride_weather:
-        description: "dry | rain | mixed | auto"
+        description: "auto | dry | rain | mixed"
         required: false
         default: "auto"
+        type: choice
+        options: [auto, dry, rain, mixed]
       season_hint:
-        description: "summer | shoulder | winter (used if weather=auto/missing)"
+        description: "summer | shoulder | winter"
         required: false
-        default: ""
+        default: "summer"
+        type: choice
+        options: [summer, shoulder, winter]
+      monday_rest:
+        description: "Exclude Monday from plan?"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+      notes:
+        description: "Optional notes to guide the plan"
+        required: false
+        type: string
+
   issues:
     types: [opened, edited, labeled]
 
 permissions:
-  contents: write
-  issues: read
+  contents: write   # commit plan JSON
+  issues: write     # comment/close the Issue
+
+concurrency:
+  group: generate-plan-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: false
 
 jobs:
   plan:
+    # Run if: manual dispatch, or labeled generate-plan, or body has start/end/intent
     if: |
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issues' && (
@@ -39,20 +64,24 @@ jobs:
          contains(github.event.issue.body, 'intent:'))
       ))
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with: { node-version: 20 }
-
-      - name: Install deps
-        run: npm i ajv
-
-      - name: Inject build env
+      - name: Debug event (once while tuning)
+        if: ${{ runner.debug == '1' }}
         run: |
-          echo "VITE_GH_OWNER=${{ github.repository_owner }}" >> $GITHUB_ENV
-          echo "VITE_GH_REPO=${{ github.event.repository.name }}" >> $GITHUB_ENV
+          echo "event_name=${{ github.event_name }}"
+          echo "action=${{ github.event.action }}"
+          echo "labels=${{ toJson(github.event.issue.labels) }}"
+          echo "label=${{ github.event.label.name }}"
+          echo "title=${{ github.event.issue.title }}"
+          echo "body<<'BODY'"
+          echo "${{ github.event.issue.body }}"
+          echo "BODY"
 
       - name: Compute inputs
         id: inputs
@@ -65,14 +94,10 @@ jobs:
             echo "longride_weather=${{ inputs.longride_weather }}" >> $GITHUB_OUTPUT
             echo "season_hint=${{ inputs.season_hint }}" >> $GITHUB_OUTPUT
             echo "monday_rest=${{ inputs.monday_rest }}" >> $GITHUB_OUTPUT
-            printf "notes<<EOF\n\nEOF\n" >> $GITHUB_OUTPUT
+            printf "notes<<EOF\n%s\nEOF\n" "${{ inputs.notes }}" >> $GITHUB_OUTPUT
           else
-            # Read the issue body literally from the event payload (no here-docs needed)
-            body=$(jq -r '.issue.body // empty' "$GITHUB_EVENT_PATH")
-            # Normalize line endings (in case someone pasted CRLF)
-            body=$(printf '%s\n' "$body" | sed 's/\r//g')
+            body=$(jq -r '.issue.body // empty' "$GITHUB_EVENT_PATH" | sed 's/\r//g')
 
-            # Parse simple key: value fields
             start=$(awk -F: '/^[[:space:]]*start:[[:space:]]*/{print $2; exit}' <<< "$body" | xargs)
             end=$(awk   -F: '/^[[:space:]]*end:[[:space:]]*/{print $2; exit}'   <<< "$body" | xargs)
             intent=$(awk -F: '/^[[:space:]]*intent:[[:space:]]*/{print $2; exit}' <<< "$body" | xargs)
@@ -80,7 +105,7 @@ jobs:
             shint=$(awk  -F: '/^[[:space:]]*season_hint:[[:space:]]*/{print $2; exit}' <<< "$body" | xargs)
             mrest=$(awk  -F: '/^[[:space:]]*monday_rest:[[:space:]]*/{print $2; exit}' <<< "$body" | xargs)
 
-            # Extract fenced notes after the line 'notes:' (supports ```; fallback to ~~~)
+            # Extract fenced notes after 'notes:' (``` … ```) with fallback to ~~~
             notes=$(awk '
               /^ *notes: *$/ { notes=1; next }
               notes && /^``` *$/ { if (fence) { exit } else { fence=1; next } }
@@ -102,8 +127,28 @@ jobs:
             echo "monday_rest=${mrest:-true}" >> $GITHUB_OUTPUT
             printf "notes<<EOF\n%s\nEOF\n" "$notes" >> $GITHUB_OUTPUT
           fi
-  
-      - name: Generate plan
+
+      - name: Validate inputs
+        shell: bash
+        run: |
+          set -e
+          echo "START=${{ steps.inputs.outputs.start }}"
+          echo "END=${{ steps.inputs.outputs.end }}"
+          echo "INTENT=${{ steps.inputs.outputs.intent }}"
+          if [ -z "${{ steps.inputs.outputs.start }}" ] || [ -z "${{ steps.inputs.outputs.end }}" ]; then
+            echo "Missing start/end. Provide in dispatch inputs or include 'start:' and 'end:' in the Issue body." >&2
+            exit 2
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Install generator deps
+        run: npm i ajv
+
+      - name: Generate plan JSON
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           START: ${{ steps.inputs.outputs.start }}
@@ -113,12 +158,54 @@ jobs:
           SEASON_HINT: ${{ steps.inputs.outputs.season_hint }}
           MONDAY_REST: ${{ steps.inputs.outputs.monday_rest }}
           NOTES: ${{ steps.inputs.outputs.notes }}
-        run: node scripts/generate-plan.mjs
-
-      - name: Commit plan
         run: |
-          git config user.name "gh-actions"
-          git config user.email "actions@users.noreply.github.com"
-          git add plans/*
-          git commit -m "plan: ${START}..${END} (${INTENT}) [weather=${LONGRIDE_WEATHER:-auto}${SEASON_HINT:+, season=${SEASON_HINT}}]" || echo "No changes"
-          git push
+          node scripts/generate-plan.mjs
+          ls -la plans
+          echo
+          echo "Preview:"
+          head -n 200 "plans/${{ steps.inputs.outputs.start }}_${{ steps.inputs.outputs.end }}.json" || true
+
+      - name: Commit plan files
+        id: commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: add plan ${{ steps.inputs.outputs.start }}..${{ steps.inputs.outputs.end }}"
+          file_pattern: plans/*.json
+          add_options: '-A'
+
+      - name: Resolve commit SHA for link (fallback if nothing to commit)
+        id: sha
+        shell: bash
+        run: |
+          SHA="${{ steps.commit.outputs.commit_hash }}"
+          if [ -z "$SHA" ]; then
+            SHA="$(git rev-parse HEAD)"
+          fi
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Comment link and close Issue
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue_number = context.issue.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const planPath = `plans/${{ steps.inputs.outputs.start }}_${{ steps.inputs.outputs.end }}.json`;
+            const sha = `${{ steps.sha.outputs.sha }}`;
+            const branch = process.env.GITHUB_REF_NAME || 'main';
+
+            const permalink = `https://github.com/${owner}/${repo}/blob/${sha}/${planPath}`;
+            const branchLink = `https://github.com/${owner}/${repo}/blob/${branch}/${planPath}`;
+
+            const body = [
+              `✅ Plan committed: [${planPath}](${permalink})`,
+              ``,
+              `Immutable permalink above; branch view for convenience: [${branch}](${branchLink})`,
+              ``,
+              `Closing this issue.`
+            ].join('\n');
+
+            await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            await github.rest.issues.update({ owner, repo, issue_number, state: 'closed' })
