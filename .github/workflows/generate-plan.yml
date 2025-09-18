@@ -1,127 +1,226 @@
-# .github/workflows/generate-plan.yml
-name: Generate Plan
+# File: .github/workflows/generate-plan.yml
+name: Generate Weekly Plan
+
 on:
-  workflow_dispatch:
-    inputs:
-      start: { description: Start date (YYYY-MM-DD), required: true }
-      intent: { description: build-week | recovery-week | race-week, required: true, default: recovery-week }
-      mode:   { description: draft|final, required: true, default: draft }
-      notes:  { description: Weekly notes (multiline ok), required: false }
-      daily_notes_json: { description: JSON like {"YYYY-MM-DD":"..."}, required: false }
   issues:
-    types: [opened, edited, reopened, labeled]
+    types: [opened, edited, labeled, reopened]
+  workflow_dispatch: {}
 
 permissions:
   contents: write
   issues: write
 
 jobs:
-  generate_plan:
+  generate:
+    # Run for draft/final issues with the "generate-plan" label, or manual dispatch
     if: >
-      github.event_name == 'workflow_dispatch' ||
-      ( github.event_name == 'issues' &&
-        contains(github.event.issue.labels.*.name, 'generate-plan') )
+      (github.event_name == 'issues' &&
+       contains(join(github.event.issue.labels.*.name, ','), 'generate-plan'))
+      || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - run: npm ci
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Extract inputs
-        id: inputs
+      - name: Parse inputs (issue or dispatch)
+        id: parse
         shell: bash
+        env:
+          # Pass issue body to env (empty for dispatch)
+          ISSUE_BODY: ${{ github.event_name == 'issues' && github.event.issue.body || '' }}
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "start=${{ inputs.start }}" >> "$GITHUB_OUTPUT"
-            echo "intent=${{ inputs.intent }}" >> "$GITHUB_OUTPUT"
-            echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
-            echo "end=" >> "$GITHUB_OUTPUT"
-            printf "notes<<EOF\n%s\nEOF\n" "${{ inputs.notes }}" >> "$GITHUB_OUTPUT"
-            printf "daily_notes_json<<EOF\n%s\nEOF\n" "${{ inputs.daily_notes_json }}" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            # Defaults for manual runs (edit as desired)
+            start=""
+            end=""
+            intent="recovery-week"
+            mode="draft"
+            draft_path=""
+            notes=""
+            daily_json=""
           else
-            body=${{ toJSON(github.event.issue.body) }}
-            body=$(echo -e "$body")
-            start=$(grep -iE '^\s*start:\s*' <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
-            end=$(grep   -iE '^\s*end:\s*'   <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            # Read the issue body literally (don’t execute backticks)
+            read -r -d '' body <<'BODY'
+          ${ISSUE_BODY}
+          BODY
+
+            # Simple key/value
+            start=$(grep -iE '^\s*start:\s*' <<< "$body"  | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            end=$(grep   -iE '^\s*end:\s*'   <<< "$body"  | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
             intent=$(grep -iE '^\s*intent:\s*' <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
-            mode=$(grep   -iE '^\s*mode:\s*'   <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+            mode=$(grep   -iE '^\s*mode:\s*'   <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print tolower($2)}')
+            draft_path=$(grep -iE '^\s*draft_path:\s*' <<< "$body" | head -1 | awk -F: '{sub(/^[[:space:]]*/,"",$2); print $2}')
+
+            # notes: fenced block ``` ... ``` or ~~~ ... ~~~
             notes=$(awk '
-              /^ *notes: *$/ { notes=1; next }
-              notes && /^``` *$/ { if (fence) { exit } else { fence=1; next } }
-              notes && fence { print }
+              /^ *notes: *$/ { n=1; next }
+              n && /^``` *$/ { if (f) { exit } else { f=1; next } }
+              n && /^~~~ *$/ { if (f) { exit } else { f=1; next } }
+              n && f { print }
             ' <<< "$body")
-            daily=$(awk '
-              /^ *daily_notes_json: *$/ { hit=1; next }
-              hit && /^``` *([a-zA-Z]+)? *$/ { if (fence) { exit } else { fence=1; next } }
-              hit && fence { print }
+
+            # daily_notes_json: fenced block ```json ... ```
+            daily_json=$(awk '
+              /^ *daily_notes_json: *$/ { n=1; next }
+              n && /^```(json)? *$/ { if (f) { exit } else { f=1; next } }
+              n && /^~~~ *$/ { if (f) { exit } else { f=1; next } }
+              n && f { print }
             ' <<< "$body")
-            echo "start=$start" >> "$GITHUB_OUTPUT"
-            echo "end=$end" >> "$GITHUB_OUTPUT"
-            echo "intent=${intent:-recovery-week}" >> "$GITHUB_OUTPUT"
-            echo "mode=${mode:-draft}" >> "$GITHUB_OUTPUT"
-            printf "notes<<EOF\n%s\nEOF\n" "$notes" >> "$GITHUB_OUTPUT"
-            printf "daily_notes_json<<EOF\n%s\nEOF\n" "$daily" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Compute OUT path
-        id: out
-        shell: bash
-        run: |
-          start="${{ steps.inputs.outputs.start }}"
-          end="${{ steps.inputs.outputs.end }}"
-          if [[ -z "$end" ]]; then end="auto"; fi
-          if [[ "${{ steps.inputs.outputs.mode }}" == "final" ]]; then
-            echo "out=plans/${start}_${end}.json" >> "$GITHUB_OUTPUT"
-          else
-            echo "out=plans/drafts/${start}_${end}.json" >> "$GITHUB_OUTPUT"
+          # Compute default END if missing (Sunday of the same week as START)
+          snap_to_monday() {
+            local d="$1"
+            python - <<PY
+import sys, datetime as dt
+y,m,d = map(int, sys.argv[1].split('-'))
+x = dt.date(y,m,d)
+# go to Monday of that ISO week
+delta = (x.weekday() - 0) % 7  # Monday=0
+mon = x - dt.timedelta(days=delta)
+print(mon.isoformat())
+PY
+          }
+
+          sunday_of_week() {
+            local d="$1"
+            python - <<PY
+import sys, datetime as dt
+y,m,d = map(int, sys.argv[1].split('-'))
+x = dt.date(y,m,d)
+delta = (x.weekday() - 0) % 7
+mon = x - dt.timedelta(days=delta)
+sun = mon + dt.timedelta(days=6)
+print(sun.isoformat())
+PY
+          }
+
+          if [[ -n "${start}" ]]; then
+            start="$(snap_to_monday "${start}")"
           fi
+          if [[ -z "${end}" && -n "${start}" ]]; then
+            end="$(sunday_of_week "${start}")"
+          fi
+
+          # Defaults
+          intent="${intent:-recovery-week}"
+          mode="${mode:-draft}"
+
+          # Determine OUT path
+          if [[ "${mode}" == "draft" ]]; then
+            if [[ -n "${draft_path}" ]]; then
+              out="${draft_path}"
+            else
+              out="plans/drafts/${start}_${end}.json"
+            fi
+          else
+            out="plans/${start}_${end}.json"
+          fi
+
+          # Echo for debugging
+          echo "start=${start}"
+          echo "end=${end}"
+          echo "intent=${intent}"
+          echo "mode=${mode}"
+          echo "out=${out}"
+          echo "draft_path=${draft_path}"
+          if [[ -n "${notes}" ]]; then echo "notes: <<EOF"; echo "${notes}"; echo "EOF"; fi
+          if [[ -n "${daily_json}" ]]; then echo "daily_notes_json: <<EOF"; echo "${daily_json}"; echo "EOF"; fi
+
+          # Set outputs
+          {
+            echo "start=${start}"
+            echo "end=${end}"
+            echo "intent=${intent}"
+            echo "mode=${mode}"
+            echo "out=${out}"
+          } >> "$GITHUB_OUTPUT"
+
+          # Multiline outputs (notes + daily json)
+          printf "notes<<EOF\n%s\nEOF\n" "${notes}" >> "$GITHUB_OUTPUT"
+          printf "daily_notes_json<<EOF\n%s\nEOF\n" "${daily_json}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps (OpenAI + Ajv)
+        run: |
+          npm i --no-audit --no-fund --prefer-offline openai@^5 ajv@^8 ajv-formats@^3
 
       - name: Generate plan JSON
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          START: ${{ steps.inputs.outputs.start }}
-          END: ${{ steps.inputs.outputs.end }}
-          INTENT: ${{ steps.inputs.outputs.intent }}
-          NOTES: ${{ steps.inputs.outputs.notes }}
-          DAILY_NOTES_JSON: ${{ steps.inputs.outputs.daily_notes_json }}
-          OUT: ${{ steps.out.outputs.out }}
-        run: node scripts/generate-plan.mjs
+          START: ${{ steps.parse.outputs.start }}
+          END: ${{ steps.parse.outputs.end }}
+          INTENT: ${{ steps.parse.outputs.intent }}
+          NOTES: ${{ steps.parse.outputs.notes }}
+          DAILY_NOTES_JSON: ${{ steps.parse.outputs.daily_notes_json }}
+          OUT: ${{ steps.parse.outputs.out }}
+          STATIC_CONTEXT: ./static-context.md
+          PLAN_RULES: ./config/plan-rules.json
+        run: |
+          node scripts/generate-plan.mjs
 
-      - name: Commit plan
-        id: commit
+      - name: Commit plan file
         shell: bash
+        env:
+          OUT: ${{ steps.parse.outputs.out }}
+          MODE: ${{ steps.parse.outputs.mode }}
         run: |
           set -e
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git add plans/
-          if git diff --cached --quiet; then
-            echo "no_changes=true" >> "$GITHUB_OUTPUT"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add "${OUT}"
+          # Also include latest.json if it changed (final mode updates pointer)
+          git add plans/latest.json 2>/dev/null || true
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
             exit 0
           fi
-          git commit -m "chore: add ${{ steps.inputs.outputs.mode }} plan ${{ steps.inputs.outputs.start }}..${{ steps.inputs.outputs.end || 'auto-Sun' }}"
+          msg_prefix=$([ "${MODE}" = "draft" ] && echo "Draft" || echo "Final")
+          git commit -m "${msg_prefix}: add plan ${OUT}"
           git push
-          sha=$(git rev-parse HEAD)
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-      - name: Comment and maybe close issue
-        if: github.event_name == 'issues' && steps.commit.outputs.no_changes != 'true'
+      - name: Comment with links
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        env:
+          GH_OWNER: ${{ github.repository_owner }}
+          GH_REPO: ${{ github.event.repository.name }}
+          OUT: ${{ steps.parse.outputs.out }}
+          MODE: ${{ steps.parse.outputs.mode }}
+          START: ${{ steps.parse.outputs.start }}
+          END: ${{ steps.parse.outputs.end }}
+        with:
+          script: |
+            const { OUT, MODE, START, END } = process.env;
+            const repo = context.repo.repo;
+            const owner = context.repo.owner;
+            const url = `https://github.com/${owner}/${repo}/blob/${context.ref.replace('refs/heads/','')}/${OUT}`;
+            const body = MODE === 'draft'
+              ? `✅ Draft plan written to **\`${OUT}\`** for **${START}..${END}**.\n\n[View file](${url})`
+              : `✅ Final plan written to **\`${OUT}\`** for **${START}..${END}**.\n\n[View file](${url})`;
+            await github.rest.issues.createComment({
+              owner, repo, issue_number: context.issue.number, body
+            });
+
+      - name: Close issue (final only)
+        if: github.event_name == 'issues' && steps.parse.outputs.mode != 'draft'
         uses: actions/github-script@v7
         with:
           script: |
-            const mode = '${{ steps.inputs.outputs.mode }}' || 'draft';
-            const path = '${{ steps.out.outputs.out }}';
-            const urlBlob = `https://github.com/${context.repo.owner}/${context.repo.repo}/blob/${{ steps.commit.outputs.sha }}/${path}`;
-            const urlRaw  = `https://raw.githubusercontent.com/${context.repo.owner}/${context.repo.repo}/${{ steps.commit.outputs.sha }}/${path}`;
-            const body = [
-              `✅ ${mode === 'final' ? 'Final' : 'Draft'} plan committed:`,
-              ``,
-              `- [${path}](${urlBlob})  ([raw](${urlRaw}))`,
-              ``,
-              mode === 'final' ? '_Closing this Issue._' : '_This stays open until you publish the draft._'
-            ].join('\\n');
-            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, body });
-            if (mode === 'final') {
-              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.issue.number, state: 'closed' });
-            }
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });

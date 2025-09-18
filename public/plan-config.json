@@ -16,7 +16,11 @@
     "Sweet Spot",
     "Tempo",
     "Endurance",
-    "Recovery"
+    "Recovery",
+    "Zwift Race",
+    "Outdoor Gravel Race",
+    "Bonk WNR",
+    "Long Endurance"
   ],
   "hi_intensity_keywords": ["Sprint", "VO2", "Anaerobic", "Threshold", "SS", "Sweet Spot"],
   "weekday_longride_regex": "(long ride|\\b(3h|4h|5h|6h|180m|240m|300m)\\b)"
