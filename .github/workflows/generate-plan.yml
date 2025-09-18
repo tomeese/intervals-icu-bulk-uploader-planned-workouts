@@ -144,7 +144,7 @@ jobs:
 
       - name: Install deps (OpenAI + Ajv)
         run: |
-          npm i --no-audit --no-fund --prefer-offline openai@^5 ajv@^8 ajv-formats@^3
+          npm i --no-audit --no-fund --prefer-offline ajv@^8 ajv-formats@^3
 
       - name: Generate plan JSON
         env:

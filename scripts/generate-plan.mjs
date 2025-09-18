@@ -1,6 +1,6 @@
 /**
  * File: scripts/generate-plan.mjs
- * Purpose: Generate a weekly Intervals.icu plan JSON via OpenAI with guardrails & post-rules.
+ * Purpose: Generate a weekly Intervals.icu plan JSON via OpenAI (Responses API) with guardrails & post-rules.
  * Inputs (ENV):
  *   OPENAI_API_KEY   (required)
  *   START            (YYYY-MM-DD, required)
@@ -8,23 +8,15 @@
  *   INTENT           (build-week | recovery-week | race-week; default: recovery-week)
  *   NOTES            (freeform weekly notes; optional)
  *   DAILY_NOTES_JSON (JSON map: {"YYYY-MM-DD": "..."}; optional)
- *   MODEL            (OpenAI model id; default: gpt-4.1-mini)
- *   OUT              (output filepath; default: plans/<START>_<END>.json or drafts if path includes /drafts/)
+ *   MODEL            (default: gpt-4.1-mini)
+ *   OUT              (output path; default: plans/<START>_<END>.json or drafts if path includes /drafts/)
  *   STATIC_CONTEXT   (path to static-context.md; default: ./static-context.md)
  *   PLAN_RULES       (path to JSON rule config; default: ./config/plan-rules.json if present)
- *
- * Behavior:
- *  - Reads static-context.md and optional rules JSON to seed system context.
- *  - Generates a plan covering ALL dates in START..END (inclusive, local), skipping days marked "Rest Day" in daily notes.
- *  - Enforces weekday duration caps (<= 90' hard cap 105') and weekend-only long rides.
- *  - Validates output against a strict JSON Schema (Ajv 2020). Auto-fixes common issues & re-validates.
- *  - Writes OUT path (creates dirs). Logs a compact summary.
  */
 
 import fs from 'fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import OpenAI from 'openai';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
@@ -37,27 +29,18 @@ const mondayOfWeek = (d) => { const x = new Date(d); const wd = x.getDay(); cons
 const sundayOfWeek = (d) => { const m = mondayOfWeek(d); const s = new Date(m); s.setDate(m.getDate() + 6); return s; };
 const inWeekend = (dateIso) => { const wd = fromYMDLocal(dateIso).getDay(); return wd === 0 || wd === 6; };
 const toSeconds = (minutes) => Math.max(0, Math.round(Number(minutes) * 60));
+const escapeRe = (s) => s.replace(/[-/\\^$*+?.()|[\\]{}]/g, '\\$&');
 
-async function readIfExists(file) {
-  try { return await fs.readFile(file, 'utf-8'); } catch { return null; }
-}
-async function readJsonIfExists(file, fallback = null) {
-  try { return JSON.parse(await fs.readFile(file, 'utf-8')); } catch { return fallback; }
-}
-async function ensureDirFor(file) {
-  await fs.mkdir(path.dirname(file), { recursive: true });
-}
+async function readIfExists(file) { try { return await fs.readFile(file, 'utf-8'); } catch { return null; } }
+async function readJsonIfExists(file, fallback = null) { try { return JSON.parse(await fs.readFile(file, 'utf-8')); } catch { return fallback; } }
+async function ensureDirFor(file) { await fs.mkdir(path.dirname(file), { recursive: true }); }
 
 function listDatesInclusive(startISO, endISO) {
   const out = []; const s = fromYMDLocal(startISO); const e = fromYMDLocal(endISO);
   for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) out.push(iso(d));
   return out;
 }
-
-function clamp(n, lo, hi) { n = Number(n); return isNaN(n) ? lo : Math.max(lo, Math.min(hi, n)); }
-
 function sanitizeName(s) { return String(s || '').replace(/\s+/g, ' ').trim().slice(0, 100); }
-
 function makeExternalId(ev) {
   const date = String(ev.start_date_local || '').slice(0,10) || '0000-00-00';
   const typ = String(ev.type || 'Ride').toLowerCase().replace(/\s+/g, '-');
@@ -65,7 +48,6 @@ function makeExternalId(ev) {
   const mov = Number(ev.moving_time || 0) | 0;
   return `${date}-${typ}-${load}-${mov}`;
 }
-
 function asHHMM(dtStr) {
   // Expect YYYY-MM-DDTHH:MM; if missing time, default to 06:30 (weekend 07:00)
   const m = String(dtStr || '').match(/^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?$/);
@@ -105,6 +87,43 @@ const IntervalsPlanSchema = {
   }
 };
 
+// ---------- OpenAI call (native fetch) ----------
+async function callResponses({ apiKey, model, sys, user, schemaForAPI }) {
+  const res = await fetch('https://api.openai.com/v1/responses', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model,
+      input: [
+        { role: 'system', content: sys },
+        { role: 'user', content: user },
+      ],
+      temperature: 0.2,
+      max_output_tokens: 4000,
+      response_format: { type: 'json_schema', json_schema: schemaForAPI },
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(()=>'');
+    throw new Error(`OpenAI HTTP ${res.status}: ${text.slice(0,500)}`);
+  }
+  const data = await res.json();
+  let out = data.output_text || '';
+  if (!out && Array.isArray(data.output)) {
+    const pieces = [];
+    for (const block of data.output) {
+      for (const c of (block.content || [])) {
+        if (c.type === 'output_text' && c.text) pieces.push(c.text);
+      }
+    }
+    out = pieces.join('');
+  }
+  return out;
+}
+
 // ---------- main ----------
 (async function main() {
   const {
@@ -141,9 +160,9 @@ const IntervalsPlanSchema = {
   let dailyNotes = {};
   try { dailyNotes = DAILY_NOTES_JSON ? JSON.parse(DAILY_NOTES_JSON) : {}; } catch {}
 
-  // Compose prompt
-  const weekdayCapMin = planRules?.weekday_cap_minutes ?? 90; // hard cap 90'
-  const weekdaySoftCapMin = planRules?.weekday_soft_cap_minutes ?? 105; // allow 105' occasionally
+  // Compose prompt constraints
+  const weekdayCapMin = planRules?.weekday_cap_minutes ?? 90;
+  const weekdaySoftCapMin = planRules?.weekday_soft_cap_minutes ?? 105;
   const indoorFTP = planRules?.ftp?.indoor ?? 314;
   const outdoorFTP = planRules?.ftp?.outdoor ?? 324;
 
@@ -198,32 +217,19 @@ const IntervalsPlanSchema = {
     '- external_id must be stable and slug-like (e.g. date-shortname).',
   ].filter(Boolean).join('\n');
 
-  // OpenAI call with retries
-  const client = new OpenAI({ apiKey: OPENAI_API_KEY });
   const schemaForAPI = { name: 'IntervalsPlan', schema: IntervalsPlanSchema, strict: true };
 
+  // Call OpenAI with retries
   let rawText = null, lastErr = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      const resp = await client.responses.create({
+      rawText = await callResponses({
+        apiKey: OPENAI_API_KEY,
         model: MODEL,
-        input: [
-          { role: 'system', content: staticContext ? `${sys}\n\nSTATIC CONTEXT:\n${staticContext}` : sys },
-          { role: 'user', content: user },
-        ],
-        temperature: 0.2,
-        max_output_tokens: 4000,
-        response_format: { type: 'json_schema', json_schema: schemaForAPI },
+        sys: staticContext ? `${sys}\n\nSTATIC CONTEXT:\n${staticContext}` : sys,
+        user,
+        schemaForAPI,
       });
-      // Prefer output_text if present; otherwise stitch content
-      rawText = resp.output_text || '';
-      if (!rawText) {
-        const pieces = [];
-        for (const block of resp.output || []) {
-          for (const c of (block.content || [])) { if (c.type === 'output_text' && c.text) pieces.push(c.text); }
-        }
-        rawText = pieces.join('');
-      }
       if (rawText) break;
       throw new Error('empty response');
     } catch (e) {
@@ -238,7 +244,7 @@ const IntervalsPlanSchema = {
     process.exit(1);
   }
 
-  // Parse JSON (defensive)
+  // Parse JSON defensively
   function safeParseFirstJson(s) {
     try { return JSON.parse(s); } catch {}
     const m = s.match(/\{[\s\S]*\}/);
@@ -267,7 +273,7 @@ const IntervalsPlanSchema = {
     ev.icu_training_load = Number.isFinite(ev.icu_training_load) ? Math.max(0, Math.round(ev.icu_training_load)) : 0;
     if (!ev.external_id) ev.external_id = makeExternalId(ev);
 
-    // Weekday duration cap
+    // Weekday duration cap (soft)
     const dayIso = String(ev.start_date_local || '').slice(0,10);
     const isWknd = inWeekend(dayIso);
     if (!isWknd) {
@@ -278,8 +284,8 @@ const IntervalsPlanSchema = {
       }
     }
 
-    // Long-ride weekday guard: if description suggests long, and weekday → annotate
-    const looksLong = /\b(long ride|\b(3h|4h|5h|6h|180m|240m|300m)\b)/i.test(ev.name + ' ' + (ev.description||''));
+    // Long-ride weekday guard
+    const looksLong = /\b(long ride|\b(3h|4h|5h|6h|180m|240m|300m)\b)/i.test((ev.name || '') + ' ' + (ev.description || ''));
     if (looksLong && !isWknd) {
       ev.description = `${ev.description ? ev.description + '\n' : ''}(auto-adjusted: long rides only on Sat/Sun)`;
       ev.moving_time = Math.min(ev.moving_time, toSeconds(weekdaySoftCapMin));
@@ -294,17 +300,13 @@ const IntervalsPlanSchema = {
     }
   }
 
-  // Ensure coverage & skip rest days from DAILY_NOTES
+  // Ensure coverage & honor Rest Days
   const wantDates = new Set(dates);
-  const haveDates = new Set(plan.events.map(e => String(e.start_date_local||'').slice(0,10)));
-
-  // Drop events that are on dates marked as explicit Rest Day
-  const restDates = new Set(Object.entries(dailyNotes)
-    .filter(([d,txt]) => /Rest Day/i.test(String(txt)))
-    .map(([d]) => d));
+  const restDates = new Set(Object.entries(dailyNotes).filter(([d,txt]) => /Rest Day/i.test(String(txt))).map(([d]) => d));
   plan.events = plan.events.filter(e => !restDates.has(String(e.start_date_local||'').slice(0,10)));
 
-  // Add placeholders for missing dates (simple 45' recovery), unless date is rest
+  // Add placeholders for missing dates (simple 45' recovery or wknd 90' endurance)
+  const haveDates = new Set(plan.events.map(e => String(e.start_date_local||'').slice(0,10)));
   for (const d of wantDates) {
     if (restDates.has(d)) continue;
     if (!haveDates.has(d)) {
@@ -324,15 +326,11 @@ const IntervalsPlanSchema = {
     }
   }
 
-  // Final sort by date/time
+  // Sort and validate
   plan.events.sort((a,b) => String(a.start_date_local).localeCompare(String(b.start_date_local)));
-
-  // Validate
   const valid = validate(plan);
   if (!valid) {
-    console.error('Schema validation errors:');
-    console.error(validate.errors);
-    // Attempt a final coercion for times without HH:MM
+    console.error('Schema validation errors:', validate.errors);
     for (const ev of plan.events) ev.start_date_local = asHHMM(ev.start_date_local);
     if (!validate(plan)) {
       console.error('Fatal: still invalid after fixes.');
@@ -351,7 +349,7 @@ const IntervalsPlanSchema = {
   console.log(`[ok] wrote ${outPath}`);
   console.log(`[summary] events=${totalEvents} TSS=${totalLoad} hours=${totalHours}`);
 
-  // Optionally update a latest pointer if writing a final plan
+  // Update latest pointer for final
   try {
     if (!isDraft) {
       const latestPtr = path.join(path.dirname(outPath), 'latest.json');
