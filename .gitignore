@@ -6,7 +6,10 @@ __pycache__/
 .env
 .env*.local
 .pytest_cache/
+.whl
+.zip
 build/
+wheelhouse/
 dist/
 
 # macOS
@@ -37,3 +40,5 @@ Thumbs.db
 !reports/weekly/**
 !reports/daily/
 !reports/daily/**
+AWSCLIV2.pkg
+intervals-backend/app.zip
