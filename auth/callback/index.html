@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Auth Callback</title>
+</head>
+<body>
+<script>
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const code = params.get("code");
+  if (!code) { document.body.textContent = "Missing code"; return; }
+
+  // These must match your app client + domain
+  const COG_DOMAIN = "https://<your-domain>.auth.us-west-2.amazoncognito.com";
+  const CLIENT_ID  = "7jmmk7o7tk78qe4ibhngpsk3pc";
+  const REDIRECT   = "https://tomeese.github.io/intervals-icu-bulk-uploader-planned-workouts/auth/callback";
+
+  // Pull the PKCE verifier you stored before redirect (sessionStorage)
+  const verifier = sessionStorage.getItem("pkce_verifier");
+  if (!verifier) { document.body.textContent = "Missing PKCE verifier"; return; }
+
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    client_id: CLIENT_ID,
+    code,
+    redirect_uri: REDIRECT,
+    code_verifier: verifier
+  });
+
+  const res = await fetch(`${COG_DOMAIN}/oauth2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body
+  });
+
+  const tok = await res.json();
+  if (!res.ok) {
+    console.error(tok);
+    document.body.textContent = "Token exchange failed";
+    return;
+  }
+
+  // Stash the ID token for your SPA
+  sessionStorage.setItem("id_token", tok.id_token);
+
+  // Clean bounce to app root (no querystring)
+  location.replace("https://tomeese.github.io/intervals-icu-bulk-uploader-planned-workouts/");
+})();
+</script>
+</body>
+</html>
